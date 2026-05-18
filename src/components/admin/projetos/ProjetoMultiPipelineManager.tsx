@@ -1238,11 +1238,27 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
                     </div>
 
                     {showDraftWarning && (
-                      <div className="mt-2 flex items-start gap-2 p-2 rounded-md border border-warning/30 bg-warning/5 text-warning">
-                        <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                        <p className="text-[10px] leading-snug">
-                          A etapa está em <strong>"{activeMembership.stage_name}"</strong>, mas a ordem ainda está como <strong>"{ordemCompra.status || 'rascunho'}"</strong>. Clique em <strong>"Editar"</strong> e confirme os dados do pedido para atualizar.
-                        </p>
+                      <div className="mt-2 flex flex-col gap-2 p-3 rounded-md border border-warning/30 bg-warning/5">
+                        <div className="flex items-start gap-2 text-warning">
+                          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          <p className="text-[10px] leading-snug">
+                            A etapa atual do projeto indica avanço operacional, mas a ordem de compra ainda não foi atualizada.
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-[10px] w-fit gap-1 border-warning/40 text-warning hover:bg-warning/10 hover:text-warning"
+                          onClick={() => changeStage(activeMembership.id, activeMembership.stage_id, true)}
+                          disabled={!!saving}
+                        >
+                          {saving === activeMembership.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <RotateCcw className="h-3 w-3" />
+                          )}
+                          Atualizar status da ordem
+                        </Button>
                       </div>
                     )}
                   </motion.div>
