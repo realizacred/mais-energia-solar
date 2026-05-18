@@ -22,7 +22,7 @@ export function useClienteProjetoAberto(clienteId: string | null) {
         .from("projetos")
         .select("id, codigo")
         .eq("cliente_id", clienteId)
-        .in("status", ["criado", "aguardando_documentacao", "aguardando_dados_tecnicos", "em_analise", "aprovado", "em_instalacao"])
+        .in("status", ["criado", "aguardando_documentacao", "em_analise", "aprovado", "em_instalacao"])
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
