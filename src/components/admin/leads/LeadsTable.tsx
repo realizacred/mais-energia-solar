@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { formatBRL } from "@/lib/formatters";
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Zap, TrendingUp, MessageSquare, AlertTriangle, CheckCircle2, Clock, RotateCcw, ScrollText } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Zap, TrendingUp, MessageSquare, AlertTriangle, CheckCircle2, Clock, RotateCcw, ScrollText, FolderOpen } from "lucide-react";
 import { usePropostaRapidaLead } from "@/hooks/usePropostaRapidaLead";
 import { DuplicateOpenDealModal } from "@/components/leads/DuplicateOpenDealModal";
 import { ButtonLoader } from "@/components/loading/ButtonLoader";
@@ -258,11 +258,11 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="text-warning hover:text-warning hover:bg-warning/10"
+                            className={lead.cliente_id_vinculado ? "text-primary hover:text-primary hover:bg-primary/10" : "text-warning hover:text-warning hover:bg-warning/10"}
                             onClick={(e) => { e.stopPropagation(); quickConvertToProposal(lead); }}
                             disabled={quickLoading}
                           >
-                            {quickLoading && loadingLeadId === lead.id ? <ButtonLoader /> : <ScrollText className="w-4 h-4" />}
+                            {quickLoading && loadingLeadId === lead.id ? <ButtonLoader /> : (lead.cliente_id_vinculado ? <FolderOpen className="w-4 h-4" /> : <ScrollText className="w-4 h-4" />)}
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
