@@ -112,9 +112,10 @@ export function usePropostaRapidaLead() {
 
     if (error) throw error;
 
-    const clienteId = data.cliente_id || data.id;
-    const projetoId = data.projeto_id;
-    const dealId = data.deal_id;
+    const response = data as any;
+    const clienteId = response.cliente_id || response.id;
+    const projetoId = response.projeto_id;
+    const dealId = response.deal_id;
 
     if (!projetoId) {
       throw new Error("Falha ao gerar projeto na conversão unificada.");
