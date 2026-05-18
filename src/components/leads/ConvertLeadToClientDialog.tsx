@@ -14,6 +14,7 @@ import { StepDadosPessoais, type Step1Data } from "./conversion/StepDadosPessoai
 import { StepTecnico, type Step2Data } from "./conversion/StepTecnico";
 import { StepFinanceiro } from "./conversion/StepFinanceiro";
 import { useVendaFinanceSnapshot } from "@/hooks/useVendaFinanceSnapshot";
+import { mapSelectedOrcamentoToConversionData } from "@/services/leads/mapSelectedOrcamentoToConversionData";
 
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
 
@@ -68,62 +69,44 @@ export function ConvertLeadToClientDialog({
   const finance = useVendaFinanceSnapshot(valorVenda, paymentItems);
 
   useEffect(() => {
-    if (open) {
-      const source = selectedOrcamento || lead;
-      if (!source) return;
-
-      const currentId = selectedOrcamento?.id || lead?.id || orcamentoId;
-      const isNewSource = lastHydratedId.current !== currentId;
-
-      if (isNewSource) {
-        const saved = localStorage.getItem(`lead_conversion_${currentId}`);
-        if (saved) {
-          const data = JSON.parse(saved);
-          setStep1Data(data.step1Data || { 
-            nome: source.nome || "", 
-            telefone: (source as any).telefone || "", 
-            email: (source as any).email || "", 
-            cep: (source as any).cep || "",
-            cidade: (source as any).cidade || "",
-            estado: (source as any).estado || "",
-            bairro: (source as any).bairro || "",
-            rua: (source as any).rua || "",
-            numero: (source as any).numero || "",
-          });
-          setStep2Data(data.step2Data || {
-            localizacao: (source as any).localizacao || "",
-            observacoes: (source as any).observacoes || "",
-          });
-        } else {
-          const initialS1 = { 
-            nome: source.nome || "", 
-            telefone: (source as any).telefone || "", 
-            email: (source as any).email || "", 
-            cep: (source as any).cep || "",
-            cidade: (source as any).cidade || "",
-            estado: (source as any).estado || "",
-            bairro: (source as any).bairro || "",
-            rua: (source as any).rua || "",
-            numero: (source as any).numero || "",
-          };
-          const initialS2 = {
-            localizacao: (source as any).localizacao || "",
-            observacoes: (source as any).observacoes || "",
-          };
-
-          setStep1Data(initialS1);
-          setStep2Data(initialS2);
-          setIdentidadeFiles([]);
-          setComprovanteFiles([]);
-          setPaymentItems([createEmptyItem()]);
-        }
-        lastHydratedId.current = currentId || null;
-      }
-    } else {
+    if (!open) {
       setCurrentStep(0);
       lastHydratedId.current = null;
+      return;
     }
-  }, [lead?.id, selectedOrcamento?.id, open, orcamentoId]);
+
+    const mapped = mapSelectedOrcamentoToConversionData(selectedOrcamento, lead);
+    const currentId = mapped._orcamento_id || mapped._lead_id || orcamentoId || null;
+
+    if (lastHydratedId.current === currentId) return;
+
+    setStep1Data({
+      nome: mapped.nome,
+      telefone: mapped.telefone,
+      email: mapped.email,
+      cpf_cnpj: mapped.cpf_cnpj,
+      data_nascimento: mapped.data_nascimento,
+      cep: mapped.cep,
+      estado: mapped.estado,
+      cidade: mapped.cidade,
+      bairro: mapped.bairro,
+      rua: mapped.rua,
+      numero: mapped.numero,
+      complemento: mapped.complemento,
+    });
+    setStep2Data({
+      localizacao: mapped.localizacao,
+      observacoes: mapped.observacoes,
+      media_consumo: mapped.media_consumo,
+      consumo_previsto: mapped.consumo_previsto,
+    });
+    setIdentidadeFiles([]);
+    setComprovanteFiles([]);
+    setBeneficiariaFiles([]);
+    setAssinaturaFiles([]);
+    setPaymentItems([createEmptyItem()]);
+    lastHydratedId.current = currentId;
+  }, [lead?.id, selectedOrcamento?.id, open, orcamentoId, lead, selectedOrcamento]);
 
   const handleSubmit = async () => {
     setLoading(true);
