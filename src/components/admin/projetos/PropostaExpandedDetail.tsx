@@ -1459,16 +1459,16 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 </TooltipProvider>
 
                 {p.status === 'accepted' && (
-                  <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none h-4 px-1.5 text-[10px] font-bold">Aceita</Badge>
+                  <Badge className="bg-green-600 text-white hover:bg-green-600 border-none h-4 px-1.5 text-[10px] font-bold">Proposta aceita</Badge>
                 )}
                 {p.status === 'generated' && (
-                  <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-100 border-none h-4 px-1.5 text-[10px] font-bold">Gerada</Badge>
+                  <Badge className="bg-blue-600 text-white hover:bg-blue-600 border-none h-4 px-1.5 text-[10px] font-bold">Proposta gerada</Badge>
                 )}
                 {p.status === 'rejected' && (
-                  <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-none h-4 px-1.5 text-[10px] font-bold">Recusada</Badge>
+                  <Badge className="bg-red-600 text-white hover:bg-red-600 border-none h-4 px-1.5 text-[10px] font-bold">Proposta recusada</Badge>
                 )}
                 {p.status === 'sent' && (
-                  <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none h-4 px-1.5 text-[10px] font-bold">Enviada</Badge>
+                  <Badge className="bg-blue-500 text-white hover:bg-blue-500 border-none h-4 px-1.5 text-[10px] font-bold">Proposta enviada</Badge>
                 )}
 
                 {p.versoes.length > 1 && (
