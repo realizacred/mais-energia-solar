@@ -238,14 +238,14 @@ async function sha256Hex(input: string): Promise<string> {
     .join("");
 }
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  rascunho: ["gerada"],
-  gerada: ["enviada", "aceita", "recusada", "cancelada"],
-  enviada: ["vista", "aceita", "recusada", "cancelada"],
-  vista: ["aceita", "recusada", "cancelada"],
-  aceita: ["cancelada"],
-  recusada: ["gerada", "enviada"],
+  rascunho: ["gerada", "cancelada"],
+  gerada: ["enviada", "aceita", "recusada", "cancelada", "rascunho"],
+  enviada: ["vista", "aceita", "recusada", "cancelada", "gerada"],
+  vista: ["aceita", "recusada", "cancelada", "gerada"],
+  aceita: ["recusada", "cancelada", "gerada"],
+  recusada: ["rascunho", "gerada"],
   expirada: ["gerada"],
-  cancelada: [],
+  cancelada: ["rascunho"],
 };
 
 Deno.serve(async (req) => {
