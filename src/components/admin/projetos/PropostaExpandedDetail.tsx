@@ -1406,11 +1406,6 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
               <StatusBadge status={p.status} aceita_at={p.aceita_at} enviada_at={p.enviada_at} recusada_at={p.recusada_at} created_at={p.created_at} />
               {isMigrated && <PropostaBadge type="migrada" />}
               {isPrincipal && <PropostaBadge type="principal" />}
-              {p.status === 'accepted' && (
-                <Badge variant="outline" className="text-green-700 border-green-500 bg-green-50 h-5 text-[10px] font-bold px-2">
-                  Aceita
-                </Badge>
-              )}
               {isOutdated && <PropostaBadge type="desatualizada" />}
 
             </div>
