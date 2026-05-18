@@ -147,6 +147,13 @@ export async function fetchActiveKits(
     query = query.or(`name.ilike.${q},description.ilike.${q},fabricante.ilike.${q}`);
   }
 
+  if (filters?.fabricanteInversor?.trim()) {
+    query = query.ilike("fabricante", `%${filters.fabricanteInversor.trim()}%`);
+  }
+  if (filters?.searchDistribuidor?.trim()) {
+    query = query.or(`name.ilike.%${filters.searchDistribuidor.trim()}%,fornecedor_nome.ilike.%${filters.searchDistribuidor.trim()}%`);
+  }
+
   // Paginação
   const from = page * pageSize;
   const to = (page + 1) * pageSize - 1;
