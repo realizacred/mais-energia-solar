@@ -369,14 +369,31 @@ function PaymentItemCard({ item, index, isFirst, expanded, onToggle, onUpdate, o
                   </div>
                 </div>
 
-                {/* Row 1b: Entrada toggle */}
-                <div className="flex items-center gap-2 overflow-visible">
-                  <Switch
-                    checked={item.entrada}
-                    onCheckedChange={(v) => onUpdate({ entrada: v })}
-                    disabled={readOnly}
-                  />
-                  <Label className="text-xs">Marcar como entrada</Label>
+                {/* Row 1b: Entrada toggle + valor entrada */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 overflow-visible">
+                    <Switch
+                      checked={item.entrada}
+                      onCheckedChange={(v) => onUpdate({ entrada: v, valor_entrada: v ? (item.valor_entrada ?? 0) : 0 })}
+                      disabled={readOnly}
+                    />
+                    <Label className="text-xs">Marcar como entrada</Label>
+                  </div>
+                  {item.entrada && (
+                    <div className="space-y-1.5 pl-9">
+                      <Label className="text-xs">Valor da Entrada (R$)</Label>
+                      <CurrencyInput
+                        value={item.valor_entrada ?? 0}
+                        onChange={(v) => onUpdate({ valor_entrada: v })}
+                        className="h-9"
+                        disabled={readOnly}
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        Parcelas: {formatBRL(Math.max(0, item.valor_base - (item.valor_entrada ?? 0)))}
+                        {item.parcelas > 1 ? ` ÷ ${item.parcelas}x` : ""}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Row 2: Data */}
