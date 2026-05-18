@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -30,50 +30,40 @@ export type Step1Data = z.infer<typeof step1Schema>;
 
 interface StepDadosPessoaisProps {
   initialData: Partial<Step1Data>;
+  hydrationKey?: string | null;
   onChange: (data: Step1Data, isValid: boolean) => void;
 }
 
-export function StepDadosPessoais({ initialData, onChange }: StepDadosPessoaisProps) {
+export function StepDadosPessoais({ initialData, hydrationKey, onChange }: StepDadosPessoaisProps) {
+  const mappedValues = useMemo<Step1Data>(() => ({
+    nome: initialData.nome || "",
+    telefone: initialData.telefone || "",
+    email: initialData.email || "",
+    cpf_cnpj: initialData.cpf_cnpj || "",
+    data_nascimento: initialData.data_nascimento || "",
+    cep: initialData.cep || "",
+    estado: initialData.estado || "",
+    cidade: initialData.cidade || "",
+    bairro: initialData.bairro || "",
+    rua: initialData.rua || "",
+    numero: initialData.numero || "",
+    complemento: initialData.complemento || "",
+  }), [initialData]);
+  const lastResetKeyRef = useRef<string | null>(null);
+
   const form = useForm<Step1Data>({
     resolver: zodResolver(step1Schema),
-    defaultValues: {
-      nome: initialData.nome || "",
-      telefone: initialData.telefone || "",
-      email: initialData.email || "",
-      cpf_cnpj: initialData.cpf_cnpj || "",
-      data_nascimento: initialData.data_nascimento || "",
-      cep: initialData.cep || "",
-      estado: initialData.estado || "",
-      cidade: initialData.cidade || "",
-      bairro: initialData.bairro || "",
-      rua: initialData.rua || "",
-      numero: initialData.numero || "",
-      complemento: initialData.complemento || "",
-    },
+    defaultValues: mappedValues,
     mode: "onChange",
   });
 
-  // Force form reset when initialData changes to ensure re-hydration
   useEffect(() => {
-    if (initialData.nome || initialData.telefone || initialData.cep || initialData.cidade) {
-      if (!form.formState.isDirty) {
-        form.reset({
-          nome: initialData.nome || "",
-          telefone: initialData.telefone || "",
-          email: initialData.email || "",
-          cpf_cnpj: initialData.cpf_cnpj || "",
-          data_nascimento: initialData.data_nascimento || "",
-          cep: initialData.cep || "",
-          estado: initialData.estado || "",
-          cidade: initialData.cidade || "",
-          bairro: initialData.bairro || "",
-          rua: initialData.rua || "",
-          numero: initialData.numero || "",
-          complemento: initialData.complemento || "",
-        });
-      }
-    }
-  }, [initialData, form]);
+    if (!hydrationKey) return;
+    if (lastResetKeyRef.current === hydrationKey) return;
+
+    form.reset(mappedValues);
+    lastResetKeyRef.current = hydrationKey;
+  }, [hydrationKey, mappedValues, form]);
 
   const formData = form.watch();
   const isValid = form.formState.isValid;
