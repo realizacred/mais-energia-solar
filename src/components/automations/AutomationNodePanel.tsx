@@ -8,23 +8,18 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   FolderPlus, 
   Trophy, 
-  FileCheck, 
-  CheckSquare, 
-  Edit3, 
   ArrowRightLeft,
-  Anchor, 
-  Mail, 
-  MessageSquare, 
   Trash2, 
   AlertTriangle,
   Info,
-  Target,
   GitBranch,
   Search,
   FolderKanban
 } from "lucide-react";
 import { AutomationFlowNode, TriggerType, ActionType, TRIGGER_LABELS, ACTION_LABELS, AutomationNodeType } from "@/types/automation-flow";
 import { cn } from "@/lib/utils";
+import { nodeIcons, actionIcons } from "./AutomationNodeConstants";
+import { AutomationWhatsAppForm } from "./AutomationWhatsAppForm";
 
 interface AutomationNodePanelProps {
   node: AutomationFlowNode | null;
@@ -64,7 +59,7 @@ export function AutomationNodePanel({
             className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-blue-200 hover:border-blue-500 hover:bg-blue-50 transition-all group"
           >
             <div className="p-3 rounded-lg bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-              <Target className="h-6 w-6" />
+              <nodeIcons.action className="h-6 w-6" />
             </div>
             <span className="text-sm font-bold text-blue-700">Ação</span>
           </button>
