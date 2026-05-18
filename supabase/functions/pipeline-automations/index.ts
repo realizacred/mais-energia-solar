@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { sanitizeError } from "../_shared/error-utils.ts";
 import { checkFeatureAccess, checkUsageLimit, trackUsage } from "../_shared/entitlement.ts";
+import { buildAutomationContext, renderTemplate, resolveVariable } from "./context.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,6 +22,123 @@ serve(async (req: Request) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+    const body = await req.json();
+    const { automation_id, trigger_data } = body;
+
+    // Se recebermos automation_id e trigger_data, estamos no novo fluxo baseado em eventos
+    if (automation_id && trigger_data) {
+      console.log(`[pipeline-automations] Event trigger: auto=${automation_id} projeto=${trigger_data.projeto_id}`);
+      
+      const { data: auto, error: autoErr } = await supabase
+        .from("pipeline_automations")
+        .select("*")
+        .eq("id", automation_id)
+        .single();
+
+      if (autoErr || !auto) throw new Error(`Automation not found: ${automation_id}`);
+      if (!auto.ativo) return new Response(JSON.stringify({ skipped: "automation_inactive" }));
+
+      // Entitlement check
+      const entitlement = await checkFeatureAccess(supabase, auto.tenant_id, "automacoes");
+      if (!entitlement.has_access) return new Response(JSON.stringify({ skipped: "no_entitlement" }));
+
+      const context = await buildAutomationContext(supabase, trigger_data.projeto_id, auto.tenant_id, trigger_data);
+      
+      const flow = auto.metadata?.flow || { nodes: [] };
+      const nodes = flow.nodes || [];
+
+      let executedActions = 0;
+
+      for (const node of nodes) {
+        if (node.type === 'action') {
+          const config = node.config;
+
+          if (config.actionType === 'whatsapp') {
+            // 1. Resolver destinatário
+            let telefone = "";
+            switch (config.wa_destinatario_tipo) {
+              case 'cliente':
+                telefone = context.cliente.telefone;
+                break;
+              case 'responsavel':
+                telefone = context.responsavel.telefone;
+                break;
+              case 'fixo':
+                telefone = config.wa_destinatario_valor;
+                break;
+              case 'variavel':
+                telefone = resolveVariable(config.wa_destinatario_valor, context);
+                break;
+            }
+
+            if (!telefone) {
+              console.warn(`[pipeline-automations] WA skipped: no phone found for type ${config.wa_destinatario_tipo}`);
+              continue;
+            }
+
+            // 2. Formatar JID (RB-105: nunca wa.me)
+            const numLimpo = telefone.replace(/\D/g, '');
+            const remoteJid = `${numLimpo}@s.whatsapp.net`;
+
+            // 3. Interpolar template
+            const content = renderTemplate(config.wa_content_template, context);
+
+            // 4. Calcular scheduled_at
+            let scheduledAt: string | null = null;
+            if (config.wa_schedule_enabled && config.wa_scheduled_valor) {
+              const multiplier = config.wa_schedule_tipo === 'dias' ? 24 * 3600000 : 3600000;
+              scheduledAt = new Date(Date.now() + config.wa_scheduled_valor * multiplier).toISOString();
+            }
+
+            // 5. Enfileirar via RPC (RB-105)
+            const { error: waErr } = await supabase.rpc('enqueue_wa_outbox_item', {
+              p_tenant_id: auto.tenant_id,
+              p_instance_id: config.wa_instance_id,
+              p_remote_jid: remoteJid,
+              p_message_type: config.wa_message_type || 'text',
+              p_content: content,
+              p_media_url: config.wa_media_url || null,
+              p_media_filename: config.wa_media_filename || null,
+              p_scheduled_at: scheduledAt,
+              p_idempotency_key: `auto_${auto.id}_${trigger_data.projeto_id}_${node.id}_${Date.now()}`
+            });
+
+            if (waErr) {
+              console.error(`[pipeline-automations] WA enqueue failed:`, waErr.message);
+              continue;
+            }
+            executedActions++;
+          }
+          
+          // Suporte legado a mover_etapa se configurado no novo flow
+          if (config.actionType === 'mover_etapa' && config.destino_etapa_id) {
+             const { error: moveErr } = await supabase
+              .from('projetos')
+              .update({ etapa_id: config.destino_etapa_id })
+              .eq('id', trigger_data.projeto_id);
+             if (!moveErr) executedActions++;
+          }
+        }
+      }
+
+      if (executedActions > 0) {
+        await supabase
+          .from("pipeline_automations")
+          .update({
+            execucoes_total: (auto.execucoes_total || 0) + 1,
+            ultima_execucao: new Date().toISOString(),
+          } as any)
+          .eq("id", auto.id);
+        
+        await trackUsage(supabase, auto.tenant_id, "automacoes_executadas", executedActions, { source: "pipeline-event" });
+      }
+
+      return new Response(JSON.stringify({ success: true, executed: executedActions }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- CÓDIGO LEGADO PARA GATILHOS DE TEMPO (MANTIDO PARA COMPATIBILIDADE) ---
     // Fetch all active automations with tipo_gatilho = 'tempo_parado'
     const { data: automations, error: autoErr } = await supabase
       .from("pipeline_automations")
@@ -40,17 +158,14 @@ serve(async (req: Request) => {
     let totalErrors = 0;
 
     for (const auto of automations) {
-      // Entitlement check per tenant
       const entitlement = await checkFeatureAccess(supabase, auto.tenant_id, "automacoes");
       if (!entitlement.has_access) continue;
 
-      // Usage limit check per tenant
       const limitCheck = await checkUsageLimit(supabase, auto.tenant_id, "max_automations");
       if (!limitCheck.allowed) continue;
 
       const cutoffDate = new Date(Date.now() - auto.tempo_horas * 60 * 60 * 1000).toISOString();
 
-      // Find deals in the trigger stage that haven't moved since the cutoff
       const { data: stalledDeals, error: dealsErr } = await supabase
         .from("deal_kanban_projection")
         .select("deal_id, customer_name, owner_id, last_stage_change")
@@ -71,7 +186,6 @@ serve(async (req: Request) => {
 
       for (const deal of stalledDeals) {
         try {
-          // Check if this deal was already processed by this automation recently (24h dedup)
           const { count: recentLogCount } = await supabase
             .from("pipeline_automation_logs")
             .select("id", { count: "exact", head: true })
@@ -80,17 +194,15 @@ serve(async (req: Request) => {
             .eq("status", "sucesso")
             .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
-          if ((recentLogCount ?? 0) > 0) continue; // Already processed recently
+          if ((recentLogCount ?? 0) > 0) continue;
 
           if (auto.tipo_acao === "mover_etapa" && auto.destino_stage_id) {
-            // Use the move_deal_to_stage RPC for atomic move
             const { error: moveErr } = await supabase.rpc("move_deal_to_stage", {
               _deal_id: deal.deal_id,
               _to_stage_id: auto.destino_stage_id,
             });
 
             if (moveErr) {
-              console.error(`[pipeline-automations] Error moving deal ${deal.deal_id}:`, moveErr.message);
               await supabase.from("pipeline_automation_logs").insert({
                 tenant_id: auto.tenant_id,
                 automation_id: auto.id,
@@ -103,11 +215,9 @@ serve(async (req: Request) => {
               totalErrors++;
               continue;
             }
-
             totalMoved++;
           }
 
-          // Log success
           await supabase.from("pipeline_automation_logs").insert({
             tenant_id: auto.tenant_id,
             automation_id: auto.id,
@@ -127,12 +237,10 @@ serve(async (req: Request) => {
           await trackUsage(supabase, auto.tenant_id, "automacoes_executadas", 1, { source: "pipeline-automations" });
 
         } catch (err) {
-          console.error(`[pipeline-automations] Error processing deal ${deal.deal_id}:`, err);
           totalErrors++;
         }
       }
 
-      // Update automation execution counter once per automation (not per deal)
       if (autoExecutions > 0) {
         await supabase
           .from("pipeline_automations")
@@ -144,14 +252,12 @@ serve(async (req: Request) => {
       }
     }
 
-    const elapsed = Date.now() - startMs;
-
     return new Response(
-      JSON.stringify({ processed: totalProcessed, moved: totalMoved, errors: totalErrors, elapsed_ms: elapsed }),
+      JSON.stringify({ processed: totalProcessed, moved: totalMoved, errors: totalErrors, elapsed_ms: Date.now() - startMs }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: any) {
-    console.error("[pipeline-automations] Fatal error:", err.message, err.stack);
+    console.error("[pipeline-automations] Fatal error:", err.message);
     return new Response(JSON.stringify({ error: sanitizeError(err) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
