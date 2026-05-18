@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, MessageCircle, AlertCircle, Loader2, MessageSquare } from "lucide-react";
+import { Info, MessageCircle, AlertCircle, Loader2, MessageSquare, Image, FileText, Music } from "lucide-react";
 import { VARIABLES_CATALOG } from "@/lib/variablesCatalog";
 import { useWaInstances } from "@/hooks/useWaInstances";
 import { useAuth } from "@/hooks/useAuth";
@@ -124,10 +124,18 @@ export function AutomationWhatsAppForm({ config, updateConfig }: AutomationWhats
           updateConfig({ wa_message_type: v });
         }} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="text" className="text-xs">Texto</TabsTrigger>
-            <TabsTrigger value="image" className="text-xs">Imagem</TabsTrigger>
-            <TabsTrigger value="document" className="text-xs">Doc</TabsTrigger>
-            <TabsTrigger value="audio" className="text-xs">Áudio</TabsTrigger>
+            <TabsTrigger value="text" className="text-xs gap-1.5">
+              <MessageSquare className="h-3 w-3" /> Texto
+            </TabsTrigger>
+            <TabsTrigger value="image" className="text-xs gap-1.5">
+              <Image className="h-3 w-3" /> Imagem
+            </TabsTrigger>
+            <TabsTrigger value="document" className="text-xs gap-1.5">
+              <FileText className="h-3 w-3" /> Doc
+            </TabsTrigger>
+            <TabsTrigger value="audio" className="text-xs gap-1.5">
+              <Music className="h-3 w-3" /> Áudio
+            </TabsTrigger>
           </TabsList>
         </Tabs>
 
