@@ -74,34 +74,38 @@ export function useSaveAutomationFlow() {
       flow: AutomationFlow;
       basicData: { nome: string; ativo: boolean; tenant_id: string }
     }) => {
-      // Map first trigger and action to root columns for indexing
-      const trigger = flow.nodes.find(n => n.type === "trigger");
-      const action = flow.nodes.find(n => n.type === "action");
+      // Validar antes de salvar
+      const noGatilho = flow.nodes.find(n => n.type === 'trigger');
+      const primeiraAcao = flow.nodes.find(n => n.type === 'action');
+
+      if (!noGatilho?.config?.triggerType) {
+        throw new Error("Configure o gatilho primeiro");
+      }
       
       const payload: any = {
         tenant_id: basicData.tenant_id,
         nome: basicData.nome.trim(),
         ativo: basicData.ativo,
-        tipo_gatilho: trigger?.config.triggerType ?? null,
-        projeto_funil_id: trigger?.config.funil_id ?? null,
-        projeto_etapa_id: trigger?.config.etapa_id ?? null,
-        canal_notificacao: action?.config.actionType ?? null,
-        webhook_url: action?.config.webhook_url ?? null,
-        template_mensagem: action?.config.wa_content_template ?? null,
+        tipo_gatilho: noGatilho?.config?.triggerType ?? null,
+        projeto_funil_id: noGatilho?.config?.funil_id ?? null,
+        projeto_etapa_id: noGatilho?.config?.etapa_id ?? null,
+        canal_notificacao: primeiraAcao?.config?.actionType ?? null,
+        webhook_url: primeiraAcao?.config?.webhook_url ?? null,
+        template_mensagem: primeiraAcao?.config?.wa_content_template ?? null,
         metadata: flow as any,
       };
 
       if (automationId) {
         const { error } = await supabase
-          .from("pipeline_automations")
+          .from('pipeline_automations')
           .update(payload)
-          .eq("id", automationId)
-          .eq("tenant_id", basicData.tenant_id);
+          .eq('id', automationId)
+          .eq('tenant_id', basicData.tenant_id);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("pipeline_automations")
-          .insert([payload]);
+          .from('pipeline_automations')
+          .insert(payload);
         if (error) throw error;
       }
     },
