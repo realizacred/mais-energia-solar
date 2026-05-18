@@ -394,10 +394,11 @@ export function ConvertLeadToClientDialog({
 
       if (savedData?.formData) {
         const leadEmail = lead.email && lead.email.includes('@') ? lead.email : "";
+        const savedEmail = savedData.formData.email && savedData.formData.email.includes('@') ? savedData.formData.email : "";
         form.reset({
           nome: savedData.formData.nome || lead.nome || "",
           telefone: savedData.formData.telefone || lead.telefone || "",
-          email: savedData.formData.email || leadEmail,
+          email: savedEmail || leadEmail,
           cpf_cnpj: savedData.formData.cpf_cnpj || (lead as any).cpf_cnpj || "",
           data_nascimento: savedData.formData.data_nascimento || "",
           cep: savedData.formData.cep || lead.cep || "",
