@@ -476,7 +476,7 @@ export function WaConversationList({
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="unassigned">Sem atendente</SelectItem>
                 {vendedores.map(v => (
-                  <SelectItem key={v.id} value={v.user_id || ""}>{v.nome}</SelectItem>
+                  <SelectItem key={v.id} value={v.user_id || "none"}>{v.nome}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
