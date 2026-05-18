@@ -25,7 +25,8 @@ import {
   Mail,
   FolderOpen,
   User,
-  Plus
+  Plus,
+  UserCheck
 } from "lucide-react";
 import { AutomationFlowNode, TriggerType, ActionType, TRIGGER_LABELS, ACTION_LABELS, AutomationNodeType } from "@/types/automation-flow";
 import { cn } from "@/lib/utils";
@@ -414,19 +415,19 @@ export function AutomationNodePanel({
 
       {node.type === 'search' && (
         <div className="space-y-6">
-          <Label>O que deseja buscar?</Label>
+          <Label className="text-sm font-bold">O que deseja buscar?</Label>
           <div className="grid grid-cols-2 gap-2">
             {[
-              { type: 'projeto', icon: FolderKanban, label: 'Projeto' },
+              { type: 'projeto', icon: FolderOpen, label: 'Projeto' },
               { type: 'atividade', icon: CheckSquare, label: 'Atividade' },
-              { type: 'responsavel', icon: UserCog, label: 'Responsável' },
-              { type: 'cliente', icon: UserCog, label: 'Cliente' },
+              { type: 'responsavel', icon: User, label: 'Responsável' },
+              { type: 'cliente', icon: UserCheck, label: 'Cliente' },
             ].map((opt) => (
               <button
                 key={opt.type}
                 onClick={() => updateConfig({ searchType: opt.type })}
                 className={cn(
-                  "flex flex-col items-center justify-center p-3 gap-2 rounded-lg border transition-all text-xs font-medium h-20 text-center",
+                  "flex flex-col items-center justify-center p-3 gap-2 rounded-lg border transition-all text-xs font-medium h-20 text-center hover:shadow-sm",
                   localConfig.searchType === opt.type 
                     ? "bg-purple-50 border-purple-500 text-purple-700" 
                     : "bg-card hover:bg-muted"
@@ -458,12 +459,84 @@ export function AutomationNodePanel({
           )}
 
           {localConfig.searchType === 'projeto' && (
-            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 border-t pt-4">
-              <Label>Campo de busca</Label>
-              <div className="flex items-center gap-2 p-2 bg-muted rounded-md text-xs text-muted-foreground">
-                <Info className="h-4 w-4" />
-                <span>Usará o ID do projeto atual automaticamente.</span>
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 border-t pt-4">
+              <Label className="text-xs">Origem do Projeto</Label>
+              <div className="flex flex-col gap-2">
+                <button 
+                  onClick={() => updateConfig({ source: 'gatilho' })}
+                  className={cn("flex items-center justify-between p-2 rounded border text-xs text-left", localConfig.source !== 'fixo' ? "border-purple-500 bg-purple-50" : "border-border")}
+                >
+                  <span>Projeto do gatilho</span>
+                  {localConfig.source !== 'fixo' && <div className="w-2 h-2 rounded-full bg-purple-500" />}
+                </button>
+                <button 
+                  onClick={() => updateConfig({ source: 'fixo' })}
+                  className={cn("flex items-center justify-between p-2 rounded border text-xs text-left", localConfig.source === 'fixo' ? "border-purple-500 bg-purple-50" : "border-border")}
+                >
+                  <span>Projeto fixo</span>
+                  {localConfig.source === 'fixo' && <div className="w-2 h-2 rounded-full bg-purple-500" />}
+                </button>
               </div>
+              {localConfig.source === 'fixo' && (
+                <Input 
+                  placeholder="ID do projeto" 
+                  value={localConfig.search_value || ''} 
+                  onChange={(e) => updateConfig({ search_value: e.target.value })}
+                  className="h-8"
+                />
+              )}
+            </div>
+          )}
+
+          {localConfig.searchType === 'atividade' && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 border-t pt-4">
+              <Label className="text-xs">Origem da Atividade</Label>
+              <div className="flex flex-col gap-2">
+                <button 
+                  onClick={() => updateConfig({ source: 'gatilho' })}
+                  className={cn("flex items-center justify-between p-2 rounded border text-xs text-left", localConfig.source !== 'ultima' ? "border-purple-500 bg-purple-50" : "border-border")}
+                >
+                  <span>Atividade do gatilho</span>
+                  {localConfig.source !== 'ultima' && <div className="w-2 h-2 rounded-full bg-purple-500" />}
+                </button>
+                <button 
+                  onClick={() => updateConfig({ source: 'ultima' })}
+                  className={cn("flex items-center justify-between p-2 rounded border text-xs text-left", localConfig.source === 'ultima' ? "border-purple-500 bg-purple-50" : "border-border")}
+                >
+                  <span>Última do projeto</span>
+                  {localConfig.source === 'ultima' && <div className="w-2 h-2 rounded-full bg-purple-500" />}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {localConfig.searchType === 'cliente' && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 border-t pt-4">
+              <Label className="text-xs">Origem do Cliente</Label>
+              <div className="flex flex-col gap-2">
+                <button 
+                  onClick={() => updateConfig({ source: 'projeto' })}
+                  className={cn("flex items-center justify-between p-2 rounded border text-xs text-left", localConfig.source !== 'fixo' ? "border-purple-500 bg-purple-50" : "border-border")}
+                >
+                  <span>Cliente do projeto</span>
+                  {localConfig.source !== 'fixo' && <div className="w-2 h-2 rounded-full bg-purple-500" />}
+                </button>
+                <button 
+                  onClick={() => updateConfig({ source: 'fixo' })}
+                  className={cn("flex items-center justify-between p-2 rounded border text-xs text-left", localConfig.source === 'fixo' ? "border-purple-500 bg-purple-50" : "border-border")}
+                >
+                  <span>Fixo por email</span>
+                  {localConfig.source === 'fixo' && <div className="w-2 h-2 rounded-full bg-purple-500" />}
+                </button>
+              </div>
+              {localConfig.source === 'fixo' && (
+                <Input 
+                  placeholder="email@cliente.com" 
+                  value={localConfig.search_value || ''} 
+                  onChange={(e) => updateConfig({ search_value: e.target.value })}
+                  className="h-8"
+                />
+              )}
             </div>
           )}
         </div>

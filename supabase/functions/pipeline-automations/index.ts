@@ -52,17 +52,18 @@ serve(async (req: Request) => {
 
       for (const node of nodes) {
         if (node.type === 'search') {
-          const config = node.config;
+          const cfg = node.config;
           const searchResult: any = {};
 
           try {
-            switch (config.searchType) {
+            switch (cfg.searchType) {
               case 'responsavel': {
                 const { data: funil } = await supabase
                   .from('projeto_funis')
                   .select('responsavel_id, consultores:responsavel_id(nome, email, telefone)')
-                  .eq('id', config.funil_id)
-                  .single();
+                  .eq('funil_id', cfg.funil_id)
+                  .eq('projeto_id', currentContext.projeto_id)
+                  .maybeSingle();
                 
                 if (funil?.consultores) {
                   searchResult.responsavel = {
@@ -75,17 +76,34 @@ serve(async (req: Request) => {
                 break;
               }
               case 'projeto': {
-                searchResult.projeto = context.projeto;
+                if (cfg.source === 'fixo' && cfg.search_value) {
+                   const { data: proj } = await supabase.from('projetos').select('*').eq('id', cfg.search_value).single();
+                   if (proj) searchResult.projeto = proj;
+                } else {
+                   searchResult.projeto = currentContext.projeto;
+                }
+                break;
+              }
+              case 'atividade': {
+                const taskId = cfg.source === 'gatilho' ? trigger_data.task_id : null;
+                if (taskId) {
+                   const { data: task } = await supabase.from('tasks').select('*').eq('id', taskId).single();
+                   if (task) searchResult.atividade = task;
+                } else if (cfg.source === 'ultima') {
+                   const { data: task } = await supabase.from('tasks').select('*').eq('projeto_id', currentContext.projeto_id).order('created_at', { ascending: false }).limit(1).maybeSingle();
+                   if (task) searchResult.atividade = task;
+                }
                 break;
               }
               case 'cliente': {
-                const { data: proj } = await supabase.from('projetos').select('cliente_id').eq('id', context.projeto_id).single();
-                const { data: cliente } = await supabase
-                  .from('clientes')
-                  .select('*')
-                  .eq('id', proj?.cliente_id)
-                  .single();
-                if (cliente) searchResult.cliente = cliente;
+                if (cfg.source === 'fixo' && cfg.search_value) {
+                   const { data: cli } = await supabase.from('clientes').select('*').eq('email', cfg.search_value).maybeSingle();
+                   if (cli) searchResult.cliente = cli;
+                } else {
+                   const { data: proj } = await supabase.from('projetos').select('cliente_id').eq('id', currentContext.projeto_id).single();
+                   const { data: cli } = await supabase.from('clientes').select('*').eq('id', proj?.cliente_id).single();
+                   if (cli) searchResult.cliente = cli;
+                }
                 break;
               }
             }
