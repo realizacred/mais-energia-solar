@@ -12,7 +12,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { ProposalViewModel } from "@/domain/proposal/ProposalViewModel";
-import { isActionableStatus, canAccept, canReject, canGenerateOs, canCancel } from "@/domain/proposal/proposalState";
+import { getAvailableProposalActions } from "@/domain/proposal/proposalActionsHelper";
 
 interface ProposalStatusActionsProps {
   vm: ProposalViewModel;
@@ -48,26 +48,25 @@ export function ProposalStatusActions({
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelMotivo, setCancelMotivo] = useState("");
 
-  const currentStatus = vm.businessStatus;
-  const isActionable = isActionableStatus(currentStatus);
+  const actions = getAvailableProposalActions(vm.businessStatus);
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
       {/* Accept / Revert Accept */}
-      {isActionable && canAccept(currentStatus) && !vm.isAccepted && (
+      {actions.canAccept && (
         <Button size="sm" className="gap-1.5 bg-success hover:bg-success/90 text-success-foreground" onClick={() => { setAceiteDate(new Date().toISOString().slice(0, 16)); setAceiteMotivo(""); setAceiteDialogOpen(true); }} disabled={updatingStatus}>
           <CheckCircle2 className="h-3.5 w-3.5" /> Aceitar
         </Button>
       )}
 
-      {vm.isAccepted && (
+      {actions.canRevertAccept && (
         <Button size="sm" variant="outline" className="gap-1.5 border-warning/40 text-warning hover:bg-warning/10" onClick={() => { setRevertAceiteMotivo(""); setRevertAceiteOpen(true); }} disabled={updatingStatus}>
           <Undo2 className="h-3.5 w-3.5" /> Remover Aceite
         </Button>
       )}
 
       {/* Reject / Revert Reject */}
-      {isActionable && canReject(currentStatus) && !vm.isRejected && (
+      {actions.canReject && (
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button size="sm" variant="destructive" className="gap-1.5" disabled={updatingStatus} onClick={() => setRecusaDate(new Date().toISOString().slice(0, 16))}>
@@ -99,14 +98,14 @@ export function ProposalStatusActions({
         </AlertDialog>
       )}
 
-      {vm.isRejected && (
+      {actions.canRevertReject && (
         <Button size="sm" variant="outline" className="gap-1.5 border-warning/40 text-warning hover:bg-warning/10" onClick={() => { setRevertRecusaMotivo(""); setRevertRecusaOpen(true); }} disabled={updatingStatus}>
           <Undo2 className="h-3.5 w-3.5" /> Remover Recusa
         </Button>
       )}
 
       {/* Cancel Action */}
-      {isActionable && canCancel(currentStatus) && !vm.isAccepted && !vm.isRejected && currentStatus !== "cancelada" && (
+      {actions.canCancel && (
         <Button size="sm" variant="ghost" className="gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => { setCancelMotivo(""); setCancelOpen(true); }} disabled={updatingStatus}>
           <Ban className="h-3.5 w-3.5" /> Cancelar
         </Button>
@@ -228,7 +227,7 @@ export function ProposalStatusActions({
       </AlertDialog>
 
       {/* OS */}
-      {canGenerateOs(currentStatus) && (
+      {actions.canGenerateOs && (
         existingOs ? (
           <Badge variant="outline" className="gap-1.5 text-xs py-1.5 px-3"><Wrench className="h-3.5 w-3.5" /> OS {existingOs.numero_os} • {existingOs.status}</Badge>
         ) : (
