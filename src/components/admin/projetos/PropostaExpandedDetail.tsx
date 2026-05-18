@@ -955,7 +955,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
       try {
         const { getOrCreateProposalToken } = await import("@/services/proposal/proposalDetail.service");
         const token = await getOrCreateProposalToken(p.id, latestVersao.id, "public");
-        setPublicUrl(`${getPublicUrl()}/proposta/${token}`);
+        setPublicUrl(getProposalWebUrl(token));
       } catch {
         // Silent — will be populated on manual copy
       }
