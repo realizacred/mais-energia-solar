@@ -581,11 +581,7 @@ export function ConvertLeadToClientDialog({
 
     try {
       const missing: string[] = [];
-      if (!form.getValues("email")) missing.push("E-mail");
-      if (!form.getValues("cpf_cnpj")) missing.push("CPF/CNPJ");
-      if (!form.getValues("bairro")) missing.push("Bairro");
-      if (!form.getValues("rua")) missing.push("Rua");
-      if (!form.getValues("numero")) missing.push("Número");
+        if (!form.getValues("cpf_cnpj") || !isValidCpfCnpj(form.getValues("cpf_cnpj"))) missing.push("CPF/CNPJ válido");
       if (identidadeFiles.length === 0) missing.push("Identidade");
       if (comprovanteFiles.length === 0) missing.push("Comprovante de Endereço");
       if (!form.getValues("disjuntor_id")) missing.push("Disjuntor");
@@ -744,7 +740,7 @@ export function ConvertLeadToClientDialog({
       });
       
       // Auto-navigate to the step with missing info
-      if (missingItems.some(item => ["E-mail", "CPF/CNPJ", "Bairro", "Rua", "Número"].includes(item))) {
+      if (missingItems.some(item => ["CPF/CNPJ válido"].includes(item))) {
         setCurrentStep(0);
       } else if (missingItems.some(item => ["Identidade (RG/CNH)", "Comprovante de Endereço", "Disjuntor", "Transformador", "Localização"].includes(item))) {
         setCurrentStep(1);
