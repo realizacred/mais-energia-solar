@@ -584,7 +584,14 @@ export function PipelineAutomations() {
                 </SelectTrigger>
                 <SelectContent>
                   {(pipelines || []).map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    <SelectItem key={p.id} value={p.id}>
+                      <div className="flex items-center gap-2">
+                        {p.name}
+                        <Badge variant="secondary" className="text-[9px] h-3 px-1 uppercase opacity-60">
+                          {p.type === 'modern' ? 'Novo' : 'Legado'}
+                        </Badge>
+                      </div>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
