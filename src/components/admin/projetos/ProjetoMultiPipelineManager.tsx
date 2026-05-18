@@ -174,11 +174,11 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
   const [projectData, setProjectData] = useState<any>(null);
 
   const fetchProjectData = useCallback(async () => {
-    if (!dealId) return;
+    if (!projetoIdAtual) return;
     const { data } = await supabase
       .from("projetos")
       .select("tenant_id, cliente_id, codigo, projeto_num, clientes(nome)")
-      .eq("id", dealId)
+      .eq("id", projetoIdAtual)
       .maybeSingle();
     
     if (data) {
@@ -187,16 +187,16 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
         cliente_nome: (data.clientes as any)?.nome
       });
     }
-  }, [dealId]);
+  }, [projetoIdAtual]);
 
   const fetchOrdemCompra = useCallback(async () => {
-    if (!dealId) return;
+    if (!projetoIdAtual) return;
     setLoadingOrdem(true);
     try {
       const { data, error } = await supabase
         .from('ordens_compra')
         .select('*, fornecedores(nome, telefone)')
-        .eq('projeto_id', dealId)
+        .eq('projeto_id', projetoIdAtual)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -208,7 +208,7 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
     } finally {
       setLoadingOrdem(false);
     }
-  }, [dealId]);
+  }, [projetoIdAtual]);
 
   useEffect(() => {
     fetchOrdemCompra();
