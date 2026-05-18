@@ -31,6 +31,7 @@ export interface DealDetail {
   motivo_perda_id: string | null;
   motivo_perda_obs: string | null;
   deal_num: number | null;
+  status_projeto: string;
 }
 
 export interface StageHistory {
