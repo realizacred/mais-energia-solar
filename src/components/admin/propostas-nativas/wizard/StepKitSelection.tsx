@@ -180,6 +180,7 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
   const [selectedSolaryumKitId, setSelectedSolaryumKitId] = useState<number | null>(null);
   const [hasRemovedAutoFilter, setHasNewRemovedAutoFilter] = useState(false);
   const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const pageSize = 20;
 
   // Derive selected catalog kit ID from manualKits meta
