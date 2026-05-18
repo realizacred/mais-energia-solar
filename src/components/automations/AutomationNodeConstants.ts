@@ -22,12 +22,14 @@ export const nodeIcons: Record<AutomationNodeType, any> = {
   search: Search,
 };
 
-export const actionIcons: Record<ActionType, any> = {
+export const actionIcons: Record<string, any> = {
   whatsapp: MessageCircle,
   webhook: Anchor,
-  mover_etapa: FolderKanban,
+  mover_etapa: ArrowRightLeft,
   email: Mail,
-  criar_atividade: CheckSquare,
+  projeto: FolderOpen,
+  atividade: CheckSquare,
+  cliente: User,
   notificar_responsavel: Bell,
 };
 
