@@ -206,7 +206,11 @@ async function generateTermoAceitePdf(admin: any, params: {
   fd.append("marginRight", "0.4");
   fd.append("printBackground", "true");
 
-  const resp = await fetch(`${gotenbergUrl}/forms/chromium/convert/html`, { method: "POST", body: fd });
+  const resp = await fetch(`${gotenbergUrl}/forms/chromium/convert/html`, {
+    method: "POST",
+    body: fd,
+    signal: AbortSignal.timeout(120000),
+  });
   if (!resp.ok) {
     const txt = await resp.text();
     throw new Error(`Gotenberg ${resp.status}: ${txt.slice(0, 200)}`);

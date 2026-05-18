@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
         const res = await fetchWithTimeout(
           conversionUrl,
           { method: "POST", body: formData },
-          90000, // 90s timeout per attempt
+          120000, // 120s timeout per attempt
         );
         if (!res.ok) {
           const errorText = await res.text();
