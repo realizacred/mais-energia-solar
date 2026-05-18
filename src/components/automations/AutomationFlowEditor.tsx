@@ -38,9 +38,9 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
       if (initialNodes.length === 0) {
         // Garantir que sempre comece com um gatilho
         setNodes([{
-          id: crypto.randomUUID(),
+          id: 'trigger-' + Date.now(),
           type: 'trigger',
-          order: 0,
+          order: 1,
           config: {}
         }]);
       } else {
