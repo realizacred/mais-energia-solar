@@ -51,6 +51,9 @@ export const ACTION_LABELS: Record<string, string> = {
   mover_etapa:         'Mover de Etapa',
   criar_atividade:     'Criar Atividade',
   notificar_responsavel: 'Notificar Responsável',
+  projeto:             'Projeto',
+  atividade:           'Atividade',
+  cliente:             'Cliente',
 }
 
 export interface AutomationFlowNode {
