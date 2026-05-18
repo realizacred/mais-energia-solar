@@ -63,6 +63,19 @@ export function StepTecnico({
     mode: "onChange",
   });
 
+  // Force form reset when initialData changes to ensure re-hydration
+  useEffect(() => {
+    if (initialData.disjuntor_id || initialData.localizacao || initialData.observacoes) {
+      form.reset({
+        disjuntor_id: initialData.disjuntor_id || "",
+        transformador_id: initialData.transformador_id || "",
+        localizacao: initialData.localizacao || "",
+        simulacao_aceita_id: initialData.simulacao_aceita_id || "",
+        observacoes: initialData.observacoes || "",
+      });
+    }
+  }, [initialData, form]);
+
   const formData = form.watch();
   const isValid = form.formState.isValid;
 
