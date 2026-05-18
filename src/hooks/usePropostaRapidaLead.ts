@@ -206,11 +206,13 @@ export function usePropostaRapidaLead() {
   async function resolveOrCreateCliente(lead: QuickLeadData) {
     const { tenantId } = await getCurrentTenantId();
 
+    // Buscar cliente existente pelo lead_id OU telefone
+    // RB-76: Evitar duplicação por telefone/email/cpf se o lead for novo mas o contato já existir
     const { data: existingCliente } = await supabase
       .from("clientes")
       .select("id")
-      .eq("lead_id", lead.id)
       .eq("tenant_id", tenantId)
+      .or(`lead_id.eq.${lead.id},telefone.eq.${lead.telefone}${lead.cep ? `,cep.eq.${lead.cep}` : ""}`)
       .maybeSingle();
 
     let clienteId = existingCliente?.id as string | undefined;
@@ -236,6 +238,8 @@ export function usePropostaRapidaLead() {
       if (clienteError) throw clienteError;
       clienteId = newCliente.id;
     }
+
+    return { tenantId, clienteId: clienteId! };
 
     return { tenantId, clienteId: clienteId! };
   }
