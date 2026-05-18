@@ -8,10 +8,12 @@ export type TriggerType =
   | 'projeto_movido'
   | 'projeto_ganho'
   | 'projeto_criado'
-  | 'proposta_gerada'
   | 'projeto_fechado'
+  | 'proposta_gerada'
+  | 'proposta_pronta'
   | 'atividade_criada'
   | 'campo_customizado'
+  | 'cliente_criado'
 
 export type ActionType =
   | 'whatsapp'
@@ -24,6 +26,27 @@ export type ActionType =
 export type SearchType =
   | 'projeto'
   | 'atividade'
+
+export const TRIGGER_LABELS: Record<string, string> = {
+  projeto_movido:      'Projeto Movido',
+  projeto_ganho:       'Projeto Ganho',
+  projeto_criado:      'Projeto Criado',
+  projeto_fechado:     'Projeto Fechado',
+  proposta_gerada:     'Proposta Gerada',
+  proposta_pronta:     'Proposta Pronta',
+  atividade_criada:    'Atividade Criada',
+  campo_customizado:   'Campo Alterado',
+  cliente_criado:      'Cliente Criado',
+}
+
+export const ACTION_LABELS: Record<string, string> = {
+  whatsapp:            'Enviar WhatsApp',
+  email:               'Enviar Email',
+  webhook:             'Enviar Webhook',
+  mover_etapa:         'Mover de Etapa',
+  criar_atividade:     'Criar Atividade',
+  notificar_responsavel: 'Notificar Responsável',
+}
 
 export interface AutomationFlowNode {
   id: string
@@ -55,3 +78,4 @@ export interface AutomationFlowNode {
 export interface AutomationFlow {
   nodes: AutomationFlowNode[]
 }
+

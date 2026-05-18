@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { TRIGGER_LABELS } from "@/types/automation-flow";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { formatDateTime } from "@/lib/dateUtils";
 import { Button } from "@/components/ui/button";
@@ -66,10 +67,12 @@ interface PipelineAutomation {
   ultima_execucao: string | null;
   created_at: string;
   updated_at: string;
+  metadata?: any;
   // Joined
   stage_name?: string;
   destino_name?: string;
   pipeline_name?: string;
+  type_label?: string;
 }
 
 interface PipelineOption {
@@ -156,12 +159,19 @@ function useAutomations() {
         .order("created_at", { ascending: false });
       if (error) throw error;
 
-      return (data || []).map((row: any) => ({
-        ...row,
-        stage_name: row.pipeline_stages?.name ?? row.projeto_etapas?.nome ?? "—",
-        destino_name: row.destino?.name ?? row.destino_projeto?.nome ?? "—",
-        pipeline_name: row.pipelines?.name ?? row.projeto_funis?.nome ?? "—",
-      })) as PipelineAutomation[];
+      return (data || []).map((row: any) => {
+        const typeLabel = row.metadata?.nodes?.[0]?.config?.triggerType 
+          ? TRIGGER_LABELS[row.metadata.nodes[0].config.triggerType]
+          : (TRIGGER_LABELS[row.tipo_gatilho] || row.tipo_gatilho);
+
+        return {
+          ...row,
+          stage_name: row.pipeline_stages?.name ?? row.projeto_etapas?.nome ?? "—",
+          destino_name: row.destino?.name ?? row.destino_projeto?.nome ?? "—",
+          pipeline_name: row.pipelines?.name ?? row.projeto_funis?.nome ?? "—",
+          type_label: typeLabel
+        };
+      }) as PipelineAutomation[];
     },
     staleTime: STALE_TIME,
   });
@@ -477,9 +487,12 @@ export function PipelineAutomations({ onEdit }: { onEdit?: (id?: string) => void
                     <Badge variant="outline" className="text-xs">{a.pipeline_name}</Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <Clock className="h-3.5 w-3.5" />
-                      <span>{Math.round(a.tempo_horas / 24)}d em {a.stage_name}</span>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-medium text-foreground">{a.type_label}</span>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        <span>{Math.round(a.tempo_horas / 24)}d em {a.stage_name}</span>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>

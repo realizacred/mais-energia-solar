@@ -3,16 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Save, Zap, Settings2 } from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
 import { AutomationCanvas } from "./AutomationCanvas";
 import { AutomationNodePanel } from "./AutomationNodePanel";
-import { AutomationFlow, AutomationFlowNode } from "@/types/automation-flow";
+import { AutomationFlow, AutomationFlowNode, AutomationNodeType } from "@/types/automation-flow";
 import { useAutomationFlow, useSaveAutomationFlow } from "@/hooks/usePipelineAutomations";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useToast } from "@/hooks/use-toast";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
+import { cn } from "@/lib/utils";
 
 interface AutomationFlowEditorProps {
   automationId: string | null;
@@ -28,13 +29,12 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
   const [name, setName] = useState("");
   const [active, setActive] = useState(true);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [addingAfterIndex, setAddingAfterIndex] = useState<number | null>(null);
 
   // Sync state with loaded data
   useEffect(() => {
     if (initialFlow) {
       setNodes(initialFlow.nodes || []);
-      // If editing existing, we'd need name/active too. 
-      // Simplified here, assuming we fetch it separately or extend useAutomationFlow
     }
   }, [initialFlow]);
 
@@ -83,17 +83,28 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
     }
   });
 
-  const handleAddNode = (index: number) => {
+  const handleAddNodeRequest = (index: number) => {
+    setAddingAfterIndex(index);
+    setSelectedNodeId(null);
+  };
+
+  const handleSelectNewNodeType = (type: AutomationNodeType) => {
+    if (addingAfterIndex === null) return;
+    
     const newNode: AutomationFlowNode = {
       id: crypto.randomUUID(),
-      type: nodes.length === 0 ? 'trigger' : 'action',
-      order: index,
+      type,
+      order: addingAfterIndex,
       config: {}
     };
+    
     const newNodes = [...nodes];
-    newNodes.splice(index, 0, newNode);
-    setNodes(newNodes.map((n, i) => ({ ...n, order: i })));
+    newNodes.splice(addingAfterIndex, 0, newNode);
+    const reorderedNodes = newNodes.map((n, i) => ({ ...n, order: i }));
+    
+    setNodes(reorderedNodes);
     setSelectedNodeId(newNode.id);
+    setAddingAfterIndex(null);
   };
 
   const handleUpdateNode = (updatedNode: AutomationFlowNode) => {
@@ -137,7 +148,7 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
       {/* Top Bar */}
       <header className="flex items-center justify-between px-6 py-3 bg-background border-b shadow-sm shrink-0">
         <div className="flex items-center gap-6">
-          <Button variant="ghost" size="sm" onClick={onBack} className="gap-2">
+          <Button variant="ghost" size="sm" onClick={onBack} className="gap-2 text-teal-600 hover:text-teal-700 hover:bg-teal-50">
             <ArrowLeft className="h-4 w-4" />
             Voltar
           </Button>
@@ -147,17 +158,28 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
               value={name} 
               onChange={(e) => setName(e.target.value)}
               placeholder="Nome da automação..." 
-              className="w-64 h-9 font-medium"
+              className="w-64 h-9 font-medium focus-visible:ring-teal-500"
             />
             <div className="flex items-center gap-2 px-3 h-9 bg-muted/50 rounded-lg border">
-              <Switch checked={active} onCheckedChange={setActive} />
-              <span className="text-xs font-bold uppercase tracking-tight text-muted-foreground">
+              <Switch 
+                checked={active} 
+                onCheckedChange={setActive}
+                className="data-[state=checked]:bg-teal-500"
+              />
+              <span className={cn(
+                "text-xs font-bold uppercase tracking-tight",
+                active ? "text-teal-600" : "text-muted-foreground"
+              )}>
                 {active ? 'Ativada' : 'Pausada'}
               </span>
             </div>
           </div>
         </div>
-        <Button onClick={handleSave} disabled={saveFlowMutation.isPending} className="gap-2 px-6">
+        <Button 
+          onClick={handleSave} 
+          disabled={saveFlowMutation.isPending} 
+          className="gap-2 px-6 bg-teal-600 hover:bg-teal-700 text-white transition-all shadow-md hover:shadow-lg active:scale-95"
+        >
           <Save className="h-4 w-4" />
           {saveFlowMutation.isPending ? 'Salvando...' : 'Salvar Fluxo'}
         </Button>
@@ -170,8 +192,11 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
           <AutomationCanvas 
             nodes={nodes}
             selectedNodeId={selectedNodeId}
-            onNodeSelect={(n) => setSelectedNodeId(n.id)}
-            onAddNode={handleAddNode}
+            onNodeSelect={(n) => {
+              setSelectedNodeId(n.id);
+              setAddingAfterIndex(null);
+            }}
+            onAddNode={handleAddNodeRequest}
             onRemoveNode={handleRemoveNode}
           />
         </main>
@@ -184,9 +209,12 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
             availableEtapas={stages || []}
             onUpdate={handleUpdateNode}
             onRemove={handleRemoveNode}
+            addingAfterIndex={addingAfterIndex}
+            onSelectNewNodeType={handleSelectNewNodeType}
           />
         </aside>
       </div>
     </div>
   );
 }
+
