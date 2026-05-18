@@ -164,7 +164,7 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
           {currentStep < 2 ? (
             <Button onClick={() => setCurrentStep(s => s + 1)} disabled={currentStep === 0 ? !isStep1Valid : !isStep2Valid}>Próximo</Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={loading || !finance.isValid}>{loading ? <RefreshCw className="animate-spin mr-2" /> : "Finalizar"}</Button>
+            <Button onClick={handleSubmit} disabled={loading || !finance.isValid}>{loading ? <RefreshCw className="animate-spin mr-2" /> : "Converter orçamento"}</Button>
           )}
         </div>
       </DialogContent>
