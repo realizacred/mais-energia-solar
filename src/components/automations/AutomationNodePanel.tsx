@@ -288,10 +288,13 @@ export function AutomationNodePanel({
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-2">
             {[
-              { type: 'whatsapp' as ActionType, icon: actionIcons.whatsapp, label: 'WhatsApp' },
-              { type: 'webhook' as ActionType, icon: actionIcons.webhook, label: 'Webhook HTTP' },
-              { type: 'mover_etapa' as ActionType, icon: actionIcons.mover_etapa, label: 'Mover Etapa' },
-              { type: 'email' as ActionType, icon: actionIcons.email, label: 'Enviar Email' },
+              { type: 'whatsapp', icon: MessageCircle, label: 'WhatsApp', color: 'text-teal-600 bg-teal-50 border-teal-500' },
+              { type: 'webhook', icon: Anchor, label: 'Webhook HTTP', color: 'text-blue-600 bg-blue-50 border-blue-500' },
+              { type: 'mover_etapa', icon: ArrowRightLeft, label: 'Mover Etapa', color: 'text-purple-600 bg-purple-50 border-purple-500' },
+              { type: 'email', icon: Mail, label: 'Enviar Email', color: 'text-gray-600 bg-gray-50 border-gray-500' },
+              { type: 'projeto', icon: FolderOpen, label: 'Projeto', color: 'text-green-600 bg-green-50 border-green-500' },
+              { type: 'atividade', icon: CheckSquare, label: 'Atividade', color: 'text-teal-600 bg-teal-50 border-teal-500' },
+              { type: 'cliente', icon: User, label: 'Cliente', color: 'text-pink-600 bg-pink-50 border-pink-500' },
             ].map((opt) => (
               <button
                 key={opt.type}
@@ -299,7 +302,7 @@ export function AutomationNodePanel({
                 className={cn(
                   "flex flex-col items-center justify-center p-3 gap-2 rounded-lg border transition-all text-xs font-medium h-20 text-center",
                   localConfig.actionType === opt.type 
-                    ? "bg-blue-50 border-blue-500 text-blue-700" 
+                    ? opt.color 
                     : "bg-card hover:bg-muted"
                 )}
               >
