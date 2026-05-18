@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -118,6 +118,7 @@ interface DealPipelineMembership {
 
 interface Props {
   dealId: string;
+  projetoId?: string | null;
   dealStatus?: string;
   pipelines: PipelineInfo[];
   allStagesMap: Map<string, StageInfo[]>;
@@ -128,8 +129,11 @@ interface Props {
   initialPipelineName?: string;
 }
 
-export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, allStagesMap, onMembershipChange, initialPipelineId, initialPipelineName }: Props) {
-  const { projetoId } = useParams();
+export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pipelines, allStagesMap, onMembershipChange, initialPipelineId, initialPipelineName }: Props) {
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const projetoIdFromPath = location.pathname.match(/projeto=([0-9a-f-]{36})/i)?.[1] ?? null;
+  const projetoIdAtual = projetoId || searchParams.get("projeto") || searchParams.get("projeto_id") || projetoIdFromPath || dealId;
   const isCommercialLocked = dealStatus === "lost" || dealStatus === "won";
   const isTechnicalLocked = dealStatus === "lost" || dealStatus === "canceled";
   const { isAdmin } = useUserRole();
