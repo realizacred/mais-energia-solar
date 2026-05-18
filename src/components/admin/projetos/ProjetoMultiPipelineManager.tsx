@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -118,6 +118,7 @@ interface DealPipelineMembership {
 
 interface Props {
   dealId: string;
+  projetoId?: string | null;
   dealStatus?: string;
   pipelines: PipelineInfo[];
   allStagesMap: Map<string, StageInfo[]>;
@@ -128,8 +129,11 @@ interface Props {
   initialPipelineName?: string;
 }
 
-export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, allStagesMap, onMembershipChange, initialPipelineId, initialPipelineName }: Props) {
-  const { projetoId } = useParams();
+export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pipelines, allStagesMap, onMembershipChange, initialPipelineId, initialPipelineName }: Props) {
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const projetoIdFromPath = location.pathname.match(/projeto=([0-9a-f-]{36})/i)?.[1] ?? null;
+  const projetoIdAtual = projetoId || searchParams.get("projeto") || searchParams.get("projeto_id") || projetoIdFromPath || dealId;
   const isCommercialLocked = dealStatus === "lost" || dealStatus === "won";
   const isTechnicalLocked = dealStatus === "lost" || dealStatus === "canceled";
   const { isAdmin } = useUserRole();
@@ -170,11 +174,11 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
   const [projectData, setProjectData] = useState<any>(null);
 
   const fetchProjectData = useCallback(async () => {
-    if (!dealId) return;
+    if (!projetoIdAtual) return;
     const { data } = await supabase
       .from("projetos")
       .select("tenant_id, cliente_id, codigo, projeto_num, clientes(nome)")
-      .eq("id", dealId)
+      .eq("id", projetoIdAtual)
       .maybeSingle();
     
     if (data) {
@@ -183,16 +187,16 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
         cliente_nome: (data.clientes as any)?.nome
       });
     }
-  }, [dealId]);
+  }, [projetoIdAtual]);
 
   const fetchOrdemCompra = useCallback(async () => {
-    if (!dealId) return;
+    if (!projetoIdAtual) return;
     setLoadingOrdem(true);
     try {
       const { data, error } = await supabase
         .from('ordens_compra')
         .select('*, fornecedores(nome, telefone)')
-        .eq('projeto_id', dealId)
+        .eq('projeto_id', projetoIdAtual)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -204,7 +208,7 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
     } finally {
       setLoadingOrdem(false);
     }
-  }, [dealId]);
+  }, [projetoIdAtual]);
 
   useEffect(() => {
     fetchOrdemCompra();
@@ -1191,7 +1195,7 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
                           className="h-7 text-[10px] w-fit gap-1 border-warning/40 hover:bg-warning/10"
                           onClick={() => {
                             setFornecedorModal({
-                              projetoId: projetoId || dealId,
+                              projetoId: projetoIdAtual,
                               projetoCodigo: projectData?.codigo || (projectData?.projeto_num ? `SM-PROJ-${projectData.projeto_num}` : undefined),
                               clienteNome: projectData?.cliente_nome,
                               etapaId: activeMembership.stage_id,
@@ -1257,7 +1261,7 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
             <VincularFornecedorModal
               open={!!fornecedorModal}
               onOpenChange={(open) => !open && setFornecedorModal(null)}
-              projetoId={fornecedorModal?.projetoId || projetoId || dealId || ""}
+              projetoId={fornecedorModal?.projetoId || projetoIdAtual || ""}
               projetoCodigo={fornecedorModal?.projetoCodigo}
               clienteNome={fornecedorModal?.clienteNome}
               onSuccess={() => {

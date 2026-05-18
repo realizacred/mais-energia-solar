@@ -899,6 +899,7 @@ function ProjetoDetalheContent() {
           <CardContent className="p-3 sm:p-4">
             <ProjetoMultiPipelineManager
               dealId={deal.id}
+              projetoId={projetoId}
               dealStatus={deal.status}
               pipelines={pipelines}
               allStagesMap={allStagesMap}
