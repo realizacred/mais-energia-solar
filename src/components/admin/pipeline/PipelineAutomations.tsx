@@ -142,23 +142,25 @@ function useAutomations() {
   return useQuery({
     queryKey: [QUERY_KEY],
     queryFn: async () => {
-      // Fetch automations with joined stage/pipeline names
       const { data, error } = await supabase
         .from("pipeline_automations")
         .select(`
           *,
           pipeline_stages!pipeline_automations_stage_id_fkey(name),
           destino:pipeline_stages!pipeline_automations_destino_stage_id_fkey(name),
-          pipelines!pipeline_automations_pipeline_id_fkey(name)
+          pipelines!pipeline_automations_pipeline_id_fkey(name),
+          projeto_etapas!pipeline_automations_etapa_projeto_id_fkey(nome),
+          destino_projeto:projeto_etapas!pipeline_automations_destino_etapa_projeto_id_fkey(nome),
+          projeto_funis!pipeline_automations_funil_projeto_id_fkey(nome)
         `)
         .order("created_at", { ascending: false });
       if (error) throw error;
 
       return (data || []).map((row: any) => ({
         ...row,
-        stage_name: row.pipeline_stages?.name ?? "—",
-        destino_name: row.destino?.name ?? "—",
-        pipeline_name: row.pipelines?.name ?? "—",
+        stage_name: row.pipeline_stages?.name ?? row.projeto_etapas?.nome ?? "—",
+        destino_name: row.destino?.name ?? row.destino_projeto?.nome ?? "—",
+        pipeline_name: row.pipelines?.name ?? row.projeto_funis?.nome ?? "—",
       })) as PipelineAutomation[];
     },
     staleTime: STALE_TIME,
