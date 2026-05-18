@@ -1235,7 +1235,7 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
                       <div className="mt-2 flex items-start gap-2 p-2 rounded-md border border-warning/30 bg-warning/5 text-warning">
                         <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                         <p className="text-[10px] leading-snug">
-                          Pedido está em etapa avançada do funil (<strong>{activeMembership.stage_name}</strong>), mas a ordem ainda está como <strong>rascunho</strong>. Edite o pedido para atualizar o status quando o fornecedor confirmar.
+                          A etapa está em <strong>"{activeMembership.stage_name}"</strong>, mas a ordem ainda está como <strong>"{ordemCompra.status || 'rascunho'}"</strong>. Clique em <strong>"Editar"</strong> e confirme os dados do pedido para atualizar.
                         </p>
                       </div>
                     )}
