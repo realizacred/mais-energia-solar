@@ -57,7 +57,7 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
 
   useEffect(() => {
     if (lead && open) {
-      console.log("[ConvertLeadToClientDialog] Initializing with lead:", lead);
+      // console.log("[ConvertLeadToClientDialog] Initializing with lead:", lead);
       const saved = localStorage.getItem(`lead_conversion_${lead.id}`);
       if (saved) {
         const data = JSON.parse(saved);
