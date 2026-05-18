@@ -59,7 +59,6 @@ function getHoursAgo(lastMessageAt: string | null): number | null {
   return (Date.now() - new Date(lastMessageAt).getTime()) / 1000 / 60 / 60;
 }
 // ── Display name helper ────────────────────────────────
-// SSOT: src/lib/wa/resolveDisplayName.ts
 const formatWaDisplayName = resolveWaDisplayName;
 
 // ── Message preview helper ─────────────────────────────
@@ -96,21 +95,21 @@ function normalizeConversationPreview(preview: string | null | undefined): strin
 function StatusBadge({ status, assigned }: { status: string; assigned: string | null }) {
   if (status === "resolved") {
     return (
-      <Badge variant="outline" className="text-[9px] h-[16px] px-1.5 bg-muted/50 text-muted-foreground border-border">
+      <Badge variant="outline" className="text-[9px] h-[16px] px-1 bg-muted/50 text-muted-foreground border-border">
         Resolvida
       </Badge>
     );
   }
   if (status === "pending") {
     return (
-      <Badge variant="outline" className="text-[9px] h-[16px] px-1.5 bg-warning/10 text-warning border-warning/20">
+      <Badge variant="outline" className="text-[9px] h-[16px] px-1 bg-warning/10 text-warning border-warning/20">
         Pendente
       </Badge>
     );
   }
   if (!assigned) {
     return (
-      <Badge variant="outline" className="text-[9px] h-[16px] px-1.5 bg-info/10 text-info border-info/20">
+      <Badge variant="outline" className="text-[9px] h-[16px] px-1 bg-info/10 text-info border-info/20">
         Novo
       </Badge>
     );
@@ -183,14 +182,12 @@ function ConversationItem({
   isPinned?: boolean;
   onContextMenu?: (e: React.MouseEvent, conv: WaConversation) => void;
 }) {
-  const st = statusConfig[conv.status] || statusConfig.open;
   const isMuted = mutedIds?.has(conv.id);
   const isHidden = hiddenIds?.has(conv.id);
   const isFollowup = followupConvIds?.has(conv.id);
   const isNote = conv.last_message_preview?.startsWith("[Nota interna]") || conv.last_message_preview?.startsWith("[Nota]");
   const displayName = formatWaDisplayName(conv);
 
-  // Identity divergence: nome canônico (lead/cliente) ≠ pushName do WhatsApp
   const crmName = conv.cliente_nome_real || conv.lead_nome || null;
   const pushName = conv.cliente_nome?.trim() || null;
   const hasIdentityDivergence = !!(
@@ -202,19 +199,13 @@ function ConversationItem({
   );
 
   const responsible = vendedores.find((v) => v.user_id === conv.assigned_to);
-
-  // Urgency bar (inline style for reliable rendering)
   const urgencyStyle = getUrgencyStyle(conv.last_message_at, conv.status);
   const urgencyLabel = getUrgencyLabel(conv.last_message_at, conv.status);
   const hoursAgo = getHoursAgo(conv.last_message_at);
   const isUrgent = hoursAgo !== null && hoursAgo > 6 && conv.status !== "resolved";
-
-  const preview = isNote
-    ? "📝 Nota interna"
-    : normalizeConversationPreview(conv.last_message_preview);
+  const preview = isNote ? "📝 Nota interna" : normalizeConversationPreview(conv.last_message_preview);
 
   return (
-    // RB-03-exception: chat micro-interaction — conversation card with onContextMenu and complex layout
     <button
       onClick={() => onSelect(conv)}
       onContextMenu={(e) => {
@@ -226,17 +217,16 @@ function ConversationItem({
       }}
       aria-selected={isSelected}
       className={cn(
-        "relative w-full text-left flex gap-2 items-stretch p-[10px_12px] bg-card",
-        "border border-border rounded-xl cursor-pointer",
-        "hover:bg-muted/50 transition-colors overflow-hidden",
-        "mb-1",
-        isSelected && "bg-primary/[0.06] ring-1 ring-primary/20",
-        hasUnread && !isSelected && "bg-primary/[0.03]",
+        "relative w-full text-left flex gap-2 items-stretch p-2 bg-card",
+        "border border-border/40 rounded-lg cursor-pointer",
+        "hover:bg-muted/30 transition-colors overflow-hidden",
+        "mb-0.5",
+        isSelected && "bg-primary/[0.04] border-primary/20 ring-1 ring-primary/10",
+        hasUnread && !isSelected && "bg-primary/[0.02]",
         isMuted && "opacity-60",
-        isPinned && "ring-1 ring-warning/30",
+        isPinned && "border-warning/30",
       )}
     >
-      {/* Left urgency bar with tooltip */}
       <TooltipProvider delayDuration={600}>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -248,23 +238,21 @@ function ConversationItem({
                 top: 0,
                 bottom: 0,
                 width: "3px",
-                borderRadius: "10px 0 0 10px",
               }}
             />
           </TooltipTrigger>
           <TooltipContent side="right">
-            <p>{urgencyLabel}</p>
+            <p className="text-[10px]">{urgencyLabel}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
 
-      {/* Avatar */}
-      <div className="relative ml-1.5 shrink-0 self-center">
+      <div className="relative ml-0.5 shrink-0 self-center">
         <WaProfileAvatar
           profilePictureUrl={conv.profile_picture_url}
           isGroup={conv.is_group}
           name={displayName}
-          size="md"
+          size="sm"
           colorByName
         />
         {conv.status === "open" && (
@@ -272,114 +260,69 @@ function ConversationItem({
         )}
       </div>
 
-      {/* Body */}
-      <div className="flex-1 min-w-0 flex flex-col gap-[3px] pl-1.5">
-        {/* Line 1 — name + time */}
+      <div className="flex-1 min-w-0 flex flex-col gap-0.5 pl-1">
         <div className="flex justify-between items-center gap-2">
           <div className="flex items-center gap-1 min-w-0 flex-1">
             <span className={cn(
-              "text-[13.5px] truncate",
+              "text-[12.5px] truncate",
               hasUnread ? "font-bold text-foreground" : "font-medium text-foreground",
             )}>
               {displayName}
             </span>
-            {isPinned && <Pin className="h-3 w-3 text-warning shrink-0" />}
-            {isMuted && <BellOff className="h-3 w-3 text-muted-foreground/50 shrink-0" />}
-            {isHidden && <EyeOff className="h-3 w-3 text-muted-foreground/50 shrink-0" />}
-            {isFollowup && <Bell className="h-3 w-3 text-warning shrink-0 animate-pulse" />}
-            {hasIdentityDivergence && (
-              <TooltipProvider delayDuration={300}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-warning text-[11px] font-bold shrink-0 cursor-help leading-none">⚠</span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">
-                    <p className="text-xs">
-                      Identidade divergente
-                      <br />
-                      WhatsApp: <span className="font-medium">{pushName}</span>
-                      <br />
-                      CRM: <span className="font-medium">{crmName}</span>
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
+            {isPinned && <Pin className="h-2.5 w-2.5 text-warning shrink-0" />}
+            {isFollowup && <Bell className="h-2.5 w-2.5 text-warning shrink-0 animate-pulse" />}
+            {hasIdentityDivergence && <span className="text-warning text-[10px] font-bold shrink-0 leading-none">⚠</span>}
           </div>
           <span className={cn(
-            "text-[11px] shrink-0",
+            "text-[10px] shrink-0",
             isUrgent ? "text-destructive font-medium" : "text-muted-foreground",
           )}>
-            {conv.last_message_at && formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false, locale: ptBR })}
-            {isUrgent && " ⚠"}
+            {conv.last_message_at && formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false, locale: ptBR, includeSeconds: false })}
           </span>
         </div>
 
-        {/* Line 2 — preview + status badge */}
         <div className="flex justify-between items-center gap-2">
           <span className={cn(
-            "text-[12px] truncate flex-1",
+            "text-[11px] truncate flex-1",
             isNote ? "text-warning/80 italic" : hasUnread ? "text-foreground/80 font-medium" : "text-muted-foreground",
           )}>
             {preview || "Sem mensagens"}
           </span>
-          <StatusBadge status={conv.status} assigned={conv.assigned_to} />
-        </div>
-
-        {/* Line 3 — tags + badges */}
-        <div className="flex justify-between items-center gap-2">
-          <div className="flex gap-1 overflow-hidden">
-            {responsible && (
-              <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border truncate max-w-[80px]">
-                {responsible.nome}
-              </span>
-            )}
-            {instances.length > 1 && conv.instance_name && (
-              <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border truncate max-w-[70px]">
-                {conv.instance_name}
-              </span>
-            )}
-            {conv.tags?.slice(0, 2).map((ct) => (
-              <span
-                key={ct.tag_id}
-                className="text-[10px] px-1.5 py-0.5 rounded border truncate max-w-[70px]"
-                style={{
-                  backgroundColor: ct.tag?.color ? `${ct.tag.color}20` : undefined,
-                  borderColor: ct.tag?.color ? `${ct.tag.color}40` : undefined,
-                  color: ct.tag?.color || undefined,
-                }}
-              >
-                {ct.tag?.name || "Tag"}
-              </span>
-            ))}
-            {(conv.tags?.length || 0) > 2 && (
-              <span className="text-[10px] text-muted-foreground px-1 py-0.5">
-                +{(conv.tags?.length || 0) - 2}
-              </span>
-            )}
-          </div>
           <div className="flex items-center gap-1 shrink-0">
-            {crossInstanceCount && crossInstanceCount > 1 && (
-              <span
-                className="text-[10px] text-warning bg-warning/10 px-1.5 py-0.5 rounded border border-warning/30"
-                title={`${crossInstanceCount} conversas deste contato foram agrupadas. Use 'Ver separadas' para listar todas.`}
-              >
-                {crossInstanceCount} instâncias
-              </span>
-            )}
-            {hasUnread && (
-              <span className="text-[10px] font-medium text-destructive-foreground bg-destructive min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1">
+             <StatusBadge status={conv.status} assigned={conv.assigned_to} />
+             {hasUnread && (
+              <span className="text-[10px] font-medium text-destructive-foreground bg-destructive min-w-[16px] h-[16px] rounded-full flex items-center justify-center px-1">
                 {conv.unread_count > 99 ? "99+" : conv.unread_count}
               </span>
             )}
           </div>
+        </div>
+
+        <div className="flex gap-1 overflow-hidden mt-0.5">
+          {responsible && (
+            <span className="text-[9px] text-muted-foreground bg-muted/50 px-1 py-0 rounded border border-border truncate max-w-[60px]">
+              {responsible.nome}
+            </span>
+          )}
+          {conv.tags?.slice(0, 2).map((ct) => (
+            <span
+              key={ct.tag_id}
+              className="text-[9px] px-1 py-0 rounded border truncate max-w-[60px]"
+              style={{
+                backgroundColor: ct.tag?.color ? `${ct.tag.color}15` : undefined,
+                borderColor: ct.tag?.color ? `${ct.tag.color}30` : undefined,
+                color: ct.tag?.color || undefined,
+              }}
+            >
+              {ct.tag?.name || "Tag"}
+            </span>
+          ))}
         </div>
       </div>
     </button>
   );
 }
 
-// ── Cross-instance merge visual helper ─────────────────
 function normalizeBrPhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
   if (digits.startsWith("55") && digits.length === 12) {
@@ -420,7 +363,6 @@ function CrossInstanceWrapper({
   return <>{children(crossInstanceMap)}</>;
 }
 
-// ── Main list ──────────────────────────────────────────
 export function WaConversationList({
   conversations,
   loading,
@@ -450,11 +392,6 @@ export function WaConversationList({
   pinnedIds,
   onContextMenuConv,
 }: WaConversationListProps) {
-  // Lista única ordenada por última mensagem (já vem ordenada do hook).
-
-  // ── Dedup por contato (telefone canônico) ─────────────
-  // Evita exibir o mesmo contato repetido quando há múltiplas conversas
-  // (instâncias diferentes ou variações de JID com/sem 9º dígito).
   const [mergeDuplicates, setMergeDuplicates] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     return window.localStorage.getItem("wa-inbox-merge-duplicates") !== "0";
@@ -492,7 +429,6 @@ export function WaConversationList({
         return tb - ta;
       });
       const winner = arr[0];
-      // Soma unread_count de todas as duplicatas no vencedor para não perder badge
       const totalUnread = arr.reduce((s, c) => s + (c.unread_count || 0), 0);
       winners.push({ ...winner, unread_count: totalUnread });
       if (arr.length > 1) dupCount.set(winner.id, arr.length);
@@ -507,185 +443,130 @@ export function WaConversationList({
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden border-r border-border/30 bg-card/50">
-      {/* Search & Filters */}
-      <div className="shrink-0 p-3 border-b border-border/30 space-y-2 bg-card overflow-visible">
+      <div className="shrink-0 p-2 border-b border-border/30 space-y-1.5 bg-card overflow-visible">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             placeholder="Buscar conversa..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9 h-9 text-sm bg-muted/30 border-border/30 focus:bg-background"
+            className="pl-8 h-8 text-xs bg-muted/20 border-border/20 focus:bg-background"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-1.5">
+        
+        <div className="flex items-center gap-1">
           <Select value={filterStatus} onValueChange={onFilterStatusChange}>
-            <SelectTrigger className="h-7 text-[11px] flex-1 border-border/30">
+            <SelectTrigger className="h-7 text-[10px] flex-1 border-border/20 bg-muted/10 px-2 min-w-0">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="open">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                  Abertas
-                </span>
-              </SelectItem>
-              <SelectItem value="pending">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-warning" />
-                  Pendentes
-                </span>
-              </SelectItem>
-              <SelectItem value="resolved">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-                  Resolvidas
-                </span>
-              </SelectItem>
+              <SelectItem value="open">Abertas</SelectItem>
+              <SelectItem value="pending">Pendentes</SelectItem>
+              <SelectItem value="resolved">Resolvidas</SelectItem>
             </SelectContent>
           </Select>
+          
           {!hideAssignedFilter && (
             <Select value={filterAssigned} onValueChange={onFilterAssignedChange}>
-              <SelectTrigger className="h-7 text-[11px] flex-1 border-border/30">
+              <SelectTrigger className="h-7 text-[10px] flex-1 border-border/20 bg-muted/10 px-2 min-w-0">
                 <SelectValue placeholder="Atribuído" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="unassigned">Sem atribuição</SelectItem>
-                {vendedores.map((v) => (
-                  <SelectItem key={v.id} value={v.user_id || v.id}>
-                    {v.nome}
-                  </SelectItem>
+                <SelectItem value="unassigned">Sem atendente</SelectItem>
+                {vendedores.map(v => (
+                  <SelectItem key={v.id} value={v.user_id || ""}>{v.nome}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           )}
-        </div>
-        {instances.length > 1 && (
+
           <Select value={filterInstance} onValueChange={onFilterInstanceChange}>
-            <SelectTrigger className="h-7 text-[11px] border-border/30">
-              <Smartphone className="h-3 w-3 mr-1.5" />
+            <SelectTrigger className="h-7 text-[10px] flex-1 border-border/20 bg-muted/10 px-2 min-w-0">
               <SelectValue placeholder="Instância" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas as instâncias</SelectItem>
-              {instances.map((inst) => (
-                <SelectItem key={inst.id} value={inst.id}>
-                  {inst.nome}
-                </SelectItem>
+              <SelectItem value="all">Instâncias</SelectItem>
+              {instances.map(i => (
+                <SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-        )}
-        {tags.length > 0 && (
+
           <Select value={filterTag} onValueChange={onFilterTagChange}>
-            <SelectTrigger className="h-7 text-[11px] border-border/30">
-              <Tag className="h-3 w-3 mr-1.5" />
-              <SelectValue placeholder="Tag" />
+            <SelectTrigger className="h-7 text-[10px] flex-1 border-border/20 bg-muted/10 px-2 min-w-0">
+              <SelectValue placeholder="Tags" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas as tags</SelectItem>
-              {tags.map((tag) => (
-                <SelectItem key={tag.id} value={tag.id}>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: tag.color }} />
-                    {tag.name}
-                  </span>
-                </SelectItem>
+              <SelectItem value="all">Tags</SelectItem>
+              {tags.map(t => (
+                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-        )}
-        {/* Group & Hidden toggles */}
-        <div className="flex flex-wrap items-center gap-2">
+        </div>
+
+        <div className="flex items-center gap-3 pt-0.5 overflow-x-auto no-scrollbar pb-1">
           {onShowGroupsChange && (
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <Switch checked={showGroups} onCheckedChange={onShowGroupsChange} className="h-4 w-7 [&>span]:!h-3 [&>span]:!w-3 [&>span[data-state=checked]]:!translate-x-3 [&>span[data-state=unchecked]]:!translate-x-0.5" />
-              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                <Users className="h-3 w-3" /> Grupos
-              </span>
+            <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
+              <Switch checked={showGroups} onCheckedChange={onShowGroupsChange} className="scale-75 origin-left" />
+              <span className="text-[10px] font-medium text-muted-foreground">Grupos</span>
             </label>
           )}
           {onShowHiddenChange && (
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <Switch checked={showHidden} onCheckedChange={onShowHiddenChange} className="h-4 w-7 [&>span]:h-3 [&>span]:w-3" />
-              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                <Eye className="h-3 w-3" /> Ocultas
-              </span>
+            <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
+              <Switch checked={showHidden} onCheckedChange={onShowHiddenChange} className="scale-75 origin-left" />
+              <span className="text-[10px] font-medium text-muted-foreground">Ocultas</span>
             </label>
           )}
-          <label
-            className="flex items-center gap-1.5 cursor-pointer"
-            title="Exibe cada conversa do mesmo contato separadamente (sem agrupar duplicatas por telefone)."
-          >
-            <Switch
-              checked={!mergeDuplicates}
-              onCheckedChange={(v) => handleMergeChange(!v)}
-              className="h-4 w-7 [&>span]:h-3 [&>span]:w-3"
-            />
-            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-              <GitBranch className="h-3 w-3" /> Ver separadas
-            </span>
+          <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
+            <Switch checked={!mergeDuplicates} onCheckedChange={(v) => handleMergeChange(!v)} className="scale-75 origin-left" />
+            <span className="text-[10px] font-medium text-muted-foreground whitespace-nowrap">Ver separadas</span>
           </label>
         </div>
       </div>
 
-      {/* Conversations */}
-
       <div className="flex-1 min-h-0 overflow-hidden">
         <div className="h-full min-h-0 overflow-y-auto wa-conversation-list p-1.5">
           {loading ? (
-            <div className="space-y-1.5">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-2.5 p-[10px_12px] border border-border rounded-xl">
-                  <Skeleton className="h-10 w-10 rounded-full shrink-0" />
-                  <div className="flex-1 space-y-1.5">
-                    <div className="flex justify-between">
-                      <Skeleton className="h-3.5 w-24" />
-                      <Skeleton className="h-3 w-10" />
-                    </div>
-                    <Skeleton className="h-3 w-full" />
-                    <div className="flex gap-1">
-                      <Skeleton className="h-4 w-16 rounded" />
-                      <Skeleton className="h-4 w-14 rounded" />
-                    </div>
+            <div className="space-y-1">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-2 p-2 border border-border/40 rounded-lg">
+                  <Skeleton className="h-8 w-8 rounded-full shrink-0" />
+                  <div className="flex-1 space-y-1">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-2 w-full" />
                   </div>
                 </div>
               ))}
             </div>
           ) : displayedConversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center px-6">
-              <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
-                <MessageCircle className="h-7 w-7 text-muted-foreground/40" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">Nenhuma conversa</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">Ajuste os filtros ou aguarde novas mensagens.</p>
+              <MessageCircle className="h-7 w-7 text-muted-foreground/30 mb-2" />
+              <p className="text-xs font-medium text-muted-foreground">Nenhuma conversa</p>
             </div>
           ) : (
             <CrossInstanceWrapper conversations={displayedConversations}>
               {(crossInstanceMap) => (
                 <div role="listbox">
-                  {displayedConversations.map((conv) => {
-                    const dup = duplicateCountByConvId.get(conv.id);
-                    return (
-                      <ConversationItem
-                        key={conv.id}
-                        conv={conv}
-                        isSelected={conv.id === selectedId}
-                        hasUnread={conv.unread_count > 0}
-                        onSelect={onSelect}
-                        vendedores={vendedores}
-                        instances={instances}
-                        mutedIds={mutedIds}
-                        hiddenIds={hiddenIds}
-                        followupConvIds={followupConvIds}
-                        crossInstanceCount={dup ?? crossInstanceMap.get(conv.cliente_telefone)}
-                        isPinned={pinnedIds?.has(conv.id)}
-                        onContextMenu={onContextMenuConv}
-                      />
-                    );
-                  })}
+                  {displayedConversations.map((conv) => (
+                    <ConversationItem
+                      key={conv.id}
+                      conv={conv}
+                      isSelected={conv.id === selectedId}
+                      hasUnread={conv.unread_count > 0}
+                      onSelect={onSelect}
+                      vendedores={vendedores}
+                      instances={instances}
+                      mutedIds={mutedIds}
+                      hiddenIds={hiddenIds}
+                      followupConvIds={followupConvIds}
+                      crossInstanceCount={duplicateCountByConvId.get(conv.id) ?? crossInstanceMap.get(conv.cliente_telefone)}
+                      isPinned={pinnedIds?.has(conv.id)}
+                      onContextMenu={onContextMenuConv}
+                    />
+                  ))}
                 </div>
               )}
             </CrossInstanceWrapper>
@@ -693,13 +574,9 @@ export function WaConversationList({
         </div>
       </div>
 
-      {/* Footer count */}
-      <div className="shrink-0 p-2 border-t border-border/40 text-center">
-        <p className="text-[10px] text-muted-foreground font-medium">
+      <div className="shrink-0 p-1.5 border-t border-border/40 text-center">
+        <p className="text-[9px] text-muted-foreground font-medium">
           {displayedConversations.length} conversas
-          {mergeDuplicates && conversations.length !== displayedConversations.length
-            ? ` · ${conversations.length - displayedConversations.length} duplicadas agrupadas`
-            : ""}
         </p>
       </div>
     </div>
