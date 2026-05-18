@@ -187,7 +187,13 @@ export function ConvertLeadToClientDialog({
             </Button>
           ))}
         </div>
-        <div className="flex-1 overflow-y-auto p-5">{STEPS[currentStep].comp}</div>
+        <div className="flex-1 overflow-y-auto p-5">
+          {STEPS.map((step, index) => (
+            <div key={step.label} className={index === currentStep ? "block" : "hidden"}>
+              {step.comp}
+            </div>
+          ))}
+        </div>
         <div className="p-4 border-t flex justify-between bg-muted/10">
           <Button variant="outline" onClick={() => setCurrentStep(s => Math.max(0, s - 1))} disabled={currentStep === 0}>Anterior</Button>
           {currentStep < 2 ? (
