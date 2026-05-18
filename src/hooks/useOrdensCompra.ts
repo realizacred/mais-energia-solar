@@ -258,6 +258,65 @@ export function useCriarOrdem() {
   });
 }
 
+export function useAtualizarOrdem() {
+  const invalidate = useInvalidateOrdens();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (dados: {
+      id: string;
+      fornecedor_id?: string | null;
+      numero_pedido?: string | null;
+      data_previsao_entrega?: string | null;
+      observacoes?: string | null;
+      valor_total?: number;
+    }) => {
+      const { id, valor_total, ...rest } = dados;
+
+      // Update header
+      const { error: updErr } = await (supabase as any)
+        .from("ordens_compra")
+        .update(rest)
+        .eq("id", id);
+      if (updErr) throw updErr;
+
+      // Update placeholder item value when provided
+      if (typeof valor_total === "number") {
+        const { data: itens } = await (supabase as any)
+          .from("ordens_compra_itens")
+          .select("id, quantidade")
+          .eq("ordem_compra_id", id)
+          .order("created_at")
+          .limit(1);
+
+        if (itens && itens.length > 0) {
+          const qtd = itens[0].quantidade || 1;
+          await (supabase as any)
+            .from("ordens_compra_itens")
+            .update({
+              valor_unitario: valor_total / qtd,
+              valor_total: valor_total,
+            })
+            .eq("id", itens[0].id);
+        }
+
+        await (supabase as any)
+          .from("ordens_compra")
+          .update({ valor_total })
+          .eq("id", id);
+      }
+
+      await (supabase as any).from("ordens_compra_eventos").insert({
+        ordem_compra_id: id,
+        tipo: "atualizada",
+        descricao: "Dados do pedido atualizados",
+        criado_por: user?.id,
+      });
+    },
+    onSuccess: invalidate,
+  });
+}
+
 export function useAvancarStatusOrdem() {
   const invalidate = useInvalidateOrdens();
   const { user } = useAuth();
