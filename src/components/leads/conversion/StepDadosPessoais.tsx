@@ -34,6 +34,9 @@ interface StepDadosPessoaisProps {
 }
 
 export function StepDadosPessoais({ initialData, onChange }: StepDadosPessoaisProps) {
+  // Debug log to trace hydration issues
+  console.log("[StepDadosPessoais] Received initialData:", initialData);
+
   const form = useForm<Step1Data>({
     resolver: zodResolver(step1Schema),
     values: {
