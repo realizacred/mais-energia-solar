@@ -57,12 +57,9 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
 
   useEffect(() => {
     if (lead && open) {
-      console.log("[ConvertLeadToClientDialog] Hydration effect triggered for lead:", lead.nome);
-      
       const saved = localStorage.getItem(`lead_conversion_${lead.id}`);
       if (saved) {
         const data = JSON.parse(saved);
-        console.log("[ConvertLeadToClientDialog] Restoring from localStorage:", data);
         
         setStep1Data(data.step1Data || { 
           nome: lead.nome || "", 
@@ -80,8 +77,6 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
           observacoes: (lead as any).observacoes || "",
         });
       } else {
-        console.log("[ConvertLeadToClientDialog] Fresh hydration from lead properties");
-        
         setStep1Data({ 
           nome: lead.nome || "", 
           telefone: lead.telefone || "", 
