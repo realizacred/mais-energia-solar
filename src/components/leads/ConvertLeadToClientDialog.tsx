@@ -180,15 +180,44 @@ export function ConvertLeadToClientDialog({
     },
   });
 
-  // Compute valorVenda from selected simulation
+  // Compute valorVenda from selected simulation, native proposal, or lead fallback
   const simulacaoAceitaId = useWatch({ control: form.control, name: "simulacao_aceita_id" });
+
+  // Fetch latest native proposal value for this lead (RB-76 / proposalTotals SSOT not available here)
+  const { data: propostaVersaoValor = 0 } = useQuery({
+    queryKey: ["convert-lead-proposta-valor", (lead as any)?.id],
+    enabled: !!(lead as any)?.id,
+    staleTime: 60_000,
+    queryFn: async (): Promise<number> => {
+      const leadId = (lead as any).id as string;
+      const { data: propostas } = await supabase
+        .from("propostas_nativas")
+        .select("id")
+        .eq("lead_id", leadId);
+      const ids = (propostas ?? []).map((p: any) => p.id);
+      if (ids.length === 0) return 0;
+      const { data: versao } = await supabase
+        .from("proposta_versoes")
+        .select("valor_total, status, created_at")
+        .in("proposta_id", ids)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return Number((versao as any)?.valor_total ?? 0) || 0;
+    },
+  });
+
   const valorVenda = useMemo(() => {
+    // 1. Simulação aceita
     if (simulacaoAceitaId) {
       const sim = simulacoes.find(s => s.id === simulacaoAceitaId);
       if (sim?.investimento_estimado) return sim.investimento_estimado;
     }
+    // 2. Proposta nativa (última versão)
+    if (propostaVersaoValor && propostaVersaoValor > 0) return propostaVersaoValor;
+    // 3. Fallback: leads.valor_projeto
     return (lead as any)?.valor_projeto ?? 0;
-  }, [simulacaoAceitaId, simulacoes, lead]);
+  }, [simulacaoAceitaId, simulacoes, lead, propostaVersaoValor]);
 
   // ── SSOT Financial State §25 ──
   const finance = useVendaFinanceSnapshot(valorVenda, paymentItems);
