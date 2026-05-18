@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Target, GitBranch, Search, Plus, Trash2, Settings2 } from "lucide-react";
-import { AutomationFlowNode, AutomationNodeType } from "@/types/automation-flow";
+import { FileText, Target, GitBranch, Search, Plus, Trash2 } from "lucide-react";
+import { AutomationFlowNode, AutomationNodeType, TRIGGER_LABELS, ACTION_LABELS } from "@/types/automation-flow";
 import { cn } from "@/lib/utils";
 
 interface AutomationCanvasProps {
@@ -29,8 +29,15 @@ const nodeColors: Record<AutomationNodeType, string> = {
 const nodeTitles: Record<AutomationNodeType, string> = {
   trigger: "Gatilho",
   action: "Ação",
-  condition: "Condição",
-  search: "Busca",
+  condition: "Condicional",
+  search: "Procurar",
+};
+
+const nodeTitleColors: Record<AutomationNodeType, string> = {
+  trigger: "text-teal-600 dark:text-teal-400",
+  action: "text-blue-600 dark:text-blue-400",
+  condition: "text-orange-600 dark:text-orange-400",
+  search: "text-purple-600 dark:text-purple-400",
 };
 
 export function AutomationCanvas({ 
@@ -52,14 +59,17 @@ export function AutomationCanvas({
         {nodes.map((node, index) => {
           const Icon = nodeIcons[node.type];
           const isSelected = selectedNodeId === node.id;
+          const subtitle = node.type === 'trigger' 
+            ? (node.config.triggerType ? TRIGGER_LABELS[node.config.triggerType] : "Configurar gatilho...")
+            : (node.config.actionType ? ACTION_LABELS[node.config.actionType] : "Configurar nó...");
           
           return (
             <div key={node.id} className="flex flex-col items-center w-full">
               <div 
                 onClick={() => onNodeSelect(node)}
                 className={cn(
-                  "group relative w-full p-4 bg-card border rounded-xl shadow-sm cursor-pointer transition-all hover:shadow-md hover:border-primary/50",
-                  isSelected && "border-primary ring-2 ring-primary/20 ring-offset-1 shadow-md"
+                  "group relative w-full p-4 bg-card border rounded-xl shadow-sm cursor-pointer transition-all hover:shadow-md hover:border-teal-500/50",
+                  isSelected && "border-teal-500 ring-2 ring-teal-500/20 ring-offset-1 shadow-md"
                 )}
               >
                 <div className="flex items-start gap-4">
@@ -72,12 +82,12 @@ export function AutomationCanvas({
                       <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-bold">
                         {index + 1}
                       </Badge>
-                      <h3 className="text-sm font-bold text-teal-600 dark:text-teal-400 uppercase tracking-tight">
+                      <h3 className={cn("text-sm font-bold uppercase tracking-tight", nodeTitleColors[node.type])}>
                         {nodeTitles[node.type]}
                       </h3>
                     </div>
                     <p className="mt-0.5 text-sm font-medium text-foreground truncate">
-                      {node.config.triggerType || node.config.actionType || "Configurar nó..."}
+                      {subtitle}
                     </p>
                     
                     {/* Config Summary Preview */}
@@ -116,7 +126,7 @@ export function AutomationCanvas({
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8 rounded-full border-dashed bg-background shadow-sm hover:bg-primary hover:text-white hover:border-primary transition-all group"
+                  className="h-8 w-8 rounded-full border-teal-300 bg-background shadow-sm text-teal-600 hover:bg-teal-50 hover:border-teal-400 transition-all group"
                   onClick={() => onAddNode(index + 1)}
                 >
                   <Plus className="h-4 w-4" />
@@ -130,11 +140,11 @@ export function AutomationCanvas({
         {nodes.length === 0 && (
           <Button
             variant="outline"
-            className="w-full h-24 border-dashed flex flex-col gap-2 rounded-xl"
+            className="w-full h-24 border-dashed border-teal-300 flex flex-col gap-2 rounded-xl text-teal-600 hover:bg-teal-50"
             onClick={() => onAddNode(0)}
           >
-            <Plus className="h-6 w-6 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">Adicionar gatilho inicial</span>
+            <Plus className="h-6 w-6" />
+            <span className="text-sm font-medium">Adicionar gatilho inicial</span>
           </Button>
         )}
         
@@ -147,3 +157,4 @@ export function AutomationCanvas({
     </div>
   );
 }
+
