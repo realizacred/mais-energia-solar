@@ -160,7 +160,7 @@ export function ConvertLeadToClientDialog({
       <DialogContent className="max-w-[700px] p-0 flex flex-col h-[90vh]">
         <div className="flex items-center gap-3 p-5 border-b shrink-0">
           <div className="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center"><ShoppingCart className="w-5 h-5 text-teal-600" /></div>
-          <div><h2 className="text-base font-semibold">Converter {orcamentoId && lead?.lead_code ? lead.lead_code : "Orçamento"} em Venda</h2><p className="text-xs text-muted-foreground">Lead: {lead?.nome}</p></div>
+          <div><h2 className="text-base font-semibold">Converter {selectedOrcamento?.orc_code || orcamentoId || "Orçamento"} em Venda</h2><p className="text-xs text-muted-foreground">Lead: {selectedOrcamento?.nome || lead?.nome}</p></div>
         </div>
         <div className="flex gap-2 p-3 bg-muted/20 border-b">
           {STEPS.map((s, i) => (
