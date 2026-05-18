@@ -487,15 +487,18 @@ export default function PropostaLanding() {
         onSelectCenario={setSelectedCenario}
       />
       <div ref={ctaRef}>
-        <ProposalCTASection
-          {...sectionProps}
-          acceptForm={acceptForm}
-          onAcceptFormChange={setAcceptForm}
-          onAccept={handleAccept}
-          onReject={() => setShowReject(true)}
-          submitting={submitting}
-        />
+        {(propostaStatus === "vista" || propostaStatus === "viewed") && (
+          <ProposalCTASection
+            {...sectionProps}
+            acceptForm={acceptForm}
+            onAcceptFormChange={setAcceptForm}
+            onAccept={handleAccept}
+            onReject={() => setShowReject(true)}
+            submitting={submitting}
+          />
+        )}
       </div>
+
 
       <PropostaChatSection propostaData={templateVariables} />
 
