@@ -274,15 +274,28 @@ export function StageValidationsConfig({ pipelineId, stages }: Props) {
                   {renderConfigFields(v)}
 
                   <div className="space-y-3 pt-1">
-                    <div className="flex items-center justify-between p-2 rounded-lg bg-muted/40">
-                      <div className="space-y-0.5">
-                        <Label className="text-xs font-medium">Bloquear avanço</Label>
-                        <p className="text-[10px] text-muted-foreground">Impede a mudança de etapa se não cumprido.</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-muted/40">
+                        <div className="space-y-0.5">
+                          <Label className="text-[10px] font-medium uppercase">Bloquear avanço</Label>
+                          <p className="text-[9px] text-muted-foreground leading-tight">Impede a mudança de etapa se não cumprido.</p>
+                        </div>
+                        <Switch 
+                          checked={v.bloquear_avanco} 
+                          onCheckedChange={val => handleUpdate(v.id, { bloquear_avanco: val })} 
+                        />
                       </div>
-                      <Switch 
-                        checked={v.bloquear_avanco} 
-                        onCheckedChange={val => handleUpdate(v.id, { bloquear_avanco: val })} 
-                      />
+
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-muted/40">
+                        <div className="space-y-0.5">
+                          <Label className="text-[10px] font-medium uppercase">A partir desta etapa</Label>
+                          <p className="text-[9px] text-muted-foreground leading-tight">Aplica nesta e em todas as posteriores.</p>
+                        </div>
+                        <Switch 
+                          checked={v.aplicar_a_partir} 
+                          onCheckedChange={val => handleUpdate(v.id, { aplicar_a_partir: val })} 
+                        />
+                      </div>
                     </div>
 
                     <div className="space-y-1.5">
