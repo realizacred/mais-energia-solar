@@ -17,14 +17,14 @@ const corsHeaders = {
 
 // ─── State Machine ────────────────────────────────────────
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  rascunho: ["gerada", "cancelada"],
-  gerada: ["enviada", "aceita", "recusada", "cancelada", "rascunho"],
-  enviada: ["vista", "aceita", "recusada", "cancelada", "gerada"],
-  vista: ["aceita", "recusada", "cancelada", "gerada"],
-  aceita: ["recusada", "cancelada", "gerada"],
-  recusada: ["rascunho", "gerada"],
-  expirada: ["gerada"],
-  cancelada: ["rascunho"],
+  'draft':     ['generated'],
+  'generated': ['accepted', 'rejected', 'draft'],
+  'sent':      ['accepted', 'rejected', 'expired'],
+  'accepted':  ['rejected'],
+  'rejected':  ['draft'],
+  'expired':   ['draft'],
+  'excluida':  [],
+  'arquivada': []
 };
 
 function canTransition(from: string, to: string): boolean {
@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
     }
 
     // 2. Validate transition
-    const currentStatus = proposta.status || "rascunho";
+    const currentStatus = proposta.status || "draft";
     if (!canTransition(currentStatus, new_status)) {
       return new Response(
         JSON.stringify({
@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
     }
 
     // 2b. Idempotency check — prevent duplicate terminal transitions
-    if (["aceita", "recusada", "cancelada"].includes(new_status)) {
+    if (["accepted", "rejected", "cancelada"].includes(new_status)) {
       const { data: existingEvent } = await admin
         .from("proposal_events")
         .select("id")
@@ -146,31 +146,31 @@ Deno.serve(async (req) => {
     const now = new Date().toISOString();
     const updateData: Record<string, unknown> = { status: new_status };
 
-    if (new_status === "enviada") updateData.enviada_at = now;
-    if (new_status === "aceita") {
+    if (new_status === "sent") updateData.enviada_at = now;
+    if (new_status === "accepted") {
       updateData.aceita_at = transitionDate || now;
       updateData.aceite_motivo = motivo || null;
     }
-    if (new_status === "recusada") {
+    if (new_status === "rejected") {
       updateData.recusada_at = transitionDate || now;
       updateData.recusa_motivo = motivo || null;
     }
-    if (new_status !== "aceita") {
+    if (new_status !== "accepted") {
       updateData.aceita_at = null;
       updateData.aceite_motivo = null;
     }
-    if (new_status !== "recusada") {
+    if (new_status !== "rejected") {
       updateData.recusada_at = null;
       updateData.recusa_motivo = null;
     }
 
     // 4. Update status + set is_principal if accepting
-    if (new_status === "aceita") {
+    if (new_status === "accepted") {
       updateData.is_principal = true;
     }
 
-    // 4x. Revert accept: clear is_principal when leaving aceita
-    if (currentStatus === "aceita" && new_status !== "aceita") {
+    // 4x. Revert accept: clear is_principal when leaving accepted
+    if (currentStatus === "accepted" && new_status !== "accepted") {
       updateData.is_principal = false;
     }
 
@@ -183,17 +183,7 @@ Deno.serve(async (req) => {
 
     // 4a. Sync proposta_versoes.status (latest version only — by ID)
     try {
-      const statusMap: Record<string, string> = {
-        rascunho: "draft",
-        gerada: "generated",
-        enviada: "sent",
-        vista: "viewed",
-        aceita: "accepted",
-        recusada: "rejected",
-        expirada: "expired",
-        cancelada: "cancelled",
-      };
-      const versaoStatus = statusMap[new_status] || new_status;
+      const versaoStatus = new_status;
 
       // Fetch the exact ID of the latest version first
       const { data: latestVersao } = await admin
@@ -215,7 +205,7 @@ Deno.serve(async (req) => {
     }
 
     // 4b. On accept: reject sibling proposals and clear their is_principal
-    if (new_status === "aceita" && proposta.projeto_id) {
+    if (new_status === "accepted" && proposta.projeto_id) {
       // Clear is_principal on all siblings
       await admin
         .from("propostas_nativas")
@@ -224,7 +214,7 @@ Deno.serve(async (req) => {
         .neq("id", proposta_id);
 
       // Reject actionable siblings
-      const rejectableStatuses = ["gerada", "enviada", "vista", "rascunho"];
+      const rejectableStatuses = ["generated", "sent", "draft"];
       const { data: siblings } = await admin
         .from("propostas_nativas")
         .select("id, status")
@@ -237,7 +227,7 @@ Deno.serve(async (req) => {
         await admin
           .from("propostas_nativas")
           .update({
-            status: "recusada",
+            status: "rejected",
             recusada_at: now,
             recusa_motivo: "Outra proposta do projeto foi aceita",
           })
@@ -276,14 +266,14 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (linkedDeal) {
-          if (new_status === "aceita" && linkedDeal.status !== "won") {
+          if (new_status === "accepted" && linkedDeal.status !== "won") {
             await admin
               .from("deals")
               .update({ status: "won" })
               .eq("id", linkedDeal.id);
           } else if (
-            (new_status === "recusada" || new_status === "cancelada") &&
-            currentStatus === "aceita" &&
+            (new_status === "rejected" || new_status === "cancelada") &&
+            currentStatus === "accepted" &&
             linkedDeal.status === "won"
           ) {
             // Revert deal to open when accepted proposal is rejected/cancelled
@@ -292,7 +282,7 @@ Deno.serve(async (req) => {
               .from("propostas_nativas")
               .select("id", { count: "exact", head: true })
               .eq("projeto_id", dealLookupId)
-              .eq("status", "aceita")
+              .eq("status", "accepted")
               .neq("id", proposta_id);
 
             if ((otherAccepted ?? 0) === 0) {
@@ -312,7 +302,7 @@ Deno.serve(async (req) => {
     let commission_pct: number | null = null;
 
     // 5. Commission on accept (with idempotency — check for existing commission)
-    if (new_status === "aceita") {
+    if (new_status === "accepted") {
       try {
         // Check if commission already exists for this proposal (tenant-isolated)
         const { data: existingComm } = await admin
@@ -394,7 +384,7 @@ Deno.serve(async (req) => {
     }
 
     // 6. Cancel commissions on reject/cancel/revert-accept
-    if ((new_status === "recusada" || new_status === "cancelada" || (currentStatus === "aceita" && new_status === "gerada")) && proposta.projeto_id) {
+    if ((new_status === "rejected" || new_status === "cancelada" || (currentStatus === "accepted" && new_status === "generated")) && proposta.projeto_id) {
       await admin
         .from("comissoes")
         .update({ status: "cancelada", observacoes: motivo || `Proposta ${new_status} (aceite revertido)` })
@@ -403,7 +393,7 @@ Deno.serve(async (req) => {
     }
 
     // 6b. Cancel generated documents when accepted proposal is cancelled or reverted
-    if ((new_status === "cancelada" || new_status === "gerada") && currentStatus === "aceita" && proposta.projeto_id) {
+    if ((new_status === "cancelada" || new_status === "generated") && currentStatus === "accepted" && proposta.projeto_id) {
       try {
         await admin
           .from("generated_documents")
@@ -422,11 +412,11 @@ Deno.serve(async (req) => {
 
     // 7. Log event in proposal_events (standardized type names)
     const eventTypeMap: Record<string, string> = {
-      aceita: "proposta_aceita",
-      recusada: "proposta_recusada",
-      enviada: "proposta_enviada",
-      vista: "proposta_visualizada",
-      gerada: currentStatus === "aceita" ? "aceite_revertido" : currentStatus === "recusada" ? "recusa_revertida" : "proposta_gerada",
+      accepted: "proposta_aceita",
+      rejected: "proposta_recusada",
+      sent: "proposta_enviada",
+      viewed: "proposta_visualizada",
+      generated: currentStatus === "accepted" ? "aceite_revertido" : currentStatus === "rejected" ? "recusa_revertida" : "proposta_gerada",
     };
     const eventType = eventTypeMap[new_status] || new_status;
 
