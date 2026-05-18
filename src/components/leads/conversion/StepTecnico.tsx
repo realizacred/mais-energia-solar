@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -30,6 +30,7 @@ export type Step2Data = z.infer<typeof step2Schema>;
 interface StepTecnicoProps {
   leadId?: string; 
   initialData: Partial<Step2Data>;
+  hydrationKey?: string | null;
   identidadeFiles: DocumentFile[];
   comprovanteFiles: DocumentFile[];
   beneficiariaFiles: DocumentFile[];
@@ -41,6 +42,7 @@ interface StepTecnicoProps {
 export function StepTecnico({ 
   leadId,
   initialData, 
+  hydrationKey,
   identidadeFiles, 
   comprovanteFiles, 
   beneficiariaFiles, 
@@ -52,38 +54,30 @@ export function StepTecnico({
   const { data: equipmentData } = useConversionEquipment();
   const [gettingLocation, setGettingLocation] = useState(false);
   const [simulacoes, setSimulacoes] = useState<any[]>([]);
+  const mappedValues = useMemo<Step2Data>(() => ({
+    disjuntor_id: initialData.disjuntor_id || "",
+    transformador_id: initialData.transformador_id || "",
+    localizacao: initialData.localizacao || "",
+    simulacao_aceita_id: initialData.simulacao_aceita_id || "",
+    observacoes: initialData.observacoes || "",
+    media_consumo: initialData.media_consumo || 0,
+    consumo_previsto: initialData.consumo_previsto || 0,
+  }), [initialData]);
+  const lastResetKeyRef = useRef<string | null>(null);
 
   const form = useForm<Step2Data>({
     resolver: zodResolver(step2Schema),
-    defaultValues: {
-      disjuntor_id: initialData.disjuntor_id || "",
-      transformador_id: initialData.transformador_id || "",
-      localizacao: initialData.localizacao || "",
-      simulacao_aceita_id: initialData.simulacao_aceita_id || "",
-      observacoes: initialData.observacoes || "",
-      media_consumo: initialData.media_consumo || 0,
-      consumo_previsto: initialData.consumo_previsto || 0,
-    },
+    defaultValues: mappedValues,
     mode: "onChange",
   });
 
-  // Force form reset when initialData changes to ensure re-hydration
   useEffect(() => {
-    if (initialData.disjuntor_id || initialData.localizacao || initialData.observacoes || initialData.media_consumo) {
-      // Use form.reset only if form is not dirty to avoid overwriting user edits
-      if (!form.formState.isDirty) {
-        form.reset({
-          disjuntor_id: initialData.disjuntor_id || "",
-          transformador_id: initialData.transformador_id || "",
-          localizacao: initialData.localizacao || "",
-          simulacao_aceita_id: initialData.simulacao_aceita_id || "",
-          observacoes: initialData.observacoes || "",
-          media_consumo: initialData.media_consumo || 0,
-          consumo_previsto: initialData.consumo_previsto || 0,
-        });
-      }
-    }
-  }, [initialData, form]);
+    if (!hydrationKey) return;
+    if (lastResetKeyRef.current === hydrationKey) return;
+
+    form.reset(mappedValues);
+    lastResetKeyRef.current = hydrationKey;
+  }, [hydrationKey, mappedValues, form]);
 
   const formData = form.watch();
   const isValid = form.formState.isValid;
