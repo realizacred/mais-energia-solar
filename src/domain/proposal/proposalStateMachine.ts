@@ -19,12 +19,14 @@ export type ProposalStatus =
   | "arquivada";
 
 const VALID_TRANSITIONS: Record<string, ProposalStatus[]> = {
-  draft: ["generated"],
-  generated: ["sent", "accepted", "rejected", "draft"],
-  sent: ["accepted", "rejected", "expired", "generated"],
-  accepted: ["rejected", "generated"],
+  draft: ["generated", "cancelled"],
+  generated: ["sent", "accepted", "rejected", "cancelled", "draft"],
+  sent: ["viewed", "accepted", "rejected", "expired", "cancelled", "generated"],
+  viewed: ["accepted", "rejected", "expired", "cancelled", "generated"],
+  accepted: ["rejected", "cancelled", "generated"],
   rejected: ["draft", "generated"],
-  expired: ["generated"],
+  expired: ["generated", "draft"],
+  cancelled: ["draft"],
   excluida: [],
   arquivada: [],
 };
