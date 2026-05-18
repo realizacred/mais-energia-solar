@@ -265,7 +265,11 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                             {quickLoading && loadingLeadId === lead.id ? <ButtonLoader /> : <ScrollText className="w-4 h-4" />}
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Gerar Proposta Rápida</TooltipContent>
+                        <TooltipContent>
+                          {lead.cliente_id_vinculado 
+                            ? "Já possui projeto vinculado. Clique para abrir." 
+                            : "Gerar Proposta Rápida"}
+                        </TooltipContent>
                       </Tooltip>
                     )}
                     {onConvert && !isConverted && (
