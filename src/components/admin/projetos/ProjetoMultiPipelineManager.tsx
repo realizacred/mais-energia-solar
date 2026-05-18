@@ -1257,7 +1257,7 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
             <VincularFornecedorModal
               open={!!fornecedorModal}
               onOpenChange={(open) => !open && setFornecedorModal(null)}
-              projetoId={fornecedorModal?.projetoId || ""}
+              projetoId={fornecedorModal?.projetoId || projetoId || dealId || ""}
               projetoCodigo={fornecedorModal?.projetoCodigo}
               clienteNome={fornecedorModal?.clienteNome}
               onSuccess={() => {
