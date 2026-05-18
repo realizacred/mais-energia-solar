@@ -35,6 +35,7 @@ import { formatTirPercent } from "@/lib/tirDisplay";
 import { cn } from "@/lib/utils";
 import { renderProposal, sendProposal } from "@/services/proposalApi";
 import { useLazyTemplateAssign } from "@/hooks/useLazyTemplateAssign";
+import { getCanonicalProposalTotal } from "@/services/proposal/proposalTotals";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { ProposalMessageDrawer } from "./ProposalMessageDrawer";
 import { ProposalMessageHistory } from "./ProposalMessageHistory";
@@ -400,7 +401,7 @@ function FinancialKPIs({ snapshot, latestVersao }: { snapshot: any; latestVersao
 // ─── SM (legacy_import) Tab Components ──────────────
 
 function SmResumoTab({ snapshot, latestVersao, wpPrice }: { snapshot: any; latestVersao: VersaoData | undefined; wpPrice: string | null }) {
-  const totalFinal = latestVersao?.valor_total || 0;
+  const totalFinal = getCanonicalProposalTotal(latestVersao as any);
   const equipCost = snapshot.equipment_cost || 0;
   const installCost = snapshot.installation_cost || 0;
   const equipPct = totalFinal > 0 ? (equipCost / totalFinal) * 100 : 0;
@@ -630,7 +631,7 @@ function NativeResumoTab({ snapshot, ucsDetail, latestVersao, wpPrice, buildSumm
                   <td />
                   <td className="py-3 px-3 text-right">
                     {wpPrice && <span className="text-[10px] text-primary font-semibold block">R$ {wpPrice.replace('.', ',')} / Wp</span>}
-                    <span className="font-bold text-foreground text-sm">{formatBRL(latestVersao?.valor_total || 0)}</span>
+                    <span className="font-bold text-foreground text-sm">{formatBRL(getCanonicalProposalTotal(latestVersao as any))}</span>
                   </td>
                   <td />
                 </tr>
@@ -675,8 +676,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     enviadaVersao.valor_total !== null && 
     Math.abs(latestVersao.valor_total - enviadaVersao.valor_total) > 0.01;
 
-  const wpPrice = latestVersao?.valor_total && latestVersao?.potencia_kwp
-    ? (latestVersao.valor_total / (latestVersao.potencia_kwp * 1000)).toFixed(2)
+  const canonicalTotalLatest = getCanonicalProposalTotal(latestVersao as any);
+  const wpPrice = canonicalTotalLatest > 0 && latestVersao?.potencia_kwp
+    ? (canonicalTotalLatest / (latestVersao.potencia_kwp * 1000)).toFixed(2)
     : null;
 
   // Templates for DOCX/HTML detection
@@ -965,9 +967,13 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   // Auto-render ONLY when no persisted PDF exists, status indicates generation happened,
   // AND the version was actually generated with a template (template_id_used is set).
   // Without template_id_used, no auto-render — avoids showing a random template preview.
+  // Guard: nunca dispara mais de uma vez para a mesma versão (anti-loop em DOCX,
+  // onde handleRender não popula `html` e o effect re-rodaria a cada mudança de dep).
+  const autoRenderedVersionRef = useRef<string | null>(null);
   useEffect(() => {
     if (!isExpanded || activeTab !== "arquivo" || html || rendering) return;
     if (!latestVersao?.id) return;
+    if (autoRenderedVersionRef.current === latestVersao.id) return;
     // Skip auto-render if persisted PDF or external link_pdf exists (migrated proposals)
     if (latestVersao.output_pdf_path || latestVersao.link_pdf) return;
     // Skip auto-render if version was never generated with a template
@@ -976,6 +982,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     const pStatus = p.status?.toLowerCase();
     if (vStatus === "generated" || vStatus === "ativa" ||
         pStatus === "generated" || pStatus === "sent" || pStatus === "accepted") {
+      autoRenderedVersionRef.current = latestVersao.id;
       handleRender();
     }
   }, [isExpanded, activeTab, latestVersao?.id]);
@@ -1254,7 +1261,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     if (!snapshot) return [];
     const rows: Array<{ label: string; qty: number; value: number; pct: number; children?: Array<{ label: string; qty: number }> }> = [];
     const venda = snapshot.venda;
-    const totalFinal = latestVersao?.valor_total || 0;
+    const totalFinal = getCanonicalProposalTotal(latestVersao as any);
     const servicos = snapshot.servicos || [];
 
     // Kit items
@@ -1448,7 +1455,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <p className={cn("text-sm font-bold text-foreground", hasDivergence && "cursor-help underline decoration-dotted decoration-warning/50 underline-offset-2")}>
-                        {latestVersao?.valor_total ? formatBRL(latestVersao.valor_total) : "—"}
+                        {canonicalTotalLatest > 0 ? formatBRL(canonicalTotalLatest) : "—"}
                       </p>
                     </TooltipTrigger>
                     {hasDivergence && (
