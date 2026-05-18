@@ -57,16 +57,43 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
 
   useEffect(() => {
     if (lead && open) {
+      console.log("[ConvertLeadToClientDialog] Initializing with lead:", lead);
       const saved = localStorage.getItem(`lead_conversion_${lead.id}`);
       if (saved) {
         const data = JSON.parse(saved);
-        setStep1Data(data.step1Data || { nome: lead.nome, telefone: lead.telefone, email: lead.email, cep: lead.cep });
+        console.log("[ConvertLeadToClientDialog] Found saved data:", data);
+        setStep1Data(data.step1Data || { 
+          nome: lead.nome, 
+          telefone: lead.telefone, 
+          email: lead.email || "", 
+          cep: lead.cep || "",
+          cidade: lead.cidade || "",
+          estado: lead.estado || "",
+          bairro: lead.bairro || "",
+          rua: lead.rua || "",
+          numero: lead.numero || "",
+        });
         setStep2Data(data.step2Data || {});
         setIdentidadeFiles(data.identidadeFiles || []);
         setComprovanteFiles(data.comprovanteFiles || []);
         setPaymentItems(data.paymentItems || [createEmptyItem()]);
       } else {
-        setStep1Data({ nome: lead.nome, telefone: lead.telefone, email: lead.email, cep: lead.cep });
+        console.log("[ConvertLeadToClientDialog] No saved data, using lead properties");
+        setStep1Data({ 
+          nome: lead.nome, 
+          telefone: lead.telefone, 
+          email: lead.email || "", 
+          cep: lead.cep || "",
+          cidade: lead.cidade || "",
+          estado: lead.estado || "",
+          bairro: lead.bairro || "",
+          rua: lead.rua || "",
+          numero: lead.numero || "",
+        });
+        setStep2Data({});
+        setIdentidadeFiles([]);
+        setComprovanteFiles([]);
+        setPaymentItems([createEmptyItem()]);
       }
     } else if (!open) {
       setCurrentStep(0);
