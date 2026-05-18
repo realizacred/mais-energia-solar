@@ -328,8 +328,8 @@ function getStatusDateLabel(
 function StatusIcon({ status, isPrincipal }: { status: string; isPrincipal: boolean }) {
   const s = getProposalStatusConfig(status);
   const colorCls = s?.iconCls || (isPrincipal ? "text-primary" : "text-muted-foreground");
-  const isAccepted = ["aceita", "ganha"].includes(status);
-  const isRejected = ["rejeitada", "recusada", "perdida"].includes(status);
+  const isAccepted = ["accepted", "aceita", "ganha"].includes(status);
+  const isRejected = ["rejected", "rejeitada", "recusada", "perdida"].includes(status);
   
   if (isAccepted) return <CheckCircle className={cn("h-6 w-6 shrink-0 mr-3", colorCls)} />;
   if (isRejected) return <AlertCircle className={cn("h-6 w-6 shrink-0 mr-3", colorCls)} />;
