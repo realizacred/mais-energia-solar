@@ -31,30 +31,54 @@ export function generateInstallments(item: PaymentItemInput, valorTotal: number)
   const parcelas: ParcelaDetalhe[] = [];
   const numParcelas = Math.max(1, item.parcelas);
 
-  if (numParcelas === 1 || !FORMAS_PARCELAVEIS.includes(item.forma_pagamento)) {
-    // Single payment
+  const fallbackDate = new Date().toISOString().split("T")[0];
+
+  // Separate entrada (if toggle ativo and valor_entrada > 0)
+  const valorEntrada = item.entrada ? Math.max(0, item.valor_entrada ?? 0) : 0;
+  const valorParaParcelas = Math.max(0, round2(valorTotal - valorEntrada));
+
+  if (valorEntrada > 0) {
+    const vencEntrada = isValidISO(item.data_pagamento) ? item.data_pagamento : fallbackDate;
     parcelas.push({
       numero_parcela: 1,
-      tipo_parcela: item.entrada ? "entrada" : "regular",
-      valor: round2(valorTotal),
-      vencimento: item.data_pagamento || item.data_primeiro_vencimento || new Date().toISOString().split("T")[0],
+      tipo_parcela: "entrada",
+      valor: round2(valorEntrada),
+      vencimento: vencEntrada,
     });
+  }
+
+  if (numParcelas === 1 || !FORMAS_PARCELAVEIS.includes(item.forma_pagamento)) {
+    // Single payment for the remainder (or full value if no entrada split)
+    if (valorParaParcelas > 0 || valorEntrada === 0) {
+      const venc = isValidISO(item.data_pagamento)
+        ? item.data_pagamento
+        : isValidISO(item.data_primeiro_vencimento)
+          ? item.data_primeiro_vencimento
+          : fallbackDate;
+      parcelas.push({
+        numero_parcela: parcelas.length + 1,
+        tipo_parcela: item.entrada && valorEntrada === 0 ? "entrada" : "regular",
+        valor: round2(valorParaParcelas || valorTotal),
+        vencimento: venc,
+      });
+    }
     return parcelas;
   }
 
-  // Multiple installments
-  const valorParcela = round2(valorTotal / numParcelas);
-  const diff = round2(valorTotal - valorParcela * numParcelas);
+  // Multiple installments over remainder
+  const valorParcela = round2(valorParaParcelas / numParcelas);
+  const diff = round2(valorParaParcelas - valorParcela * numParcelas);
 
-  const baseDate = item.data_primeiro_vencimento || item.data_pagamento || new Date().toISOString().split("T")[0];
+  const rawBase = item.data_primeiro_vencimento || item.data_pagamento;
+  const baseDate = isValidISO(rawBase) ? rawBase : fallbackDate;
 
   for (let i = 0; i < numParcelas; i++) {
-    const vencimento = addDays(baseDate, i * item.intervalo_dias);
-    const isFirst = i === 0;
+    const vencimento = addDays(baseDate, i * item.intervalo_dias) || fallbackDate;
+    const isFirst = i === 0 && valorEntrada === 0;
     const isLast = i === numParcelas - 1;
 
     parcelas.push({
-      numero_parcela: i + 1,
+      numero_parcela: parcelas.length + 1,
       tipo_parcela: isFirst && item.entrada ? "entrada" : isLast ? "final" : "regular",
       valor: round2(valorParcela + (isLast ? diff : 0)),
       vencimento,
