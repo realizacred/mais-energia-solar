@@ -39,6 +39,7 @@ export interface CatalogKit {
   potencia_inversor?: number | null;
   potencia_modulo?: number | null;
   previsao?: string | null;
+  fornecedor_nome?: string | null;
 }
 
 interface CatalogKitItem {
