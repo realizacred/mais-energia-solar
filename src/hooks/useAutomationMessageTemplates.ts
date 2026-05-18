@@ -52,7 +52,7 @@ export function useSaveAutomationMessageTemplate() {
       } else {
         const { error } = await supabase
           .from("automation_message_templates")
-          .insert({ ...payload, tenant_id: profile.tenant_id });
+          .insert({ ...payload, tenant_id: profile.tenant_id } as any);
         if (error) throw error;
       }
     },
