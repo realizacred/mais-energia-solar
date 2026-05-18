@@ -19,7 +19,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { ProposalViewModel } from "@/domain/proposal/ProposalViewModel";
-import { isActionableStatus, canAccept, canReject, canGenerateOs } from "@/domain/proposal/proposalState";
+import { isActionableStatus, canAccept, canReject, canGenerateOs, canCancel } from "@/domain/proposal/proposalState";
 
 interface ProposalStatusActionsProps {
   vm: ProposalViewModel;
