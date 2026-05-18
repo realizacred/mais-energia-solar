@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { ShoppingCart, User, FileText, Wallet, RefreshCw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,6 +48,8 @@ export function ConvertLeadToClientDialog({
   const [assinaturaFiles, setAssinaturaFiles] = useState<DocumentFile[]>([]);
   const [paymentItems, setPaymentItems] = useState<PaymentItemInput[]>([createEmptyItem()]);
 
+  const lastHydratedId = useRef<string | null>(null);
+
   const { isOnline } = useOfflineConversionSync();
 
   const { data: propostaVersaoValor = 0 } = useQuery({
@@ -70,49 +72,56 @@ export function ConvertLeadToClientDialog({
       const source = selectedOrcamento || lead;
       if (!source) return;
 
-      const saved = localStorage.getItem(`lead_conversion_${lead?.id || orcamentoId}`);
-      if (saved) {
-        const data = JSON.parse(saved);
-        setStep1Data(data.step1Data || { 
-          nome: source.nome || "", 
-          telefone: (source as any).telefone || "", 
-          email: (source as any).email || "", 
-          cep: (source as any).cep || "",
-          cidade: (source as any).cidade || "",
-          estado: (source as any).estado || "",
-          bairro: (source as any).bairro || "",
-          rua: (source as any).rua || "",
-          numero: (source as any).numero || "",
-        });
-        setStep2Data(data.step2Data || {
-          localizacao: (source as any).localizacao || "",
-          observacoes: (source as any).observacoes || "",
-        });
-      } else {
-        const initialS1 = { 
-          nome: source.nome || "", 
-          telefone: (source as any).telefone || "", 
-          email: (source as any).email || "", 
-          cep: (source as any).cep || "",
-          cidade: (source as any).cidade || "",
-          estado: (source as any).estado || "",
-          bairro: (source as any).bairro || "",
-          rua: (source as any).rua || "",
-          numero: (source as any).numero || "",
-        };
-        const initialS2 = {
-          localizacao: (source as any).localizacao || "",
-          observacoes: (source as any).observacoes || "",
-        };
+      const currentId = selectedOrcamento?.id || lead?.id || orcamentoId;
+      const isNewSource = lastHydratedId.current !== currentId;
 
-        setStep1Data(initialS1);
-        setStep2Data(initialS2);
-        setIdentidadeFiles([]);
-        setComprovanteFiles([]);
-        setPaymentItems([createEmptyItem()]);
+      if (isNewSource) {
+        const saved = localStorage.getItem(`lead_conversion_${currentId}`);
+        if (saved) {
+          const data = JSON.parse(saved);
+          setStep1Data(data.step1Data || { 
+            nome: source.nome || "", 
+            telefone: (source as any).telefone || "", 
+            email: (source as any).email || "", 
+            cep: (source as any).cep || "",
+            cidade: (source as any).cidade || "",
+            estado: (source as any).estado || "",
+            bairro: (source as any).bairro || "",
+            rua: (source as any).rua || "",
+            numero: (source as any).numero || "",
+          });
+          setStep2Data(data.step2Data || {
+            localizacao: (source as any).localizacao || "",
+            observacoes: (source as any).observacoes || "",
+          });
+        } else {
+          const initialS1 = { 
+            nome: source.nome || "", 
+            telefone: (source as any).telefone || "", 
+            email: (source as any).email || "", 
+            cep: (source as any).cep || "",
+            cidade: (source as any).cidade || "",
+            estado: (source as any).estado || "",
+            bairro: (source as any).bairro || "",
+            rua: (source as any).rua || "",
+            numero: (source as any).numero || "",
+          };
+          const initialS2 = {
+            localizacao: (source as any).localizacao || "",
+            observacoes: (source as any).observacoes || "",
+          };
+
+          setStep1Data(initialS1);
+          setStep2Data(initialS2);
+          setIdentidadeFiles([]);
+          setComprovanteFiles([]);
+          setPaymentItems([createEmptyItem()]);
+        }
+        lastHydratedId.current = currentId || null;
       }
     } else {
       setCurrentStep(0);
+      lastHydratedId.current = null;
     }
   }, [lead?.id, selectedOrcamento?.id, open, orcamentoId]);
 

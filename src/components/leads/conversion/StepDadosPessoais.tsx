@@ -56,20 +56,22 @@ export function StepDadosPessoais({ initialData, onChange }: StepDadosPessoaisPr
   // Force form reset when initialData changes to ensure re-hydration
   useEffect(() => {
     if (initialData.nome || initialData.telefone || initialData.cep || initialData.cidade) {
-      form.reset({
-        nome: initialData.nome || "",
-        telefone: initialData.telefone || "",
-        email: initialData.email || "",
-        cpf_cnpj: initialData.cpf_cnpj || "",
-        data_nascimento: initialData.data_nascimento || "",
-        cep: initialData.cep || "",
-        estado: initialData.estado || "",
-        cidade: initialData.cidade || "",
-        bairro: initialData.bairro || "",
-        rua: initialData.rua || "",
-        numero: initialData.numero || "",
-        complemento: initialData.complemento || "",
-      });
+      if (!form.formState.isDirty) {
+        form.reset({
+          nome: initialData.nome || "",
+          telefone: initialData.telefone || "",
+          email: initialData.email || "",
+          cpf_cnpj: initialData.cpf_cnpj || "",
+          data_nascimento: initialData.data_nascimento || "",
+          cep: initialData.cep || "",
+          estado: initialData.estado || "",
+          cidade: initialData.cidade || "",
+          bairro: initialData.bairro || "",
+          rua: initialData.rua || "",
+          numero: initialData.numero || "",
+          complemento: initialData.complemento || "",
+        });
+      }
     }
   }, [initialData, form]);
 
