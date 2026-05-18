@@ -295,7 +295,7 @@ const SUGGESTIONS: SuggestedAutomation[] = [
 
 // ─── Component ──────────────────────────────────────────
 
-export function PipelineAutomations() {
+export function PipelineAutomations({ onEdit }: { onEdit?: (id?: string) => void }) {
   const { data: automations, isLoading } = useAutomations();
   const { data: pipelines } = usePipelines();
   const { toast } = useToast();
@@ -415,7 +415,7 @@ export function PipelineAutomations() {
             <p className="text-sm text-muted-foreground">Regras automáticas para mover deals entre etapas</p>
           </div>
         </div>
-        <Button size="sm" className="gap-1" onClick={() => { resetForm(); setIsDialogOpen(true); }}>
+        <Button size="sm" className="gap-1" onClick={() => onEdit ? onEdit() : setIsDialogOpen(true)}>
           <Plus className="h-4 w-4" />
           Nova Automação
         </Button>
@@ -441,7 +441,7 @@ export function PipelineAutomations() {
             <p className="text-sm text-muted-foreground mb-4">
               Crie regras para mover leads automaticamente entre etapas
             </p>
-            <Button size="sm" onClick={() => { resetForm(); setIsDialogOpen(true); }}>
+            <Button size="sm" onClick={() => onEdit ? onEdit() : setIsDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-1" />
               Criar primeira automação
             </Button>
@@ -498,6 +498,14 @@ export function PipelineAutomations() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-primary"
+                        onClick={() => onEdit?.(a.id)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
