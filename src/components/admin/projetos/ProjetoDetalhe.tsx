@@ -84,7 +84,7 @@ import { useRecibos } from "@/hooks/useRecibos";
 
 import { useOperationalStatus } from "@/hooks/useOperationalStatus";
 import { useFinancialSummary } from "@/hooks/useFinancialSummary";
-import { useDocumentsCount } from "@/hooks/useProjectDocuments";
+import { useDocumentsCount, useProjectDocuments } from "@/hooks/useProjectDocuments";
 import { ProjetoFinancialBadges } from "./ProjetoFinancialBadges";
 
 interface PropostaNativa {
@@ -149,6 +149,7 @@ function AlertasFinanceirosProjeto({
   projetoId, 
   setActiveTab,
   customerName,
+  customerCpfCnpj,
   statusProjeto
 }: {
   dealId: string;
@@ -156,6 +157,7 @@ function AlertasFinanceirosProjeto({
   projetoId: string | null;
   setActiveTab: (t: TabId) => void;
   customerName: string;
+  customerCpfCnpj?: string;
   statusProjeto?: string;
 }) {
   const [emitirOpen, setEmitirOpen] = useState(false);
@@ -164,12 +166,59 @@ function AlertasFinanceirosProjeto({
   const { data: recebimento } = useClienteRecebimentoDetalhes(
     hasRecebimento ? customerId : null
   );
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   const [finishingPending, setFinishingPending] = useState(false);
+  const [missingRequirements, setMissingMissingRequirements] = useState<string[]>([]);
+  const { data: canonicalData } = useProjectDocuments({ dealId });
+  const canonicalDocs = canonicalData?.documents || [];
 
   // Ação para concluir projeto pendente (RB-108/111)
   const handleConcluirPendencia = async () => {
     if (!projetoId) return;
+
+    // RB-107/111: Validação de Checklist Real
+    const missing: string[] = [];
+    
+    // 1. CPF/CNPJ
+    if (!customerCpfCnpj || customerCpfCnpj.length < 11) {
+      missing.push("CPF/CNPJ do cliente é obrigatório");
+    }
+
+    // 2. Documento pessoal & Comprovante de endereço & Conta de luz
+    const docCats = canonicalDocs.map(d => d.categoria?.toLowerCase().trim());
+    const hasDocPessoal = docCats.some(c => ["rg_cnh", "identidade", "rg", "cnh"].includes(c || ""));
+    const hasEndereco = docCats.some(c => ["iptu", "endereco", "comprovante_endereco"].includes(c || ""));
+    const hasContaLuz = docCats.some(c => ["conta_luz", "energia", "fatura"].includes(c || ""));
+    const hasContrato = docCats.some(c => ["contrato", "contrato_assinado"].includes(c || ""));
+
+    if (!hasDocPessoal) missing.push("Documento pessoal (RG/CNH) obrigatório");
+    if (!hasEndereco) missing.push("Comprovante de endereço (IPTU/Outro) obrigatório");
+    if (!hasContaLuz) missing.push("Conta de luz (Fatura recente) obrigatória");
+    if (!hasContrato) missing.push("Contrato assinado obrigatório");
+
+    // 3. Financeiro equilibrado (RB-103)
+    if (financial) {
+      const saldo = financial.valorContratado - financial.valorRecebido;
+      if (financial.valorContratado > 0 && saldo > 0) {
+        // missing.push(`Saldo devedor pendente: R$ ${saldo.toLocaleString('pt-BR')}`);
+        // Nota: dependendo da regra, o saldo devedor pode não ser bloqueante para 'criado', 
+        // mas o 'valor_contratado' deve estar definido.
+      }
+      if (financial.valorContratado <= 0) {
+        missing.push("Valor do contrato não definido");
+      }
+    }
+
+    if (missing.length > 0) {
+      setMissingMissingRequirements(missing);
+      toast({ 
+        title: "Pendências impeditivas", 
+        description: "Não é possível concluir o projeto sem os itens obrigatórios.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
     setFinishingPending(true);
     try {
       const { error } = await supabase
@@ -179,13 +228,23 @@ function AlertasFinanceirosProjeto({
       
       if (error) throw error;
 
-      toast({ title: "Documentação concluída!", description: "O projeto agora seguirá o fluxo normal." });
+      // Registrar histórico/auditoria (RB-112)
+      await supabase.from("project_events").insert({
+        deal_id: dealId,
+        event_type: "status_change",
+        from_value: "aguardando_documentacao",
+        to_value: "criado",
+        actor_user_id: (await supabase.auth.getUser()).data.user?.id,
+        metadata: { reason: "Conclusão manual de pendências documentais" }
+      } as any);
+
+      toast({ title: "Projeto regularizado!", description: "O projeto agora seguirá o fluxo normal de engenharia." });
+      setMissingMissingRequirements([]);
       
-      // Invalidate queries to refresh status everywhere
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] }),
-        queryClient.invalidateQueries({ queryKey: ["projeto-detalhe-data", dealId] }),
-        queryClient.invalidateQueries({ queryKey: ["projetos-pipeline"] })
+        qc.invalidateQueries({ queryKey: ["projeto-detalhe"] }),
+        qc.invalidateQueries({ queryKey: ["projeto-detalhe-data", dealId] }),
+        qc.invalidateQueries({ queryKey: ["projetos-pipeline"] })
       ]);
     } catch (err: any) {
       toast({ title: "Erro ao concluir", description: err.message, variant: "destructive" });
@@ -197,38 +256,60 @@ function AlertasFinanceirosProjeto({
   // Alerta de Documentação Pendente (RB-108)
   if (statusProjeto === "aguardando_documentacao") {
     return (
-      <Card className="mb-2 border-l-[3px] border-l-amber-500 bg-amber-500/5">
-        <CardContent className="flex items-center gap-4 p-4">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-amber-500/10 text-amber-600 shrink-0">
-            <FileText className="w-5 h-5" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">Projeto Salvo Pendente</p>
-            <p className="text-xs text-amber-700 dark:text-amber-300">
-              Complete os dados do cliente e anexe os documentos obrigatórios para avançar no funil.
+      <div className="space-y-3 mb-4">
+        <Card className="border-l-[3px] border-l-amber-500 bg-amber-500/5 overflow-hidden">
+          <CardContent className="flex items-center gap-4 p-4">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-amber-500/10 text-amber-600 shrink-0">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">Projeto Salvo Pendente</p>
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                O projeto está bloqueado até que todos os documentos e dados obrigatórios sejam fornecidos.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-amber-200 bg-white dark:bg-amber-950 text-amber-700 dark:text-amber-300 hover:bg-amber-100 gap-1.5"
+                onClick={() => setActiveTab("documentos")}
+              >
+                <Upload className="h-3.5 w-3.5" /> Anexar
+              </Button>
+              <Button
+                size="sm"
+                className="bg-amber-600 hover:bg-amber-700 text-white shrink-0 gap-1.5"
+                onClick={handleConcluirPendencia}
+                disabled={finishingPending}
+              >
+                {finishingPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
+                Concluir pendência
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {missingRequirements.length > 0 && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }} 
+            animate={{ opacity: 1, y: 0 }}
+            className="p-3 rounded-lg border border-destructive/20 bg-destructive/5 space-y-2"
+          >
+            <p className="text-xs font-bold text-destructive uppercase tracking-wider flex items-center gap-1.5">
+              <AlertCircle className="h-3.5 w-3.5" /> Itens obrigatórios faltantes:
             </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-amber-200 bg-white dark:bg-amber-950 text-amber-700 dark:text-amber-300 hover:bg-amber-100 gap-1.5"
-              onClick={() => setActiveTab("documentos")}
-            >
-              <Upload className="h-3.5 w-3.5" /> Anexar
-            </Button>
-            <Button
-              size="sm"
-              className="bg-amber-600 hover:bg-amber-700 text-white shrink-0 gap-1.5"
-              onClick={handleConcluirPendencia}
-              disabled={finishingPending}
-            >
-              {finishingPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
-              Concluir pendência
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+              {missingRequirements.map((m, i) => (
+                <li key={i} className="text-[11px] text-destructive flex items-center gap-1.5">
+                  <span className="w-1 h-1 rounded-full bg-destructive shrink-0" />
+                  {m}
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
+      </div>
     );
   }
 
@@ -990,6 +1071,7 @@ function ProjetoDetalheContent() {
           customerName={customerName} 
           projetoId={projetoId} 
           setActiveTab={setActiveTab}
+          customerCpfCnpj={customerCpfCnpj}
           statusProjeto={(deal as any).status_projeto}
         />
       )}
