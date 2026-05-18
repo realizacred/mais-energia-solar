@@ -27,7 +27,7 @@ export type Step2Data = z.infer<typeof step2Schema>;
 
 interface StepTecnicoProps {
   leadId?: string; 
-  initialData: Partial<Step2Data>; 
+  initialData: Partial<Step2Data>;
   identidadeFiles: DocumentFile[];
   comprovanteFiles: DocumentFile[];
   beneficiariaFiles: DocumentFile[];
@@ -79,7 +79,7 @@ export function StepTecnico({
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      toast({ title: "Erro", description: "Geolocalização não é suportada.", variant: "destructive" });
+      toast({ title: "Erro", description: "Geolocalização não suportada.", variant: "destructive" });
       return;
     }
     setGettingLocation(true);
@@ -196,19 +196,19 @@ export function StepTecnico({
           <SectionTitle>Documentos</SectionTitle>
           <div className="bg-muted/50 rounded-lg p-3 space-y-2">
             <span className="text-sm font-medium flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5" /> Identidade (RG/CNH)</span>
-            <DocumentUpload label="" files={identidadeFiles} onFilesChange={(f) => onFilesChange("identidade", f)} required />
+            <DocumentUpload label="" description="Frente e verso" files={identidadeFiles} onFilesChange={(f) => onFilesChange("identidade", f)} required />
           </div>
           <div className="bg-muted/50 rounded-lg p-3 space-y-2">
             <span className="text-sm font-medium flex items-center gap-1.5"><Home className="h-3.5 w-3.5" /> Endereço</span>
-            <DocumentUpload label="" files={comprovanteFiles} onFilesChange={(f) => onFilesChange("comprovante", f)} required />
+            <DocumentUpload label="" description="Comprovante de residência" files={comprovanteFiles} onFilesChange={(f) => onFilesChange("comprovante", f)} required />
           </div>
           <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-            <span className="text-sm font-medium flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" /> Conta Beneficiária</span>
-            <DocumentUpload label="" files={beneficiariaFiles} onFilesChange={(f) => onFilesChange("beneficiaria", f)} />
+            <span className="text-sm font-medium flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" /> Beneficiária</span>
+            <DocumentUpload label="" description="Conta de energia" files={beneficiariaFiles} onFilesChange={(f) => onFilesChange("beneficiaria", f)} />
           </div>
           <div className="bg-muted/50 rounded-lg p-3 space-y-2">
             <span className="text-sm font-medium flex items-center gap-1.5"><Signature className="h-3.5 w-3.5" /> Assinatura</span>
-            <DocumentUpload label="" files={assinaturaFiles} onFilesChange={(f) => onFilesChange("assinatura", f)} />
+            <DocumentUpload label="" description="Foto da assinatura" files={assinaturaFiles} onFilesChange={(f) => onFilesChange("assinatura", f)} />
           </div>
         </div>
       </div>
