@@ -99,14 +99,14 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
     setSelectedNodeId(null);
   };
 
-  const handleSelectNewNodeType = (type: AutomationNodeType) => {
+  const handleSelectNewNodeType = (type: AutomationNodeType, initialConfig: any = {}) => {
     if (addingAfterIndex === null) return;
     
     const newNode: AutomationFlowNode = {
       id: crypto.randomUUID(),
       type,
       order: addingAfterIndex,
-      config: {}
+      config: initialConfig
     };
     
     const newNodes = [...nodes];
