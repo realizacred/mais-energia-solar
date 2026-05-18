@@ -1,8 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Target, GitBranch, Search, Plus, Trash2 } from "lucide-react";
-import { AutomationFlowNode, AutomationNodeType, TRIGGER_LABELS, ACTION_LABELS } from "@/types/automation-flow";
+import { Plus, Trash2 } from "lucide-react";
+import { AutomationFlowNode, TRIGGER_LABELS, ACTION_LABELS } from "@/types/automation-flow";
 import { cn } from "@/lib/utils";
+import { 
+  nodeIcons, 
+  nodeColors, 
+  nodeTitles, 
+  nodeTitleColors 
+} from "./AutomationNodeConstants";
 
 interface AutomationCanvasProps {
   nodes: AutomationFlowNode[];
@@ -11,34 +17,6 @@ interface AutomationCanvasProps {
   onAddNode: (index: number) => void;
   onRemoveNode: (id: string) => void;
 }
-
-const nodeIcons: Record<AutomationNodeType, any> = {
-  trigger: FileText,
-  action: Target,
-  condition: GitBranch,
-  search: Search,
-};
-
-const nodeColors: Record<AutomationNodeType, string> = {
-  trigger: "bg-teal-600",
-  action: "bg-blue-600",
-  condition: "bg-orange-600",
-  search: "bg-purple-600",
-};
-
-const nodeTitles: Record<AutomationNodeType, string> = {
-  trigger: "Gatilho",
-  action: "Ação",
-  condition: "Condicional",
-  search: "Procurar",
-};
-
-const nodeTitleColors: Record<AutomationNodeType, string> = {
-  trigger: "text-teal-600 dark:text-teal-400",
-  action: "text-blue-600 dark:text-blue-400",
-  condition: "text-orange-600 dark:text-orange-400",
-  search: "text-purple-600 dark:text-purple-400",
-};
 
 export function AutomationCanvas({ 
   nodes, 
@@ -62,7 +40,9 @@ export function AutomationCanvas({
           const subtitle = node.type === 'trigger' 
             ? (node.config.triggerType ? TRIGGER_LABELS[node.config.triggerType] : "Configurar gatilho...")
             : (node.config.actionType ? ACTION_LABELS[node.config.actionType] : "Configurar nó...");
-          
+
+          const config = node.config as any;
+
           return (
             <div key={node.id} className="flex flex-col items-center w-full">
               <div 
@@ -91,16 +71,36 @@ export function AutomationCanvas({
                     </p>
                     
                     {/* Config Summary Preview */}
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {node.config.funil_id && (
-                        <Badge variant="secondary" className="text-[10px] h-4">Funil vinculado</Badge>
+                    <div className="mt-2 flex flex-col gap-1.5">
+                      {config.actionType === 'whatsapp' && config.wa_content_template && (
+                        <div className="text-[11px] text-muted-foreground bg-teal-50/50 p-2 rounded border border-teal-100/50 line-clamp-2 italic">
+                          "{config.wa_content_template}"
+                        </div>
                       )}
-                      {node.config.webhook_url && (
-                        <Badge variant="secondary" className="text-[10px] h-4">Webhook</Badge>
-                      )}
-                      {node.config.template_mensagem && (
-                        <Badge variant="secondary" className="text-[10px] h-4">Mensagem</Badge>
-                      )}
+
+                      <div className="flex flex-wrap gap-1">
+                        {config.funil_id && (
+                          <Badge variant="secondary" className="text-[10px] h-4 bg-teal-100 text-teal-700 hover:bg-teal-100">Funil vinculado</Badge>
+                        )}
+                        {config.actionType === 'whatsapp' && (
+                          <>
+                            <Badge variant="secondary" className="text-[10px] h-4 bg-blue-100 text-blue-700 hover:bg-blue-100">
+                              {config.wa_message_type === 'text' ? 'Texto' : 
+                               config.wa_message_type === 'image' ? 'Imagem' :
+                               config.wa_message_type === 'document' ? 'Documento' : 'Áudio'}
+                            </Badge>
+                            {config.wa_destinatario_tipo && (
+                              <Badge variant="secondary" className="text-[10px] h-4 bg-slate-100 text-slate-700 hover:bg-slate-100">
+                                Para: {config.wa_destinatario_tipo === 'cliente' ? 'Cliente' : 
+                                       config.wa_destinatario_tipo === 'responsavel' ? 'Responsável' : 'Fixo'}
+                              </Badge>
+                            )}
+                          </>
+                        )}
+                        {config.webhook_url && (
+                          <Badge variant="secondary" className="text-[10px] h-4">Webhook</Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -157,4 +157,3 @@ export function AutomationCanvas({
     </div>
   );
 }
-

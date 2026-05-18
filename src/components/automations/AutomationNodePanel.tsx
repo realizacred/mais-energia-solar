@@ -8,23 +8,18 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   FolderPlus, 
   Trophy, 
-  FileCheck, 
-  CheckSquare, 
-  Edit3, 
   ArrowRightLeft,
-  Anchor, 
-  Mail, 
-  MessageSquare, 
   Trash2, 
   AlertTriangle,
   Info,
-  Target,
   GitBranch,
   Search,
   FolderKanban
 } from "lucide-react";
 import { AutomationFlowNode, TriggerType, ActionType, TRIGGER_LABELS, ACTION_LABELS, AutomationNodeType } from "@/types/automation-flow";
 import { cn } from "@/lib/utils";
+import { nodeIcons, actionIcons } from "./AutomationNodeConstants";
+import { AutomationWhatsAppForm } from "./AutomationWhatsAppForm";
 
 interface AutomationNodePanelProps {
   node: AutomationFlowNode | null;
@@ -64,7 +59,7 @@ export function AutomationNodePanel({
             className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-blue-200 hover:border-blue-500 hover:bg-blue-50 transition-all group"
           >
             <div className="p-3 rounded-lg bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-              <Target className="h-6 w-6" />
+              <nodeIcons.action className="h-6 w-6" />
             </div>
             <span className="text-sm font-bold text-blue-700">Ação</span>
           </button>
@@ -136,9 +131,9 @@ export function AutomationNodePanel({
               { type: 'projeto_movido' as TriggerType, icon: ArrowRightLeft, label: 'Projeto Movido' },
               { type: 'projeto_criado' as TriggerType, icon: FolderPlus, label: 'Projeto Criado' },
               { type: 'projeto_ganho' as TriggerType, icon: Trophy, label: 'Projeto Ganho' },
-              { type: 'proposta_pronta' as TriggerType, icon: FileCheck, label: 'Proposta Pronta' },
-              { type: 'atividade_criada' as TriggerType, icon: CheckSquare, label: 'Atividade Criada' },
-              { type: 'campo_customizado' as TriggerType, icon: Edit3, label: 'Campo Alterado' },
+              { type: 'proposta_pronta' as TriggerType, icon: nodeIcons.trigger, label: 'Proposta Pronta' },
+              { type: 'atividade_criada' as TriggerType, icon: actionIcons.criar_atividade, label: 'Atividade Criada' },
+              { type: 'campo_customizado' as TriggerType, icon: nodeIcons.search, label: 'Campo Alterado' },
             ].map((opt) => (
               <button
                 key={opt.type}
@@ -206,10 +201,10 @@ export function AutomationNodePanel({
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-2">
             {[
-              { type: 'whatsapp' as ActionType, icon: MessageSquare, label: 'WhatsApp' },
-              { type: 'webhook' as ActionType, icon: Anchor, label: 'Webhook HTTP' },
-              { type: 'mover_etapa' as ActionType, icon: FolderKanban, label: 'Mover Etapa' },
-              { type: 'email' as ActionType, icon: Mail, label: 'Enviar Email' },
+              { type: 'whatsapp' as ActionType, icon: actionIcons.whatsapp, label: 'WhatsApp' },
+              { type: 'webhook' as ActionType, icon: actionIcons.webhook, label: 'Webhook HTTP' },
+              { type: 'mover_etapa' as ActionType, icon: actionIcons.mover_etapa, label: 'Mover Etapa' },
+              { type: 'email' as ActionType, icon: actionIcons.email, label: 'Enviar Email' },
             ].map((opt) => (
               <button
                 key={opt.type}
@@ -250,33 +245,23 @@ export function AutomationNodePanel({
           )}
 
           {localConfig.actionType === 'whatsapp' && (
+            <AutomationWhatsAppForm 
+              config={localConfig} 
+              updateConfig={updateConfig} 
+            />
+          )}
+
+          {localConfig.actionType === 'email' && (
             <div className="space-y-4 animate-in fade-in">
               <div className="space-y-2">
-                <Label>Template da Mensagem</Label>
+                <Label>Template de Email</Label>
                 <Textarea 
                   value={localConfig.template_mensagem || ''} 
-                  onChange={(e) => updateConfig({ template_mensagem: e.target.value, canal_notificacao: 'whatsapp' })}
-                  placeholder="Olá {nome_cliente}! Seu projeto..."
+                  onChange={(e) => updateConfig({ template_mensagem: e.target.value, canal_notificacao: 'email' })}
+                  placeholder="Olá {nome_cliente}! Este é um email automático..."
                   rows={4}
                 />
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {['{nome_cliente}', '{valor_total}', '{potencia_kwp}', '{link_proposta}'].map(variable => (
-                    <button
-                      key={variable}
-                      onClick={() => updateConfig({ template_mensagem: (localConfig.template_mensagem || '') + variable })}
-                      className="px-2 py-1 bg-secondary hover:bg-secondary/80 rounded text-[10px] font-mono border border-border"
-                    >
-                      {variable}
-                    </button>
-                  ))}
-                </div>
               </div>
-              <Alert className="py-2 bg-blue-50 border-blue-100">
-                <Info className="h-3 w-3 text-blue-600" />
-                <AlertDescription className="text-[10px] text-blue-800">
-                  Mensagens serão enviadas via Evolution API (wa_outbox). Sem links externos.
-                </AlertDescription>
-              </Alert>
             </div>
           )}
         </div>

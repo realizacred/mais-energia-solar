@@ -65,6 +65,20 @@ export interface AutomationFlowNode {
     canal_notificacao?: string
     template_mensagem?: string
     destino_etapa_id?: string
+    
+    // WhatsApp Extended (RB-76, RB-105)
+    wa_destinatario_tipo?: 'cliente' | 'responsavel' | 'fixo' | 'variavel'
+    wa_destinatario_valor?: string
+    wa_instance_id?: string
+    wa_message_type?: 'text' | 'image' | 'document' | 'audio'
+    wa_content_template?: string
+    wa_media_url?: string
+    wa_media_filename?: string
+    wa_doc_origin?: 'fixo' | 'proposta' | 'variavel'
+    wa_schedule_enabled?: boolean
+    wa_schedule_tipo?: 'horas' | 'dias'
+    wa_scheduled_valor?: number
+
     // Condition
     field?: string
     operator?: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than'
@@ -78,4 +92,3 @@ export interface AutomationFlowNode {
 export interface AutomationFlow {
   nodes: AutomationFlowNode[]
 }
-
