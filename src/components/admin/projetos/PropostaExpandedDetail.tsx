@@ -310,16 +310,16 @@ function getStatusDateLabel(
   recusada_at: string | null,
   created_at: string | null,
 ): string {
-  if (["aceita", "accepted", "aprovada", "ganha"].includes(status) && aceita_at) {
+  if (["accepted", "aceita", "aprovada", "ganha"].includes(status) && aceita_at) {
     return `Aceita em ${formatDateTime(aceita_at)}`;
   }
-  if (["recusada", "rejected", "rejeitada", "perdida"].includes(status) && recusada_at) {
+  if (["rejected", "rejected", "rejeitada", "perdida"].includes(status) && recusada_at) {
     return `Recusada em ${formatDateTime(recusada_at)}`;
   }
-  if (["enviada", "sent"].includes(status) && enviada_at) {
+  if (["sent", "enviada"].includes(status) && enviada_at) {
     return `Enviada em ${formatDateTime(enviada_at)}`;
   }
-  if (["expirada", "expired"].includes(status) && created_at) {
+  if (["expired", "expirada"].includes(status) && created_at) {
     return `Expirada • Criada em ${formatDateTime(created_at)}`;
   }
   return `Criada em ${formatDateTime(created_at || "")}`;
