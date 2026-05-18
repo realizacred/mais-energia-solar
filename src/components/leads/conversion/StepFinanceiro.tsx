@@ -55,7 +55,7 @@ export function StepFinanceiro({
         <PaymentComposer
           valorVenda={valorVenda}
           items={paymentItems}
-          onItemsChange={onCompositionChange}
+          onChange={onCompositionChange}
         />
       </div>
 
