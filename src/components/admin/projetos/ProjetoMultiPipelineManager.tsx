@@ -1195,7 +1195,7 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
                           className="h-7 text-[10px] w-fit gap-1 border-warning/40 hover:bg-warning/10"
                           onClick={() => {
                             setFornecedorModal({
-                              projetoId: projetoId || dealId,
+                              projetoId: projetoIdAtual,
                               projetoCodigo: projectData?.codigo || (projectData?.projeto_num ? `SM-PROJ-${projectData.projeto_num}` : undefined),
                               clienteNome: projectData?.cliente_nome,
                               etapaId: activeMembership.stage_id,
@@ -1261,7 +1261,7 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
             <VincularFornecedorModal
               open={!!fornecedorModal}
               onOpenChange={(open) => !open && setFornecedorModal(null)}
-              projetoId={fornecedorModal?.projetoId || projetoId || dealId || ""}
+              projetoId={fornecedorModal?.projetoId || projetoIdAtual || ""}
               projetoCodigo={fornecedorModal?.projetoCodigo}
               clienteNome={fornecedorModal?.clienteNome}
               onSuccess={() => {
