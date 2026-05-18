@@ -772,7 +772,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
   const handleEditWithProtection = async (editFn: () => void) => {
     // RB-49: Block edit completely if signed contract exists
-    if (p.status === "aceita") {
+    if (p.status === "accepted") {
       const { data: signedDocs } = await supabase
         .from("generated_documents")
         .select("id")
