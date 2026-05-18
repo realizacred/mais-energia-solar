@@ -392,7 +392,7 @@ Deno.serve(async (req) => {
     let snapshotHash: string | null = null;
     let aceitePayloadHash: string | null = null;
 
-    if (newStatus === "aceita") {
+    if (newStatus === "accepted") {
       try {
         const [{ data: versaoRow }, { data: tokRow }] = await Promise.all([
           admin.from("proposta_versoes").select("snapshot").eq("id", tokenData.versao_id).maybeSingle(),
@@ -421,7 +421,7 @@ Deno.serve(async (req) => {
       .eq("id", tokenData.id);
 
     // 7b. Generate Termo de Aceite PDF (non-blocking)
-    if (newStatus === "aceita") {
+    if (newStatus === "accepted") {
       try {
         const pdfUrl = await generateTermoAceitePdf(admin, {
           tenantId,
