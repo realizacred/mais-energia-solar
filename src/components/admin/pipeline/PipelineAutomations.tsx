@@ -357,6 +357,7 @@ export function PipelineAutomations() {
         notificar_responsavel: formNotify,
         mensagem_notificacao: formMessage || null,
         ativo: formActive,
+        type: selectedPipelineType,
       },
       {
         onSuccess: () => {
