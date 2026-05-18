@@ -1261,7 +1261,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     if (!snapshot) return [];
     const rows: Array<{ label: string; qty: number; value: number; pct: number; children?: Array<{ label: string; qty: number }> }> = [];
     const venda = snapshot.venda;
-    const totalFinal = latestVersao?.valor_total || 0;
+    const totalFinal = getCanonicalProposalTotal(latestVersao as any);
     const servicos = snapshot.servicos || [];
 
     // Kit items
