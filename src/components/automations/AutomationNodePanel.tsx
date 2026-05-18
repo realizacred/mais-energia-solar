@@ -197,6 +197,8 @@ export function AutomationNodePanel({
               { type: 'atividade_criada' as TriggerType, icon: CheckSquare, label: 'Atividade Criada' },
               { type: 'atividade_concluida' as TriggerType, icon: CheckCircle2, label: 'Atividade Concluída' },
               { type: 'campo_alterado' as TriggerType, icon: Search, label: 'Campo Alterado' },
+              { type: 'cliente_criado' as TriggerType, icon: UserPlus, label: 'Cliente Criado' },
+              { type: 'cliente_alterado' as TriggerType, icon: UserCog, label: 'Cliente Alterado' },
             ].map((opt) => (
               <button
                 key={opt.type}
@@ -214,10 +216,13 @@ export function AutomationNodePanel({
             ))}
           </div>
 
-          {(localConfig.triggerType === 'projeto_movido' || localConfig.triggerType === 'projeto_criado' || localConfig.triggerType === 'projeto_ganho' || localConfig.triggerType === 'projeto_perdido') && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+          {/* PROJETO MOVIDO */}
+          {localConfig.triggerType === 'projeto_movido' && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 border-t pt-4">
               <div className="space-y-2">
-                <Label>Funil do Projeto</Label>
+                <Label className="flex items-center gap-1.5">
+                  Funil do Projeto <span className="text-destructive">*</span>
+                </Label>
                 <Select 
                   value={localConfig.funil_id} 
                   onValueChange={(v) => updateConfig({ funil_id: v, etapa_id: undefined })}
@@ -241,14 +246,14 @@ export function AutomationNodePanel({
               )}
 
               <div className="space-y-2">
-                <Label>Etapa (Opcional)</Label>
+                <Label>Etapa destino (Opcional)</Label>
                 <Select 
-                  value={localConfig.etapa_id} 
-                  onValueChange={(v) => updateConfig({ etapa_id: v })}
+                  value={localConfig.etapa_id || 'all'} 
+                  onValueChange={(v) => updateConfig({ etapa_id: v === 'all' ? undefined : v })}
                 >
                   <SelectTrigger><SelectValue placeholder="Qualquer etapa" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas as etapas</SelectItem>
+                    <SelectItem value="all">Qualquer etapa</SelectItem>
                     {availableEtapas.filter(e => e.funil_id === localConfig.funil_id || e.pipeline_id === localConfig.funil_id).map(e => (
                       <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
                     ))}
@@ -258,10 +263,66 @@ export function AutomationNodePanel({
             </div>
           )}
 
-          {(localConfig.triggerType === 'atividade_criada' || localConfig.triggerType === 'atividade_concluida') && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+          {/* PROJETO CRIADO */}
+          {localConfig.triggerType === 'projeto_criado' && (
+            <div className="p-4 rounded-lg bg-muted/50 border animate-in fade-in slide-in-from-top-2">
+              <p className="text-sm text-muted-foreground flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                Dispara quando qualquer projeto for criado
+              </p>
+            </div>
+          )}
+
+          {/* PROJETO GANHO */}
+          {localConfig.triggerType === 'projeto_ganho' && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 border-t pt-4">
               <div className="space-y-2">
-                <Label>Título da Atividade (Contém)</Label>
+                <Label>Funil (Opcional)</Label>
+                <Select 
+                  value={localConfig.funil_id || 'all'} 
+                  onValueChange={(v) => updateConfig({ funil_id: v === 'all' ? undefined : v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Qualquer funil" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Qualquer funil</SelectItem>
+                    {availableFunis.map(f => (
+                      <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          {/* PROJETO PERDIDO */}
+          {localConfig.triggerType === 'projeto_perdido' && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 border-t pt-4">
+              <div className="space-y-2">
+                <Label>Motivo contém (Opcional)</Label>
+                <Input 
+                  value={localConfig.perda_motivo_contem || ''} 
+                  onChange={(e) => updateConfig({ perda_motivo_contem: e.target.value })}
+                  placeholder="Ex: Preço, Concorrente..."
+                />
+              </div>
+            </div>
+          )}
+
+          {/* PROPOSTA PRONTA */}
+          {localConfig.triggerType === 'proposta_pronta' && (
+            <div className="p-4 rounded-lg bg-muted/50 border animate-in fade-in slide-in-from-top-2">
+              <p className="text-sm text-muted-foreground flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                Dispara quando proposta for gerada
+              </p>
+            </div>
+          )}
+
+          {/* ATIVIDADE CRIADA / CONCLUIDA */}
+          {(localConfig.triggerType === 'atividade_criada' || localConfig.triggerType === 'atividade_concluida') && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 border-t pt-4">
+              <div className="space-y-2">
+                <Label>Título contém (Opcional)</Label>
                 <Input 
                   value={localConfig.atividade_titulo_contem || ''} 
                   onChange={(e) => updateConfig({ atividade_titulo_contem: e.target.value })}
@@ -271,16 +332,54 @@ export function AutomationNodePanel({
             </div>
           )}
 
-          {localConfig.triggerType === 'projeto_perdido' && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+          {/* CAMPO ALTERADO */}
+          {localConfig.triggerType === 'campo_alterado' && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 border-t pt-4">
               <div className="space-y-2">
-                <Label>Motivo da Perda (Contém)</Label>
+                <Label className="flex items-center gap-1.5">
+                  Campo customizado <span className="text-destructive">*</span>
+                </Label>
+                <Select 
+                  value={localConfig.custom_field_id} 
+                  onValueChange={(v) => updateConfig({ custom_field_id: v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecione o campo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nome">Nome</SelectItem>
+                    <SelectItem value="valor">Valor</SelectItem>
+                    <SelectItem value="status">Status</SelectItem>
+                    <SelectItem value="responsavel">Responsável</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Novo valor contém (Opcional)</Label>
                 <Input 
-                  value={localConfig.perda_motivo_contem || ''} 
-                  onChange={(e) => updateConfig({ perda_motivo_contem: e.target.value })}
-                  placeholder="Ex: Preço, Concorrente..."
+                  value={localConfig.novo_valor_contem || ''} 
+                  onChange={(e) => updateConfig({ novo_valor_contem: e.target.value })}
+                  placeholder="Filtrar por valor específico..."
                 />
               </div>
+            </div>
+          )}
+
+          {/* CLIENTE CRIADO */}
+          {localConfig.triggerType === 'cliente_criado' && (
+            <div className="p-4 rounded-lg bg-muted/50 border animate-in fade-in slide-in-from-top-2">
+              <p className="text-sm text-muted-foreground flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                Dispara quando novo cliente for cadastrado
+              </p>
+            </div>
+          )}
+
+          {/* CLIENTE ALTERADO */}
+          {localConfig.triggerType === 'cliente_alterado' && (
+            <div className="p-4 rounded-lg bg-muted/50 border animate-in fade-in slide-in-from-top-2">
+              <p className="text-sm text-muted-foreground flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                Dispara quando dados do cliente forem alterados
+              </p>
             </div>
           )}
         </div>
