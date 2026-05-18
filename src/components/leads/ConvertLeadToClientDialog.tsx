@@ -56,6 +56,7 @@ import {
 } from "@/components/ui/form";
 import { DocumentUpload, DocumentFile, uploadDocumentFiles } from "./DocumentUpload";
 import type { Lead } from "@/types/lead";
+import { isValidCpfCnpj } from "@/lib/cpfCnpjUtils";
 
 interface Disjuntor {
   id: string;
@@ -989,7 +990,7 @@ export function ConvertLeadToClientDialog({
   const canAdvanceStep = (step: number): boolean => {
     if (step === 0) {
       const v = form.getValues();
-      return !!(v.nome && v.telefone && v.cpf_cnpj && v.cpf_cnpj.replace(/\D/g, '').length >= 11);
+      return !!(v.nome && v.telefone && v.cpf_cnpj && isValidCpfCnpj(v.cpf_cnpj));
     }
     return true;
   };
@@ -998,7 +999,7 @@ export function ConvertLeadToClientDialog({
   const isStepComplete = (step: number): boolean => {
     const v = form.getValues();
     if (step === 0) {
-      return !!(v.nome && v.telefone && v.email && v.cpf_cnpj && v.estado && v.cidade && v.bairro && v.rua && v.numero);
+      return !!(v.nome && v.telefone && v.cpf_cnpj && isValidCpfCnpj(v.cpf_cnpj));
     }
     if (step === 1) {
       return !!(v.disjuntor_id && v.transformador_id && v.localizacao && identidadeFiles.length > 0 && comprovanteFiles.length > 0);
