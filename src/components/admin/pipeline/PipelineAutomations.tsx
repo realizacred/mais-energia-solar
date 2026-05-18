@@ -49,8 +49,11 @@ import {
 interface PipelineAutomation {
   id: string;
   tenant_id: string;
-  pipeline_id: string;
-  stage_id: string;
+  pipeline_id: string | null;
+  stage_id: string | null;
+  funil_projeto_id: string | null;
+  etapa_projeto_id: string | null;
+  destino_etapa_projeto_id: string | null;
   nome: string;
   ativo: boolean;
   tipo_gatilho: string;
@@ -72,6 +75,7 @@ interface PipelineAutomation {
 interface PipelineOption {
   id: string;
   name: string;
+  type: 'modern' | 'legacy';
 }
 
 interface StageOption {
