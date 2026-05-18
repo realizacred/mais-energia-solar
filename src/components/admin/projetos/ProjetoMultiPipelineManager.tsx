@@ -1120,6 +1120,12 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
                                   } else {
                                     toast({ title: "Funil bloqueado", variant: "destructive" });
                                   }
+                                } else if (
+                                  activeMembership.pipeline_name.toLowerCase().includes('equipamento') || 
+                                  activeMembership.pipeline_name.toLowerCase().includes('suprimentos')
+                                ) {
+                                  // Re-clicar na etapa atual força a sincronização do status da ordem
+                                  changeStage(activeMembership.id, stage.id, true);
                                 }
                               }}
                               className="flex flex-col items-center z-10 group cursor-pointer gap-1"
