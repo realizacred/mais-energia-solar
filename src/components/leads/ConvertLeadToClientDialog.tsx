@@ -48,6 +48,8 @@ export function ConvertLeadToClientDialog({
   const [assinaturaFiles, setAssinaturaFiles] = useState<DocumentFile[]>([]);
   const [paymentItems, setPaymentItems] = useState<PaymentItemInput[]>([createEmptyItem()]);
 
+  const lastHydratedId = useRef<string | null>(null);
+
   const { isOnline } = useOfflineConversionSync();
 
   const { data: propostaVersaoValor = 0 } = useQuery({
