@@ -164,6 +164,35 @@ function AlertasFinanceirosProjeto({
   const { data: recebimento } = useClienteRecebimentoDetalhes(
     hasRecebimento ? customerId : null
   );
+  const queryClient = useQueryClient();
+  const [finishingPending, setFinishingPending] = useState(false);
+
+  // Ação para concluir projeto pendente (RB-108/111)
+  const handleConcluirPendencia = async () => {
+    if (!projetoId) return;
+    setFinishingPending(true);
+    try {
+      const { error } = await supabase
+        .from("projetos")
+        .update({ status: "criado" as any })
+        .eq("id", projetoId);
+      
+      if (error) throw error;
+
+      toast({ title: "Documentação concluída!", description: "O projeto agora seguirá o fluxo normal." });
+      
+      // Invalidate queries to refresh status everywhere
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] }),
+        queryClient.invalidateQueries({ queryKey: ["projeto-detalhe-data", dealId] }),
+        queryClient.invalidateQueries({ queryKey: ["projetos-pipeline"] })
+      ]);
+    } catch (err: any) {
+      toast({ title: "Erro ao concluir", description: err.message, variant: "destructive" });
+    } finally {
+      setFinishingPending(false);
+    }
+  };
 
   // Alerta de Documentação Pendente (RB-108)
   if (statusProjeto === "aguardando_documentacao") {
@@ -179,13 +208,25 @@ function AlertasFinanceirosProjeto({
               Complete os dados do cliente e anexe os documentos obrigatórios para avançar no funil.
             </p>
           </div>
-          <Button
-            size="sm"
-            className="bg-amber-600 hover:bg-amber-700 text-white shrink-0 gap-1.5"
-            onClick={() => setActiveTab("documentos")}
-          >
-            <Upload className="h-3.5 w-3.5" /> Resolver agora
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-amber-200 bg-white dark:bg-amber-950 text-amber-700 dark:text-amber-300 hover:bg-amber-100 gap-1.5"
+              onClick={() => setActiveTab("documentos")}
+            >
+              <Upload className="h-3.5 w-3.5" /> Anexar
+            </Button>
+            <Button
+              size="sm"
+              className="bg-amber-600 hover:bg-amber-700 text-white shrink-0 gap-1.5"
+              onClick={handleConcluirPendencia}
+              disabled={finishingPending}
+            >
+              {finishingPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
+              Concluir pendência
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -195,6 +236,7 @@ function AlertasFinanceirosProjeto({
 
   const { valorContratado, valorRecebido } = financial;
   const saldoDevedor = valorContratado - valorRecebido;
+
 
   // 1. SE saldo <= 0 → Nenhum alerta
   if (valorContratado > 0 && saldoDevedor <= 0) return null;
