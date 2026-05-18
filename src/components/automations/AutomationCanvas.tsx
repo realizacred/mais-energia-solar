@@ -69,16 +69,36 @@ export function AutomationCanvas({
                     </p>
                     
                     {/* Config Summary Preview */}
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {node.config.funil_id && (
-                        <Badge variant="secondary" className="text-[10px] h-4">Funil vinculado</Badge>
+                    <div className="mt-2 flex flex-col gap-1.5">
+                      {node.config.actionType === 'whatsapp' && node.config.wa_content_template && (
+                        <div className="text-[11px] text-muted-foreground bg-teal-50/50 p-2 rounded border border-teal-100/50 line-clamp-2 italic">
+                          "{node.config.wa_content_template}"
+                        </div>
                       )}
-                      {node.config.webhook_url && (
-                        <Badge variant="secondary" className="text-[10px] h-4">Webhook</Badge>
-                      )}
-                      {node.config.template_mensagem && (
-                        <Badge variant="secondary" className="text-[10px] h-4">Mensagem</Badge>
-                      )}
+                      
+                      <div className="flex flex-wrap gap-1">
+                        {node.config.funil_id && (
+                          <Badge variant="secondary" className="text-[10px] h-4 bg-teal-100 text-teal-700 hover:bg-teal-100">Funil vinculado</Badge>
+                        )}
+                        {node.config.actionType === 'whatsapp' && (
+                          <>
+                            <Badge variant="secondary" className="text-[10px] h-4 bg-blue-100 text-blue-700 hover:bg-blue-100">
+                              {node.config.wa_message_type === 'text' ? 'Texto' : 
+                               node.config.wa_message_type === 'image' ? 'Imagem' :
+                               node.config.wa_message_type === 'document' ? 'Documento' : 'Áudio'}
+                            </Badge>
+                            {node.config.wa_destinatario_tipo && (
+                              <Badge variant="secondary" className="text-[10px] h-4 bg-slate-100 text-slate-700 hover:bg-slate-100">
+                                Para: {node.config.wa_destinatario_tipo === 'cliente' ? 'Cliente' : 
+                                       node.config.wa_destinatario_tipo === 'responsavel' ? 'Responsável' : 'Fixo'}
+                              </Badge>
+                            )}
+                          </>
+                        )}
+                        {node.config.webhook_url && (
+                          <Badge variant="secondary" className="text-[10px] h-4">Webhook</Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -135,4 +155,3 @@ export function AutomationCanvas({
     </div>
   );
 }
-
