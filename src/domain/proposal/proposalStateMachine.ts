@@ -53,14 +53,14 @@ export function canTransition(from: string, to: string): boolean {
 /** Get all valid next states from current status */
 export function getNextStates(status: string): ProposalStatus[] {
   const normalization: Record<string, ProposalStatus> = {
-    'rascunho': 'draft',
-    'gerada': 'generated',
-    'enviada': 'sent',
-    'vista': 'viewed',
-    'aceita': 'accepted',
-    'recusada': 'rejected',
-    'expirada': 'expired',
-    'cancelada': 'cancelled'
+    'draft': 'draft',
+    'generated': 'generated',
+    'sent': 'sent',
+    'viewed': 'viewed',
+    'accepted': 'accepted',
+    'rejected': 'rejected',
+    'expired': 'expired',
+    'cancelled': 'cancelled'
   };
   const canonical = normalization[status] || status;
   return VALID_TRANSITIONS[canonical as ProposalStatus] || [];
