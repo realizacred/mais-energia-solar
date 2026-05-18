@@ -83,7 +83,7 @@ const formSchema = z.object({
   nome: z.string().min(2, "Nome é obrigatório"),
   telefone: z.string().min(10, "Telefone é obrigatório"),
   email: z.string().optional().refine(val => !val || z.string().email().safeParse(val).success, "E-mail inválido"),
-  cpf_cnpj: z.string().min(11, "CPF/CNPJ é obrigatório"),
+  cpf_cnpj: z.string().min(11, "CPF/CNPJ é obrigatório").refine(isValidCpfCnpj, "CPF/CNPJ inválido"),
   data_nascimento: z.string().optional(),
   cep: z.string().optional(),
   estado: z.string().optional(),
@@ -996,7 +996,18 @@ export function ConvertLeadToClientDialog({
     return true;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    if (currentStep === 0) {
+      const valid = await form.trigger(["nome", "telefone", "cpf_cnpj"]);
+      if (!valid || !canAdvanceStep(0)) {
+        toast({
+          title: "Dados obrigatórios",
+          description: "Preencha nome, telefone e CPF/CNPJ válido para avançar.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
 
