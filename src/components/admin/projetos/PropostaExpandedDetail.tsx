@@ -42,6 +42,8 @@ import { usePropostaExpandedSnapshot, usePropostaExpandedUcs, usePropostaExpande
 import { useReabrirProposta, useIsAdminOrGerente } from "@/hooks/useReabrirProposta";
 import { useProposalTemplates } from "@/hooks/useProposalTemplates";
 import { PropostaBadge } from "./PropostaBadge";
+import { getAvailableProposalActions } from "@/domain/proposal/proposalActionsHelper";
+
 
 
 // ─── Types ──────────────────────────────────────────
@@ -1582,38 +1584,46 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     </TabsTrigger>
                   </TabsList>
 
-                  {(p.status === "gerada" || p.status === "generated" || p.status === "enviada" || p.status === "sent" || p.status === "vista") && (
-                    <div className="flex items-center gap-2">
-                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-success text-success hover:bg-success/10" onClick={() => updatePropostaStatus("aceita")} disabled={updatingStatus}>
-                        <CheckCircle className="h-3 w-3" /> Aceitar
-                      </Button>
-                      <AlertDialog open={recusaDialogOpen} onOpenChange={setRecusaDialogOpen}>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-destructive text-destructive hover:bg-destructive/10" disabled={updatingStatus}>
-                            <AlertCircle className="h-3 w-3" /> Recusar
+                  {(() => {
+                    const actions = getAvailableProposalActions(p.status);
+                    if (!actions.canAccept && !actions.canReject) return null;
+                    return (
+                      <div className="flex items-center gap-2">
+                        {actions.canAccept && (
+                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-success text-success hover:bg-success/10" onClick={() => updatePropostaStatus("aceita")} disabled={updatingStatus}>
+                            <CheckCircle className="h-3 w-3" /> Aceitar
                           </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent className="w-[90vw] max-w-md">
-                          <AlertDialogHeader>
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
-                                <AlertCircle className="w-5 h-5 text-destructive" />
-                              </div>
-                              <AlertDialogTitle>Recusar proposta?</AlertDialogTitle>
-                            </div>
-                            <AlertDialogDescription>Informe o motivo da recusa (opcional).</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <textarea placeholder="Motivo da recusa..." value={recusaMotivo} onChange={(e) => setRecusaMotivo(e.target.value)} className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { updatePropostaStatus("recusada", { motivo: recusaMotivo }); setRecusaMotivo(""); setRecusaDialogOpen(false); }}>
-                              Confirmar Recusa
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  )}
+                        )}
+                        {actions.canReject && (
+                          <AlertDialog open={recusaDialogOpen} onOpenChange={setRecusaDialogOpen}>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-destructive text-destructive hover:bg-destructive/10" disabled={updatingStatus}>
+                                <AlertCircle className="h-3 w-3" /> Recusar
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="w-[90vw] max-w-md">
+                              <AlertDialogHeader>
+                                <div className="flex items-center gap-3 mb-2">
+                                  <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                                    <AlertCircle className="w-5 h-5 text-destructive" />
+                                  </div>
+                                  <AlertDialogTitle>Recusar proposta?</AlertDialogTitle>
+                                </div>
+                                <AlertDialogDescription>Informe o motivo da recusa (opcional).</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <textarea placeholder="Motivo da recusa..." value={recusaMotivo} onChange={(e) => setRecusaMotivo(e.target.value)} className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { updatePropostaStatus("recusada", { motivo: recusaMotivo }); setRecusaMotivo(""); setRecusaDialogOpen(false); }}>
+                                  Confirmar Recusa
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
               </div>

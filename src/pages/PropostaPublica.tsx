@@ -81,6 +81,8 @@ export default function PropostaPublica() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [redirectToLanding, setRedirectToLanding] = useState(false);
+  const [propostaStatus, setPropostaStatus] = useState<string | null>(null);
+
   const [invalidatedInfo, setInvalidatedInfo] = useState<{
     invalidado_em: string;
     empresaNome: string | null;
@@ -271,7 +273,7 @@ export default function PropostaPublica() {
         startHeartbeat(td.token);
       }
 
-      const [renderRes, versaoRes, cenariosRes] = await Promise.all([
+      const [renderRes, versaoRes, cenariosRes, propostaRes] = await Promise.all([
         supabase.from("proposta_renders")
           .select("html").eq("versao_id", td.versao_id).eq("tipo", "html").maybeSingle(),
         supabase.from("proposta_versoes")
@@ -280,7 +282,11 @@ export default function PropostaPublica() {
         (supabase as any).from("proposta_cenarios")
           .select("id, ordem, nome, tipo, is_default, preco_final, entrada_valor, num_parcelas, valor_parcela, taxa_juros_mensal, cet_anual, payback_meses, tir_anual, roi_25_anos, economia_primeiro_ano")
           .eq("versao_id", td.versao_id).order("ordem"),
+        supabase.from("propostas_nativas").select("status").eq("id", td.proposta_id).single()
       ]);
+
+      if (propostaRes.data) setPropostaStatus(propostaRes.data.status);
+
 
       if (renderRes.data?.html) setHtml(renderRes.data.html);
       if (versaoRes.data) {
@@ -961,7 +967,9 @@ export default function PropostaPublica() {
       )}
 
       {/* ── ACCEPTANCE / REJECTION FORM ──────────────── */}
-      <div className="max-w-lg mx-auto px-4 pb-12">
+      {propostaStatus && (propostaStatus === "vista" || propostaStatus === "viewed") && (
+        <div className="max-w-lg mx-auto px-4 pb-12">
+
         <Card className="border-border/60">
           <CardContent className="py-6 space-y-4">
             <h3 className="text-lg font-semibold text-center">Sua Decisão</h3>
@@ -1044,6 +1052,8 @@ export default function PropostaPublica() {
           </CardContent>
         </Card>
       </div>
+      )}
+
 
       {/* Reject Confirmation Dialog */}
       <AlertDialog open={showRejectConfirm} onOpenChange={setShowRejectConfirm}>

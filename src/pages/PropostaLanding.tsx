@@ -81,6 +81,8 @@ export default function PropostaLanding() {
   const [showReject, setShowReject] = useState(false);
   const [rejectMotivo, setRejectMotivo] = useState("");
   const [acceptForm, setAcceptForm] = useState<AcceptFormData>({ nome: "", documento: "", obs: "" });
+  const [propostaStatus, setPropostaStatus] = useState<string | null>(null);
+
 
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
@@ -137,8 +139,9 @@ export default function PropostaLanding() {
           .select("id, ordem, nome, tipo, is_default, preco_final, entrada_valor, num_parcelas, valor_parcela, taxa_juros_mensal, payback_meses, tir_anual, roi_25_anos, economia_primeiro_ano")
           .eq("versao_id", td.versao_id).order("ordem"),
         (supabase as any).from("propostas_nativas")
-          .select("tenant_id, consultor_id, titulo, proposta_num, created_at, external_source, cliente_id")
+          .select("tenant_id, consultor_id, titulo, proposta_num, created_at, external_source, cliente_id, status")
           .eq("id", td.proposta_id).maybeSingle(),
+
       ]);
 
       if (versaoRes.data) {
@@ -184,6 +187,8 @@ export default function PropostaLanding() {
       if (defaultC) setSelectedCenario(defaultC.id);
 
       if (propostaRes.data?.tenant_id) {
+        setPropostaStatus(propostaRes.data.status);
+
         const tenantId = propostaRes.data.tenant_id;
         const src = (propostaRes.data as any).external_source;
         setIsLegacyMigrated(src === "solarmarket" || src === "solar_market");
@@ -434,8 +439,21 @@ export default function PropostaLanding() {
       <div className="pl-landing" style={{ minHeight: "100vh" }}>
         <style>{LANDING_STYLES}</style>
         <TemplateHtmlRenderer blocks={templateBlocks} variables={templateVariables} />
+        <div ref={ctaRef} style={{ width: "100%" }}>
+          {(propostaStatus === "vista" || propostaStatus === "viewed") && (
+            <ProposalCTASection
+              {...sectionProps}
+              acceptForm={acceptForm}
+              onAcceptFormChange={setAcceptForm}
+              onAccept={handleAccept}
+              onReject={() => setShowReject(true)}
+              submitting={submitting}
+            />
+          )}
+        </div>
       </div>
     );
+
   }
 
   if (!isLegacyMigrated) {
@@ -482,15 +500,18 @@ export default function PropostaLanding() {
         onSelectCenario={setSelectedCenario}
       />
       <div ref={ctaRef}>
-        <ProposalCTASection
-          {...sectionProps}
-          acceptForm={acceptForm}
-          onAcceptFormChange={setAcceptForm}
-          onAccept={handleAccept}
-          onReject={() => setShowReject(true)}
-          submitting={submitting}
-        />
+        {(propostaStatus === "vista" || propostaStatus === "viewed") && (
+          <ProposalCTASection
+            {...sectionProps}
+            acceptForm={acceptForm}
+            onAcceptFormChange={setAcceptForm}
+            onAccept={handleAccept}
+            onReject={() => setShowReject(true)}
+            submitting={submitting}
+          />
+        )}
       </div>
+
 
       <PropostaChatSection propostaData={templateVariables} />
 
