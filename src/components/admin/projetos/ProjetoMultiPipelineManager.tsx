@@ -1127,7 +1127,6 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
                                   // Re-clicar na etapa atual força a sincronização do status da ordem
                                   changeStage(activeMembership.id, stage.id, true);
                                 }
-                              }
                               }}
                               className="flex flex-col items-center z-10 group cursor-pointer gap-1"
                             >
