@@ -9,8 +9,8 @@ export function useKanbanAutomations(pipelineId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pipeline_automations")
-        .select("id, nome, ativo, stage_id, tipo_gatilho, tempo_horas, tipo_acao, destino_stage_id")
-        .eq("pipeline_id", pipelineId!)
+        .select("id, nome, ativo, stage_id, funil_projeto_id, etapa_projeto_id, tipo_gatilho, tempo_horas, tipo_acao, destino_stage_id, destino_etapa_projeto_id")
+        .or(`pipeline_id.eq.${pipelineId!},funil_projeto_id.eq.${pipelineId!}`)
         .eq("ativo", true);
       if (error) throw error;
       return data ?? [];
