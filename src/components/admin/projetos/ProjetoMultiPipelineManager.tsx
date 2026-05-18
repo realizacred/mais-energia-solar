@@ -1337,10 +1337,17 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
               projetoId={fornecedorModal?.projetoId || projetoIdAtual || ""}
               projetoCodigo={fornecedorModal?.projetoCodigo}
               clienteNome={fornecedorModal?.clienteNome}
+              ordemExistente={fornecedorModal?.ordemExistente ?? null}
               onSuccess={() => {
-                const { membershipId, etapaId } = fornecedorModal;
+                const { membershipId, etapaId, ordemExistente } = fornecedorModal;
+                const isEdit = !!ordemExistente?.id;
                 setFornecedorModal(null);
-                // Força atualização da etapa após vincular
+                if (isEdit) {
+                  // Modo edição: não força avanço de etapa
+                  fetchOrdemCompra();
+                  return;
+                }
+                // Modo criação: força atualização da etapa após vincular
                 supabase
                   .from("deal_pipeline_stages")
                   .update({ stage_id: etapaId })
