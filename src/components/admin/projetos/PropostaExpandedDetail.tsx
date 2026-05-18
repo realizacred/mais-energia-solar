@@ -35,6 +35,7 @@ import { formatTirPercent } from "@/lib/tirDisplay";
 import { cn } from "@/lib/utils";
 import { renderProposal, sendProposal } from "@/services/proposalApi";
 import { useLazyTemplateAssign } from "@/hooks/useLazyTemplateAssign";
+import { getCanonicalProposalTotal } from "@/services/proposal/proposalTotals";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { ProposalMessageDrawer } from "./ProposalMessageDrawer";
 import { ProposalMessageHistory } from "./ProposalMessageHistory";
