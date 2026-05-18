@@ -62,6 +62,7 @@ import { useProjetoNotes } from "@/hooks/useProjetoNotes";
 import { useProjetoActivities } from "@/hooks/useProjetoActivities";
 import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
 import { usePropostasProjetoTab, usePropostasRealtimeSync, selectPrincipal, useSetPropostaPrincipal, useArquivarProposta } from "@/hooks/usePropostasProjetoTab";
+import { normalizeStatus } from "@/domain/proposal/proposalStatus";
 import {
   ProjetoDetalheProvider,
   useProjetoDetalhe,
