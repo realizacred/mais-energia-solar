@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 // SSOT: total da proposta vem SEMPRE de getCanonicalProposalTotal — não recalcule aqui.
 import { getCanonicalProposalTotal } from "@/services/proposal/proposalTotals";
+// SSOT: normalização de status (PT/EN) — NUNCA comparar strings literais.
+import { normalizeStatus } from "@/domain/proposal/proposalStatus";
 
 // ─── Types ──────────────────────────────────────────
 export interface VersaoProjetoTab {
