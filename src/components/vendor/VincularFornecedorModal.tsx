@@ -18,6 +18,7 @@ interface VincularFornecedorModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projetoId: string;
+  projetoCodigo?: string;
   clienteNome?: string;
   onSuccess: () => void;
   onCancel: () => void;
@@ -27,6 +28,7 @@ export function VincularFornecedorModal({
   open,
   onOpenChange,
   projetoId,
+  projetoCodigo,
   clienteNome,
   onSuccess,
   onCancel
@@ -49,11 +51,6 @@ export function VincularFornecedorModal({
   };
 
   const handleConfirm = async () => {
-    console.log('[VincularFornecedorModal] Confirmando vínculo:', { 
-      propProjetoId: projetoId, 
-      fornecedorId 
-    });
-
     if (!fornecedorId) {
       toast({ title: "Selecione um fornecedor", variant: "destructive" });
       return;
@@ -65,7 +62,6 @@ export function VincularFornecedorModal({
         description: "ID do projeto não identificado. Tente atualizar a página.", 
         variant: "destructive" 
       });
-      console.error('[VincularFornecedorModal] projetoId está nulo ou vazio!');
       return;
     }
 
@@ -114,7 +110,7 @@ export function VincularFornecedorModal({
             <div>
               <DialogTitle className="text-lg font-bold">Vincular Fornecedor ao Pedido</DialogTitle>
               <DialogDescription className="text-sm">
-                Projeto: <span className="font-semibold text-foreground">{clienteNome || "NÃO IDENTIFICADO"}</span>
+                Projeto: <span className="font-semibold text-foreground">{projetoCodigo || clienteNome || "NÃO IDENTIFICADO"}</span>
               </DialogDescription>
             </div>
           </div>

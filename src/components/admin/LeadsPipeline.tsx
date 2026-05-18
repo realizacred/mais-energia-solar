@@ -340,6 +340,7 @@ export default function LeadsPipeline() {
         open={!!pendingDrop}
         onOpenChange={(open) => !open && setPendingDrop(null)}
         projetoId={pendingDrop?.lead?.id || ""}
+        projetoCodigo={pendingDrop?.lead?.lead_code || undefined}
         clienteNome={pendingDrop?.lead?.nome}
         onSuccess={() => {
           if (pendingDrop) {
