@@ -60,6 +60,7 @@ export function AutomationWhatsAppForm({ config, updateConfig }: AutomationWhats
     { label: "📄 Proposta", filter: "proposta" },
     { label: "👷 Responsável", filter: "responsavel" },
     { label: "📅 Sistema", filter: "sistema" },
+    { label: "🔍 Procurar", filter: "procurar" },
   ];
 
   return (
