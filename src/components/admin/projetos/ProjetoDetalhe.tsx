@@ -84,7 +84,7 @@ import { useRecibos } from "@/hooks/useRecibos";
 
 import { useOperationalStatus } from "@/hooks/useOperationalStatus";
 import { useFinancialSummary } from "@/hooks/useFinancialSummary";
-import { useDocumentsCount } from "@/hooks/useProjectDocuments";
+import { useDocumentsCount, useProjectDocuments } from "@/hooks/useProjectDocuments";
 import { ProjetoFinancialBadges } from "./ProjetoFinancialBadges";
 
 interface PropostaNativa {
@@ -156,6 +156,7 @@ function AlertasFinanceirosProjeto({
   projetoId: string | null;
   setActiveTab: (t: TabId) => void;
   customerName: string;
+  customerCpfCnpj?: string;
   statusProjeto?: string;
 }) {
   const [emitirOpen, setEmitirOpen] = useState(false);
@@ -164,6 +165,7 @@ function AlertasFinanceirosProjeto({
   const { data: recebimento } = useClienteRecebimentoDetalhes(
     hasRecebimento ? customerId : null
   );
+  const qc = useQueryClient();
   const [finishingPending, setFinishingPending] = useState(false);
   const [missingRequirements, setMissingMissingRequirements] = useState<string[]>([]);
   const { data: canonicalData } = useProjectDocuments({ dealId });
@@ -239,9 +241,9 @@ function AlertasFinanceirosProjeto({
       setMissingMissingRequirements([]);
       
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] }),
-        queryClient.invalidateQueries({ queryKey: ["projeto-detalhe-data", dealId] }),
-        queryClient.invalidateQueries({ queryKey: ["projetos-pipeline"] })
+        qc.invalidateQueries({ queryKey: ["projeto-detalhe"] }),
+        qc.invalidateQueries({ queryKey: ["projeto-detalhe-data", dealId] }),
+        qc.invalidateQueries({ queryKey: ["projetos-pipeline"] })
       ]);
     } catch (err: any) {
       toast({ title: "Erro ao concluir", description: err.message, variant: "destructive" });
@@ -1068,6 +1070,7 @@ function ProjetoDetalheContent() {
           customerName={customerName} 
           projetoId={projetoId} 
           setActiveTab={setActiveTab}
+          customerCpfCnpj={customerCpfCnpj}
           statusProjeto={(deal as any).status_projeto}
         />
       )}
