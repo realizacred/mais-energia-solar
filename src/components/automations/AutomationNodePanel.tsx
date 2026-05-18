@@ -131,9 +131,12 @@ export function AutomationNodePanel({
               { type: 'projeto_movido' as TriggerType, icon: ArrowRightLeft, label: 'Projeto Movido' },
               { type: 'projeto_criado' as TriggerType, icon: FolderPlus, label: 'Projeto Criado' },
               { type: 'projeto_ganho' as TriggerType, icon: Trophy, label: 'Projeto Ganho' },
+              { type: 'projeto_perdido' as TriggerType, icon: Trash2, label: 'Projeto Perdido' },
               { type: 'proposta_pronta' as TriggerType, icon: nodeIcons.trigger, label: 'Proposta Pronta' },
               { type: 'atividade_criada' as TriggerType, icon: actionIcons.criar_atividade, label: 'Atividade Criada' },
-              { type: 'campo_customizado' as TriggerType, icon: nodeIcons.search, label: 'Campo Alterado' },
+              { type: 'atividade_concluida' as TriggerType, icon: actionIcons.criar_atividade, label: 'Atividade Concluída' },
+              { type: 'campo_alterado' as TriggerType, icon: nodeIcons.search, label: 'Campo Alterado' },
+              { type: 'cliente_criado' as TriggerType, icon: FolderPlus, label: 'Cliente Criado' },
             ].map((opt) => (
               <button
                 key={opt.type}

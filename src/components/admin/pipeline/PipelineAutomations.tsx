@@ -305,7 +305,7 @@ const SUGGESTIONS: SuggestedAutomation[] = [
 
 // ─── Component ──────────────────────────────────────────
 
-export function PipelineAutomations({ onEdit }: { onEdit?: (id?: string) => void }) {
+export function PipelineAutomations({ onEdit }: { onEdit: (id?: string) => void }) {
   const { data: automations, isLoading } = useAutomations();
   const { data: pipelines } = usePipelines();
   const { toast } = useToast();
@@ -425,7 +425,7 @@ export function PipelineAutomations({ onEdit }: { onEdit?: (id?: string) => void
             <p className="text-sm text-muted-foreground">Regras automáticas para mover deals entre etapas</p>
           </div>
         </div>
-        <Button size="sm" className="gap-1" onClick={() => onEdit ? onEdit() : setIsDialogOpen(true)}>
+        <Button size="sm" className="gap-1 bg-teal-600 hover:bg-teal-700" onClick={() => onEdit()}>
           <Plus className="h-4 w-4" />
           Nova Automação
         </Button>
@@ -451,7 +451,7 @@ export function PipelineAutomations({ onEdit }: { onEdit?: (id?: string) => void
             <p className="text-sm text-muted-foreground mb-4">
               Crie regras para mover leads automaticamente entre etapas
             </p>
-            <Button size="sm" onClick={() => onEdit ? onEdit() : setIsDialogOpen(true)}>
+            <Button size="sm" className="bg-teal-600 hover:bg-teal-700" onClick={() => onEdit()}>
               <Plus className="h-4 w-4 mr-1" />
               Criar primeira automação
             </Button>
