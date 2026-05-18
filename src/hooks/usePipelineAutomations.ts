@@ -19,9 +19,7 @@ export function useAutomationFlow(automationId: string | null) {
         
       if (error) throw error;
       
-      // Fallback for legacy automations without metadata
       if (!data?.metadata || Object.keys(data.metadata).length === 0) {
-        // Try to reconstruct basic flow from existing columns
         const { data: fullAuto } = await supabase
           .from("pipeline_automations")
           .select("*")
@@ -78,7 +76,7 @@ export function useSaveAutomationFlow() {
       flow: AutomationFlow;
       basicData: { nome: string; ativo: boolean; tenant_id: string }
     }) => {
-      // Map first trigger and action to root columns for backward compatibility & indexing
+      // Map first trigger and action to root columns for indexing
       const trigger = flow.nodes.find(n => n.type === "trigger");
       const action = flow.nodes.find(n => n.type === "action");
       
@@ -90,8 +88,7 @@ export function useSaveAutomationFlow() {
       };
       
       if (trigger?.config.funil_id) {
-        // Simple logic: if it looks like a pipeline_id (modern), set both for safety or detect table
-        // But following instructions: Gatilhos de projeto usam projeto_funil_id, deals usam pipeline_id
+        // Gatilhos de projeto usam projeto_funil_id, deals usam pipeline_id
         const isLegacy = trigger.config.triggerType === "projeto_movido" || trigger.config.triggerType === "projeto_criado";
         if (isLegacy) {
           payload.projeto_funil_id = trigger.config.funil_id;
