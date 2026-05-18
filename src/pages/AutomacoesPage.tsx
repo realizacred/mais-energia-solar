@@ -43,7 +43,8 @@ const AutomationMessageTemplates = lazy(() =>
 );
 
 const AutomationHistoryPanel = lazy(() =>
-...
+  import("@/components/admin/automacoes/AutomationHistoryPanel").then((m) => ({
+    default: m.AutomationHistoryPanel,
   }))
 );
 
