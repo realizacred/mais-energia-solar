@@ -61,6 +61,8 @@ export function StepTecnico({
       localizacao: initialData.localizacao || "",
       simulacao_aceita_id: initialData.simulacao_aceita_id || "",
       observacoes: initialData.observacoes || "",
+      media_consumo: initialData.media_consumo || 0,
+      consumo_previsto: initialData.consumo_previsto || 0,
     },
     mode: "onChange",
   });
