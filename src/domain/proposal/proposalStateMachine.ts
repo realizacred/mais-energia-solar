@@ -20,8 +20,8 @@ export type ProposalStatus =
 
 const VALID_TRANSITIONS: Record<string, ProposalStatus[]> = {
   draft: ["generated", "cancelled"],
-  generated: ["sent", "cancelled", "draft"], // Restricted: no accepted/rejected
-  sent: ["viewed", "accepted", "rejected", "expired", "cancelled", "generated"],
+  generated: ["sent", "cancelled", "draft"],
+  sent: ["viewed", "expired", "cancelled", "generated"], // Restricted: no accepted/rejected
   viewed: ["accepted", "rejected", "expired", "cancelled", "generated"],
   accepted: ["rejected", "cancelled", "generated"],
   rejected: ["draft", "generated"],
