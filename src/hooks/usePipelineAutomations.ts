@@ -17,8 +17,11 @@ export interface PipelineAutomation {
   destino_stage_id: string | null;
   notificar_responsavel: boolean;
   mensagem_notificacao: string | null;
-  stage_id: string;
-  pipeline_id: string;
+  stage_id: string | null;
+  pipeline_id: string | null;
+  funil_projeto_id: string | null;
+  etapa_projeto_id: string | null;
+  destino_etapa_projeto_id: string | null;
   execucoes_total: number;
   ultima_execucao: string | null;
 }
@@ -33,8 +36,8 @@ export function usePipelineAutomations(pipelineId: string | null) {
       if (!pipelineId) return [];
       const { data, error } = await supabase
         .from("pipeline_automations")
-        .select("id, nome, ativo, tipo_gatilho, tempo_horas, tipo_acao, destino_stage_id, notificar_responsavel, mensagem_notificacao, stage_id, pipeline_id, execucoes_total, ultima_execucao")
-        .eq("pipeline_id", pipelineId)
+        .select("*")
+        .or(`pipeline_id.eq.${pipelineId},funil_projeto_id.eq.${pipelineId}`)
         .order("created_at");
       if (error) throw error;
       return (data as PipelineAutomation[]) || [];

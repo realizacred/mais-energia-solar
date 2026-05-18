@@ -16186,14 +16186,17 @@ export type Database = {
         Row: {
           ativo: boolean
           created_at: string
+          destino_etapa_projeto_id: string | null
           destino_stage_id: string | null
+          etapa_projeto_id: string | null
           execucoes_total: number
+          funil_projeto_id: string | null
           id: string
           mensagem_notificacao: string | null
           nome: string
           notificar_responsavel: boolean
-          pipeline_id: string
-          stage_id: string
+          pipeline_id: string | null
+          stage_id: string | null
           tempo_horas: number
           tenant_id: string
           tipo_acao: string
@@ -16204,14 +16207,17 @@ export type Database = {
         Insert: {
           ativo?: boolean
           created_at?: string
+          destino_etapa_projeto_id?: string | null
           destino_stage_id?: string | null
+          etapa_projeto_id?: string | null
           execucoes_total?: number
+          funil_projeto_id?: string | null
           id?: string
           mensagem_notificacao?: string | null
           nome?: string
           notificar_responsavel?: boolean
-          pipeline_id: string
-          stage_id: string
+          pipeline_id?: string | null
+          stage_id?: string | null
           tempo_horas?: number
           tenant_id?: string
           tipo_acao?: string
@@ -16222,14 +16228,17 @@ export type Database = {
         Update: {
           ativo?: boolean
           created_at?: string
+          destino_etapa_projeto_id?: string | null
           destino_stage_id?: string | null
+          etapa_projeto_id?: string | null
           execucoes_total?: number
+          funil_projeto_id?: string | null
           id?: string
           mensagem_notificacao?: string | null
           nome?: string
           notificar_responsavel?: boolean
-          pipeline_id?: string
-          stage_id?: string
+          pipeline_id?: string | null
+          stage_id?: string | null
           tempo_horas?: number
           tenant_id?: string
           tipo_acao?: string
@@ -16239,10 +16248,31 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "pipeline_automations_destino_etapa_projeto_id_fkey"
+            columns: ["destino_etapa_projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_etapas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pipeline_automations_destino_stage_id_fkey"
             columns: ["destino_stage_id"]
             isOneToOne: false
             referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_automations_etapa_projeto_id_fkey"
+            columns: ["etapa_projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_automations_funil_projeto_id_fkey"
+            columns: ["funil_projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_funis"
             referencedColumns: ["id"]
           },
           {

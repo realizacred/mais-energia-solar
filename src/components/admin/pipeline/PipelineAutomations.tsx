@@ -49,8 +49,11 @@ import {
 interface PipelineAutomation {
   id: string;
   tenant_id: string;
-  pipeline_id: string;
-  stage_id: string;
+  pipeline_id: string | null;
+  stage_id: string | null;
+  funil_projeto_id: string | null;
+  etapa_projeto_id: string | null;
+  destino_etapa_projeto_id: string | null;
   nome: string;
   ativo: boolean;
   tipo_gatilho: string;
@@ -72,6 +75,7 @@ interface PipelineAutomation {
 interface PipelineOption {
   id: string;
   name: string;
+  type: 'modern' | 'legacy';
 }
 
 interface StageOption {
@@ -91,29 +95,43 @@ function usePipelines() {
   return useQuery({
     queryKey: ["pipelines_for_automations"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pipelines")
-        .select("id, name")
-        .order("name");
-      if (error) throw error;
-      return data as PipelineOption[];
+      const [modernRes, legacyRes] = await Promise.all([
+        supabase.from("pipelines").select("id, name").order("name"),
+        supabase.from("projeto_funis").select("id, nome").order("nome")
+      ]);
+
+      const modern = (modernRes.data || []).map(p => ({ ...p, type: 'modern' as const }));
+      const legacy = (legacyRes.data || []).map(p => ({ id: p.id, name: p.nome, type: 'legacy' as const }));
+
+      return [...modern, ...legacy] as PipelineOption[];
     },
-    staleTime: 0, // Always fetch fresh to avoid FK violations (re-created pipelines)
+    staleTime: 0,
   });
 }
 
-function usePipelineStages(pipelineId: string | null) {
+function usePipelineStages(pipelineId: string | null, type: 'modern' | 'legacy' = 'modern') {
   return useQuery({
-    queryKey: ["pipeline_stages_for_automations", pipelineId],
+    queryKey: ["pipeline_stages_for_automations", pipelineId, type],
     queryFn: async () => {
       if (!pipelineId) return [];
-      const { data, error } = await supabase
-        .from("pipeline_stages")
-        .select("id, name, position")
-        .eq("pipeline_id", pipelineId)
-        .order("position");
-      if (error) throw error;
-      return data as StageOption[];
+      
+      if (type === 'modern') {
+        const { data, error } = await supabase
+          .from("pipeline_stages")
+          .select("id, name, position")
+          .eq("pipeline_id", pipelineId)
+          .order("position");
+        if (error) throw error;
+        return data as StageOption[];
+      } else {
+        const { data, error } = await supabase
+          .from("projeto_etapas")
+          .select("id, name:nome, position:ordem")
+          .eq("funil_id", pipelineId)
+          .order("ordem");
+        if (error) throw error;
+        return data as StageOption[];
+      }
     },
     staleTime: STALE_TIME,
     enabled: !!pipelineId,
@@ -124,23 +142,25 @@ function useAutomations() {
   return useQuery({
     queryKey: [QUERY_KEY],
     queryFn: async () => {
-      // Fetch automations with joined stage/pipeline names
       const { data, error } = await supabase
         .from("pipeline_automations")
         .select(`
           *,
           pipeline_stages!pipeline_automations_stage_id_fkey(name),
           destino:pipeline_stages!pipeline_automations_destino_stage_id_fkey(name),
-          pipelines!pipeline_automations_pipeline_id_fkey(name)
+          pipelines!pipeline_automations_pipeline_id_fkey(name),
+          projeto_etapas!pipeline_automations_etapa_projeto_id_fkey(nome),
+          destino_projeto:projeto_etapas!pipeline_automations_destino_etapa_projeto_id_fkey(nome),
+          projeto_funis!pipeline_automations_funil_projeto_id_fkey(nome)
         `)
         .order("created_at", { ascending: false });
       if (error) throw error;
 
       return (data || []).map((row: any) => ({
         ...row,
-        stage_name: row.pipeline_stages?.name ?? "—",
-        destino_name: row.destino?.name ?? "—",
-        pipeline_name: row.pipelines?.name ?? "—",
+        stage_name: row.pipeline_stages?.name ?? row.projeto_etapas?.nome ?? "—",
+        destino_name: row.destino?.name ?? row.destino_projeto?.nome ?? "—",
+        pipeline_name: row.pipelines?.name ?? row.projeto_funis?.nome ?? "—",
       })) as PipelineAutomation[];
     },
     staleTime: STALE_TIME,
@@ -161,23 +181,34 @@ function useCreateAutomation() {
       notificar_responsavel: boolean;
       mensagem_notificacao: string | null;
       ativo: boolean;
+      type: 'modern' | 'legacy';
     }) => {
       const { tenantId } = await getCurrentTenantId();
+      
+      const insertData: any = {
+        tenant_id: tenantId,
+        nome: payload.nome,
+        tipo_gatilho: "tempo_parado",
+        tempo_horas: payload.tempo_horas,
+        tipo_acao: "mover_etapa",
+        notificar_responsavel: payload.notificar_responsavel,
+        mensagem_notificacao: payload.mensagem_notificacao,
+        ativo: payload.ativo,
+      };
+
+      if (payload.type === 'modern') {
+        insertData.pipeline_id = payload.pipeline_id;
+        insertData.stage_id = payload.stage_id;
+        insertData.destino_stage_id = payload.destino_stage_id;
+      } else {
+        insertData.funil_projeto_id = payload.pipeline_id;
+        insertData.etapa_projeto_id = payload.stage_id;
+        insertData.destino_etapa_projeto_id = payload.destino_stage_id;
+      }
+
       const { data, error } = await supabase
         .from("pipeline_automations")
-        .insert({
-          tenant_id: tenantId,
-          pipeline_id: payload.pipeline_id,
-          stage_id: payload.stage_id,
-          nome: payload.nome,
-          tipo_gatilho: "tempo_parado",
-          tempo_horas: payload.tempo_horas,
-          tipo_acao: "mover_etapa",
-          destino_stage_id: payload.destino_stage_id,
-          notificar_responsavel: payload.notificar_responsavel,
-          mensagem_notificacao: payload.mensagem_notificacao,
-          ativo: payload.ativo,
-        })
+        .insert(insertData)
         .select()
         .single();
       if (error) throw error;
@@ -284,7 +315,8 @@ export function PipelineAutomations() {
   const [formMessage, setFormMessage] = useState("");
   const [formActive, setFormActive] = useState(true);
 
-  const { data: stages } = usePipelineStages(formPipelineId || null);
+  const selectedPipelineType = pipelines?.find(p => p.id === formPipelineId)?.type || 'modern';
+  const { data: stages } = usePipelineStages(formPipelineId || null, selectedPipelineType);
 
   // Reset stage selects when pipeline changes
   useEffect(() => {
@@ -325,6 +357,7 @@ export function PipelineAutomations() {
         notificar_responsavel: formNotify,
         mensagem_notificacao: formMessage || null,
         ativo: formActive,
+        type: selectedPipelineType,
       },
       {
         onSuccess: () => {
@@ -551,7 +584,14 @@ export function PipelineAutomations() {
                 </SelectTrigger>
                 <SelectContent>
                   {(pipelines || []).map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    <SelectItem key={p.id} value={p.id}>
+                      <div className="flex items-center gap-2">
+                        {p.name}
+                        <Badge variant="secondary" className="text-[9px] h-3 px-1 uppercase opacity-60">
+                          {p.type === 'modern' ? 'Novo' : 'Legado'}
+                        </Badge>
+                      </div>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
