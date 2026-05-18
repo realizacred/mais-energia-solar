@@ -112,7 +112,13 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
       ]);
 
       const payload = { ...step1Data, ...step2Data, identidade_urls: identidadeUrls, comprovante_endereco_urls: comprovanteUrls, comprovante_beneficiaria_urls: beneficiariaUrls, assinatura_url: assinaturaUrls[0] || null };
-      const { data: res, error } = await supabase.rpc("convert_lead_to_venda_v2", { _lead_id: lead?.id, _payload: payload as any, _payment_composition: paymentItems as any, _idempotency_key: lead?.id });
+      const { data: res, error } = await supabase.rpc("convert_lead_to_venda_v2", { 
+        _lead_id: lead?.id, 
+        _payload: payload as any, 
+        _payment_composition: paymentItems as any, 
+        _idempotency_key: lead?.id,
+        _orcamento_id: orcamentoId 
+      });
       
       if (error || !(res as any)?.success) throw new Error((res as any)?.message || "Erro na conversão");
 
