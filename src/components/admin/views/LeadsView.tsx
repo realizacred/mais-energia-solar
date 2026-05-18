@@ -380,6 +380,7 @@ export function LeadsView() {
 
       <ConvertLeadToClientDialog
         lead={leadToConvert}
+        selectedOrcamento={selectedOrcamento}
         open={isConvertOpen}
         onOpenChange={setIsConvertOpen}
         onSuccess={fetchOrcamentos}

@@ -15,15 +15,25 @@ import { StepTecnico, type Step2Data } from "./conversion/StepTecnico";
 import { StepFinanceiro } from "./conversion/StepFinanceiro";
 import { useVendaFinanceSnapshot } from "@/hooks/useVendaFinanceSnapshot";
 
+import type { OrcamentoDisplayItem } from "@/types/orcamento";
+
 interface ConvertLeadToClientDialogProps {
   lead: Lead | null;
+  selectedOrcamento?: OrcamentoDisplayItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
   orcamentoId?: string | null;
 }
 
-export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess, orcamentoId }: ConvertLeadToClientDialogProps) {
+export function ConvertLeadToClientDialog({ 
+  lead, 
+  selectedOrcamento, 
+  open, 
+  onOpenChange, 
+  onSuccess, 
+  orcamentoId 
+}: ConvertLeadToClientDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -56,42 +66,43 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
   const finance = useVendaFinanceSnapshot(valorVenda, paymentItems);
 
   useEffect(() => {
-    if (lead && open) {
-      
-      
-      const saved = localStorage.getItem(`lead_conversion_${lead.id}`);
+    if (open) {
+      const source = selectedOrcamento || lead;
+      if (!source) return;
+
+      const saved = localStorage.getItem(`lead_conversion_${lead?.id || orcamentoId}`);
       if (saved) {
         const data = JSON.parse(saved);
         setStep1Data(data.step1Data || { 
-          nome: lead.nome || "", 
-          telefone: lead.telefone || "", 
-          email: lead.email || "", 
-          cep: lead.cep || "",
-          cidade: lead.cidade || "",
-          estado: lead.estado || "",
-          bairro: lead.bairro || "",
-          rua: lead.rua || "",
-          numero: lead.numero || "",
+          nome: source.nome || "", 
+          telefone: (source as any).telefone || "", 
+          email: (source as any).email || "", 
+          cep: (source as any).cep || "",
+          cidade: (source as any).cidade || "",
+          estado: (source as any).estado || "",
+          bairro: (source as any).bairro || "",
+          rua: (source as any).rua || "",
+          numero: (source as any).numero || "",
         });
         setStep2Data(data.step2Data || {
-          localizacao: (lead as any).localizacao || "",
-          observacoes: (lead as any).observacoes || "",
+          localizacao: (source as any).localizacao || "",
+          observacoes: (source as any).observacoes || "",
         });
       } else {
         const initialS1 = { 
-          nome: lead.nome || "", 
-          telefone: lead.telefone || "", 
-          email: lead.email || "", 
-          cep: (lead as any).cep || "",
-          cidade: (lead as any).cidade || "",
-          estado: (lead as any).estado || "",
-          bairro: (lead as any).bairro || "",
-          rua: (lead as any).rua || "",
-          numero: (lead as any).numero || "",
+          nome: source.nome || "", 
+          telefone: (source as any).telefone || "", 
+          email: (source as any).email || "", 
+          cep: (source as any).cep || "",
+          cidade: (source as any).cidade || "",
+          estado: (source as any).estado || "",
+          bairro: (source as any).bairro || "",
+          rua: (source as any).rua || "",
+          numero: (source as any).numero || "",
         };
         const initialS2 = {
-          localizacao: (lead as any).localizacao || "",
-          observacoes: (lead as any).observacoes || "",
+          localizacao: (source as any).localizacao || "",
+          observacoes: (source as any).observacoes || "",
         };
 
         setStep1Data(initialS1);
@@ -100,10 +111,10 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
         setComprovanteFiles([]);
         setPaymentItems([createEmptyItem()]);
       }
-    } else if (!open) {
+    } else {
       setCurrentStep(0);
     }
-  }, [lead?.id, open, orcamentoId]);
+  }, [lead?.id, selectedOrcamento?.id, open, orcamentoId]);
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -116,7 +127,17 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
         uploadDocumentFiles(assinaturaFiles, `${tenantId}/assinatura`, supabase),
       ]);
 
-      const payload = { ...step1Data, ...step2Data, identidade_urls: identidadeUrls, comprovante_endereco_urls: comprovanteUrls, comprovante_beneficiaria_urls: beneficiariaUrls, assinatura_url: assinaturaUrls[0] || null };
+      const payload = { 
+        ...step1Data, 
+        ...step2Data, 
+        identidade_urls: identidadeUrls, 
+        comprovante_endereco_urls: comprovanteUrls, 
+        comprovante_beneficiaria_urls: beneficiariaUrls, 
+        assinatura_url: assinaturaUrls[0] || null,
+        // Adicionando dados técnicos que podem estar faltando no payload mas existem no source
+        media_consumo: selectedOrcamento?.media_consumo || (lead as any)?.media_consumo,
+        consumo_previsto: selectedOrcamento?.consumo_previsto || (lead as any)?.consumo_previsto
+      };
       const { data: res, error } = await supabase.rpc("convert_lead_to_venda_v2", { 
         _lead_id: lead?.id, 
         _payload: payload as any, 
@@ -140,7 +161,7 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
 
   const STEPS = [
     { label: "Pessoal", icon: User, comp: <StepDadosPessoais initialData={step1Data} onChange={(d, v) => { setStep1Data(d); setIsStep1Valid(v); }} /> },
-    { label: "Técnico", icon: FileText, comp: <StepTecnico leadId={lead?.id} initialData={step2Data} identidadeFiles={identidadeFiles} comprovanteFiles={comprovanteFiles} beneficiariaFiles={beneficiariaFiles} assinaturaFiles={assinaturaFiles} onFilesChange={(type, files) => { if (type === "identidade") setIdentidadeFiles(files); if (type === "comprovante") setComprovanteFiles(files); if (type === "beneficiaria") setBeneficiariaFiles(files); if (type === "assinatura") setAssinaturaFiles(files); }} onChange={(d, v) => { setStep2Data(d); setIsStep2Valid(v); }} /> },
+    { label: "Técnico", icon: FileText, comp: <StepTecnico leadId={lead?.id} initialData={{ ...step2Data, media_consumo: selectedOrcamento?.media_consumo || (lead as any)?.media_consumo, consumo_previsto: selectedOrcamento?.consumo_previsto || (lead as any)?.consumo_previsto }} identidadeFiles={identidadeFiles} comprovanteFiles={comprovanteFiles} beneficiariaFiles={beneficiariaFiles} assinaturaFiles={assinaturaFiles} onFilesChange={(type, files) => { if (type === "identidade") setIdentidadeFiles(files); if (type === "comprovante") setComprovanteFiles(files); if (type === "beneficiaria") setBeneficiariaFiles(files); if (type === "assinatura") setAssinaturaFiles(files); }} onChange={(d, v) => { setStep2Data(d); setIsStep2Valid(v); }} /> },
     { label: "Financeiro", icon: Wallet, comp: <StepFinanceiro valorVenda={valorVenda} paymentItems={paymentItems} onCompositionChange={setPaymentItems} /> }
   ];
 
@@ -149,7 +170,7 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
       <DialogContent className="max-w-[700px] p-0 flex flex-col h-[90vh]">
         <div className="flex items-center gap-3 p-5 border-b shrink-0">
           <div className="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center"><ShoppingCart className="w-5 h-5 text-teal-600" /></div>
-          <div><h2 className="text-base font-semibold">Converter {orcamentoId && lead?.lead_code ? lead.lead_code : "Orçamento"} em Venda</h2><p className="text-xs text-muted-foreground">Lead: {lead?.nome}</p></div>
+          <div><h2 className="text-base font-semibold">Converter {selectedOrcamento?.orc_code || orcamentoId || "Orçamento"} em Venda</h2><p className="text-xs text-muted-foreground">Lead: {selectedOrcamento?.nome || lead?.nome}</p></div>
         </div>
         <div className="flex gap-2 p-3 bg-muted/20 border-b">
           {STEPS.map((s, i) => (

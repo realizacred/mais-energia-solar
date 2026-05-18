@@ -21,6 +21,8 @@ const step2Schema = z.object({
   localizacao: z.string().min(1, "Localização é obrigatória"),
   simulacao_aceita_id: z.string().optional(),
   observacoes: z.string().optional(),
+  media_consumo: z.number().optional(),
+  consumo_previsto: z.number().optional(),
 });
 
 export type Step2Data = z.infer<typeof step2Schema>;
@@ -59,19 +61,23 @@ export function StepTecnico({
       localizacao: initialData.localizacao || "",
       simulacao_aceita_id: initialData.simulacao_aceita_id || "",
       observacoes: initialData.observacoes || "",
+      media_consumo: initialData.media_consumo || 0,
+      consumo_previsto: initialData.consumo_previsto || 0,
     },
     mode: "onChange",
   });
 
   // Force form reset when initialData changes to ensure re-hydration
   useEffect(() => {
-    if (initialData.disjuntor_id || initialData.localizacao || initialData.observacoes) {
+    if (initialData.disjuntor_id || initialData.localizacao || initialData.observacoes || initialData.media_consumo) {
       form.reset({
         disjuntor_id: initialData.disjuntor_id || "",
         transformador_id: initialData.transformador_id || "",
         localizacao: initialData.localizacao || "",
         simulacao_aceita_id: initialData.simulacao_aceita_id || "",
         observacoes: initialData.observacoes || "",
+        media_consumo: initialData.media_consumo || 0,
+        consumo_previsto: initialData.consumo_previsto || 0,
       });
     }
   }, [initialData, form]);
@@ -190,6 +196,29 @@ export function StepTecnico({
               </FormItem>
             )}
           />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField
+              control={form.control}
+              name="media_consumo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Consumo Médio (kWh)</FormLabel>
+                  <FormControl><Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="consumo_previsto"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Geração Prevista (kWh)</FormLabel>
+                  <FormControl><Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
 
           <FormField
             control={form.control}
