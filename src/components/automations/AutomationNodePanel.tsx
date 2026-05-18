@@ -26,7 +26,8 @@ import {
   FolderOpen,
   User,
   Plus,
-  UserCheck
+  UserCheck,
+  UserPlus
 } from "lucide-react";
 import { AutomationFlowNode, TriggerType, ActionType, TRIGGER_LABELS, ACTION_LABELS, AutomationNodeType } from "@/types/automation-flow";
 import { cn } from "@/lib/utils";
