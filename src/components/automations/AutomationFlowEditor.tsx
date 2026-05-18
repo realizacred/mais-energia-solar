@@ -34,7 +34,18 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
   // Sync state with loaded data
   useEffect(() => {
     if (initialFlow) {
-      setNodes(initialFlow.nodes || []);
+      const initialNodes = initialFlow.nodes || [];
+      if (initialNodes.length === 0) {
+        // Garantir que sempre comece com um gatilho
+        setNodes([{
+          id: crypto.randomUUID(),
+          type: 'trigger',
+          order: 0,
+          config: {}
+        }]);
+      } else {
+        setNodes(initialNodes);
+      }
     }
   }, [initialFlow]);
 
@@ -88,14 +99,14 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
     setSelectedNodeId(null);
   };
 
-  const handleSelectNewNodeType = (type: AutomationNodeType) => {
+  const handleSelectNewNodeType = (type: AutomationNodeType, initialConfig: any = {}) => {
     if (addingAfterIndex === null) return;
     
     const newNode: AutomationFlowNode = {
       id: crypto.randomUUID(),
       type,
       order: addingAfterIndex,
-      config: {}
+      config: initialConfig
     };
     
     const newNodes = [...nodes];

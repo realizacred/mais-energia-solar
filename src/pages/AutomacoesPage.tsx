@@ -73,7 +73,7 @@ export default function AutomacoesPage() {
     <div className="p-4 md:p-6 space-y-6">
       {/* Header — §DS-03 */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-teal-600/10 text-teal-600">
           <Zap className="h-5 w-5" />
         </div>
         <div>

@@ -19,7 +19,13 @@ import {
   CheckCircle2,
   UserCog,
   FileText,
-  CheckSquare
+  CheckSquare,
+  MessageCircle,
+  Anchor,
+  Mail,
+  FolderOpen,
+  User,
+  Plus
 } from "lucide-react";
 import { AutomationFlowNode, TriggerType, ActionType, TRIGGER_LABELS, ACTION_LABELS, AutomationNodeType } from "@/types/automation-flow";
 import { cn } from "@/lib/utils";
@@ -33,7 +39,7 @@ interface AutomationNodePanelProps {
   onUpdate: (node: AutomationFlowNode) => void;
   onRemove: (id: string) => void;
   addingAfterIndex: number | null;
-  onSelectNewNodeType: (type: AutomationNodeType) => void;
+  onSelectNewNodeType: (type: AutomationNodeType, initialConfig?: any) => void;
 }
 
 export function AutomationNodePanel({ 
@@ -46,46 +52,92 @@ export function AutomationNodePanel({
   onSelectNewNodeType
 }: AutomationNodePanelProps) {
   const [localConfig, setLocalConfig] = useState<any>(node?.config || {});
+  const [addingStep, setAddingStep] = useState<'type' | 'action-grid'>('type');
 
   useEffect(() => {
     if (node) setLocalConfig(node.config);
   }, [node]);
 
+  useEffect(() => {
+    if (addingAfterIndex !== null) setAddingStep('type');
+  }, [addingAfterIndex]);
+
   if (addingAfterIndex !== null) {
+    if (addingStep === 'type') {
+      return (
+        <div className="p-6 space-y-6">
+          <div>
+            <h2 className="text-lg font-bold">Adicionar Passo</h2>
+            <p className="text-xs text-muted-foreground">Escolha o tipo de nó para adicionar ao fluxo</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={() => setAddingStep('action-grid')}
+              className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-blue-200 hover:border-blue-500 hover:bg-blue-50 transition-all group"
+            >
+              <div className="p-3 rounded-lg bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <nodeIcons.action className="h-6 w-6" />
+              </div>
+              <span className="text-sm font-bold text-blue-700">Ação</span>
+            </button>
+            <button
+              onClick={() => onSelectNewNodeType('condition')}
+              className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-teal-200 hover:border-teal-500 hover:bg-teal-50 transition-all group"
+            >
+              <div className="p-3 rounded-lg bg-teal-100 text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition-colors">
+                <GitBranch className="h-6 w-6" />
+              </div>
+              <span className="text-sm font-bold text-teal-700">Condicional</span>
+            </button>
+            <button
+              onClick={() => onSelectNewNodeType('search')}
+              className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-purple-200 hover:border-purple-500 hover:bg-purple-50 transition-all group col-span-2"
+            >
+              <div className="p-3 rounded-lg bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                <Search className="h-6 w-6" />
+              </div>
+              <span className="text-sm font-bold text-purple-700">Procurar</span>
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="p-6 space-y-6">
-        <div>
-          <h2 className="text-lg font-bold">Adicionar Passo</h2>
-          <p className="text-xs text-muted-foreground">Escolha o tipo de nó para adicionar ao fluxo</p>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => setAddingStep('type')} className="h-8 w-8">
+            <ArrowRightLeft className="h-4 w-4 rotate-180" />
+          </Button>
+          <div>
+            <h2 className="text-lg font-bold">Escolha a Ação</h2>
+            <p className="text-xs text-muted-foreground">O que o sistema deve fazer neste passo?</p>
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <button
-            onClick={() => onSelectNewNodeType('action')}
-            className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-blue-200 hover:border-blue-500 hover:bg-blue-50 transition-all group"
-          >
-            <div className="p-3 rounded-lg bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-              <nodeIcons.action className="h-6 w-6" />
-            </div>
-            <span className="text-sm font-bold text-blue-700">Ação</span>
-          </button>
-          <button
-            onClick={() => onSelectNewNodeType('condition')}
-            className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-teal-200 hover:border-teal-500 hover:bg-teal-50 transition-all group"
-          >
-            <div className="p-3 rounded-lg bg-teal-100 text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition-colors">
-              <GitBranch className="h-6 w-6" />
-            </div>
-            <span className="text-sm font-bold text-teal-700">Condicional</span>
-          </button>
-          <button
-            onClick={() => onSelectNewNodeType('search')}
-            className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-purple-200 hover:border-purple-500 hover:bg-purple-50 transition-all group col-span-2"
-          >
-            <div className="p-3 rounded-lg bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-              <Search className="h-6 w-6" />
-            </div>
-            <span className="text-sm font-bold text-purple-700">Procurar</span>
-          </button>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { type: 'whatsapp', icon: MessageCircle, label: 'WhatsApp', color: 'text-teal-600 bg-teal-50 border-teal-500' },
+            { type: 'webhook', icon: Anchor, label: 'Webhook HTTP', color: 'text-blue-600 bg-blue-50 border-blue-500' },
+            { type: 'mover_etapa', icon: ArrowRightLeft, label: 'Mover Etapa', color: 'text-purple-600 bg-purple-50 border-purple-500' },
+            { type: 'email', icon: Mail, label: 'Enviar Email', color: 'text-gray-600 bg-gray-50 border-gray-500' },
+            { type: 'projeto', icon: FolderOpen, label: 'Projeto', color: 'text-green-600 bg-green-50 border-green-500' },
+            { type: 'atividade', icon: CheckSquare, label: 'Atividade', color: 'text-teal-600 bg-teal-50 border-teal-500' },
+            { type: 'cliente', icon: User, label: 'Cliente', color: 'text-pink-600 bg-pink-50 border-pink-500' },
+          ].map((opt) => (
+            <button
+              key={opt.type}
+              onClick={() => {
+                onSelectNewNodeType('action', { actionType: opt.type as ActionType });
+              }}
+              className={cn(
+                "flex flex-col items-center justify-center p-3 gap-2 rounded-lg border transition-all text-xs font-medium h-20 text-center hover:shadow-sm",
+                opt.color
+              )}
+            >
+              <opt.icon className="h-5 w-5" />
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
     );
@@ -178,8 +230,8 @@ export function AutomationNodePanel({
               </div>
 
               {isEquipamento && (
-                <Alert className="bg-amber-50 border-amber-200 text-amber-800">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <Alert className="bg-teal-50 border-teal-200 text-teal-800">
+                  <AlertTriangle className="h-4 w-4 text-teal-600" />
                   <AlertDescription className="text-[11px] font-medium leading-relaxed">
                     Interceptor RB-90: Este funil exige Fornecedor vinculado para mudança de etapas.
                   </AlertDescription>
@@ -236,10 +288,13 @@ export function AutomationNodePanel({
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-2">
             {[
-              { type: 'whatsapp' as ActionType, icon: actionIcons.whatsapp, label: 'WhatsApp' },
-              { type: 'webhook' as ActionType, icon: actionIcons.webhook, label: 'Webhook HTTP' },
-              { type: 'mover_etapa' as ActionType, icon: actionIcons.mover_etapa, label: 'Mover Etapa' },
-              { type: 'email' as ActionType, icon: actionIcons.email, label: 'Enviar Email' },
+              { type: 'whatsapp', icon: MessageCircle, label: 'WhatsApp', color: 'text-teal-600 bg-teal-50 border-teal-500' },
+              { type: 'webhook', icon: Anchor, label: 'Webhook HTTP', color: 'text-blue-600 bg-blue-50 border-blue-500' },
+              { type: 'mover_etapa', icon: ArrowRightLeft, label: 'Mover Etapa', color: 'text-purple-600 bg-purple-50 border-purple-500' },
+              { type: 'email', icon: Mail, label: 'Enviar Email', color: 'text-gray-600 bg-gray-50 border-gray-500' },
+              { type: 'projeto', icon: FolderOpen, label: 'Projeto', color: 'text-green-600 bg-green-50 border-green-500' },
+              { type: 'atividade', icon: CheckSquare, label: 'Atividade', color: 'text-teal-600 bg-teal-50 border-teal-500' },
+              { type: 'cliente', icon: User, label: 'Cliente', color: 'text-pink-600 bg-pink-50 border-pink-500' },
             ].map((opt) => (
               <button
                 key={opt.type}
@@ -247,7 +302,7 @@ export function AutomationNodePanel({
                 className={cn(
                   "flex flex-col items-center justify-center p-3 gap-2 rounded-lg border transition-all text-xs font-medium h-20 text-center",
                   localConfig.actionType === opt.type 
-                    ? "bg-blue-50 border-blue-500 text-blue-700" 
+                    ? opt.color 
                     : "bg-card hover:bg-muted"
                 )}
               >
@@ -295,6 +350,61 @@ export function AutomationNodePanel({
                   onChange={(e) => updateConfig({ template_mensagem: e.target.value, canal_notificacao: 'email' })}
                   placeholder="Olá {nome_cliente}! Este é um email automático..."
                   rows={4}
+                />
+              </div>
+            </div>
+          )}
+
+          {(localConfig.actionType === 'mover_etapa' || localConfig.actionType === 'projeto') && (
+            <div className="space-y-4 animate-in fade-in">
+              <div className="space-y-2">
+                <Label>Funil de Destino</Label>
+                <Select 
+                  value={localConfig.funil_id} 
+                  onValueChange={(v) => updateConfig({ funil_id: v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Mesmo funil" /></SelectTrigger>
+                  <SelectContent>
+                    {availableFunis.map(f => (
+                      <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Mover para Etapa</Label>
+                <Select 
+                  value={localConfig.destino_etapa_id} 
+                  onValueChange={(v) => updateConfig({ destino_etapa_id: v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecione a etapa" /></SelectTrigger>
+                  <SelectContent>
+                    {availableEtapas.filter(e => e.funil_id === localConfig.funil_id || e.pipeline_id === localConfig.funil_id).map(e => (
+                      <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          {localConfig.actionType === 'atividade' && (
+            <div className="space-y-4 animate-in fade-in">
+              <div className="space-y-2">
+                <Label>Título da Atividade</Label>
+                <Input 
+                  value={localConfig.atividade_titulo || ''} 
+                  onChange={(e) => updateConfig({ atividade_titulo: e.target.value })}
+                  placeholder="Ex: Ligar para confirmar aceite"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição (Opcional)</Label>
+                <Textarea 
+                  value={localConfig.atividade_descricao || ''} 
+                  onChange={(e) => updateConfig({ atividade_descricao: e.target.value })}
+                  placeholder="Instruções para o consultor..."
+                  rows={3}
                 />
               </div>
             </div>

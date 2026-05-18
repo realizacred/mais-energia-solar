@@ -23,6 +23,9 @@ export type ActionType =
   | 'mover_etapa'
   | 'criar_atividade'
   | 'notificar_responsavel'
+  | 'projeto'
+  | 'atividade'
+  | 'cliente'
 
 export type SearchType =
   | 'projeto'
@@ -48,6 +51,9 @@ export const ACTION_LABELS: Record<string, string> = {
   mover_etapa:         'Mover de Etapa',
   criar_atividade:     'Criar Atividade',
   notificar_responsavel: 'Notificar Responsável',
+  projeto:             'Projeto',
+  atividade:           'Atividade',
+  cliente:             'Cliente',
 }
 
 export interface AutomationFlowNode {
@@ -80,6 +86,10 @@ export interface AutomationFlowNode {
     wa_schedule_enabled?: boolean
     wa_schedule_tipo?: 'horas' | 'dias'
     wa_scheduled_valor?: number
+    
+    // Action - Atividade
+    atividade_titulo?: string
+    atividade_descricao?: string
 
     // Condition
     field?: string

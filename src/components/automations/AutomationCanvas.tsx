@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, MessageCircle, Anchor, ArrowRightLeft, Mail, FolderOpen, CheckSquare, User } from "lucide-react";
 import { AutomationFlowNode, TRIGGER_LABELS, ACTION_LABELS } from "@/types/automation-flow";
 import { cn } from "@/lib/utils";
 import { 
@@ -9,6 +9,16 @@ import {
   nodeTitles, 
   nodeTitleColors 
 } from "./AutomationNodeConstants";
+
+const ACTION_BADGE_COLORS: Record<string, string> = {
+  whatsapp:    'bg-teal-100 text-teal-700 hover:bg-teal-100',
+  webhook:     'bg-blue-100 text-blue-700 hover:bg-blue-100', 
+  mover_etapa: 'bg-purple-100 text-purple-700 hover:bg-purple-100',
+  email:       'bg-gray-100 text-gray-700 hover:bg-gray-100',
+  projeto:     'bg-green-100 text-green-700 hover:bg-green-100',
+  atividade:   'bg-teal-100 text-teal-700 hover:bg-teal-100',
+  cliente:     'bg-pink-100 text-pink-700 hover:bg-pink-100',
+};
 
 interface AutomationCanvasProps {
   nodes: AutomationFlowNode[];
@@ -86,6 +96,11 @@ export function AutomationCanvas({
                             {config.searchType === 'responsavel' ? 'Buscar no funil' : 'Funil vinculado'}
                           </Badge>
                         )}
+                        {node.type === 'action' && config.actionType && (
+                          <Badge variant="secondary" className={cn("text-[10px] h-4", ACTION_BADGE_COLORS[config.actionType] || 'bg-muted')}>
+                            {ACTION_LABELS[config.actionType] || config.actionType}
+                          </Badge>
+                        )}
                         {config.actionType === 'whatsapp' && (
                           <>
                             <Badge variant="secondary" className="text-[10px] h-4 bg-blue-100 text-blue-700 hover:bg-blue-100">
@@ -93,33 +108,26 @@ export function AutomationCanvas({
                                config.wa_message_type === 'image' ? 'Imagem' :
                                config.wa_message_type === 'document' ? 'Documento' : 'Áudio'}
                             </Badge>
-                            {config.wa_destinatario_tipo && (
-                              <Badge variant="secondary" className="text-[10px] h-4 bg-slate-100 text-slate-700 hover:bg-slate-100">
-                                Para: {config.wa_destinatario_tipo === 'cliente' ? 'Cliente' : 
-                                       config.wa_destinatario_tipo === 'responsavel' ? 'Responsável' : 'Fixo'}
-                              </Badge>
-                            )}
                           </>
-                        )}
-                        {config.webhook_url && (
-                          <Badge variant="secondary" className="text-[10px] h-4">Webhook</Badge>
                         )}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemoveNode(node.id);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {index > 0 && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemoveNode(node.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>

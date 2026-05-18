@@ -145,6 +145,7 @@ function useAutomations() {
   return useQuery({
     queryKey: [QUERY_KEY],
     queryFn: async () => {
+      const { tenantId } = await getCurrentTenantId();
       const { data, error } = await supabase
         .from("pipeline_automations")
         .select(`
@@ -156,6 +157,7 @@ function useAutomations() {
           destino_projeto:projeto_etapas!pipeline_automations_destino_etapa_projeto_id_fkey(nome),
           projeto_funis!pipeline_automations_projeto_funil_id_fkey(nome)
         `)
+        .eq("tenant_id", tenantId)
         .order("created_at", { ascending: false });
       if (error) throw error;
 

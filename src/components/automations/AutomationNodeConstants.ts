@@ -2,7 +2,6 @@ import { AutomationFlowNode, TriggerType, ActionType, TRIGGER_LABELS, ACTION_LAB
 import { 
   MessageCircle, 
   Anchor, 
-  FolderKanban, 
   Mail, 
   Target, 
   GitBranch, 
@@ -12,7 +11,10 @@ import {
   Bell,
   XCircle,
   CheckCircle2,
-  UserCog
+  UserCog,
+  ArrowRightLeft,
+  FolderOpen,
+  User
 } from "lucide-react";
 
 export const nodeIcons: Record<AutomationNodeType, any> = {
@@ -22,12 +24,14 @@ export const nodeIcons: Record<AutomationNodeType, any> = {
   search: Search,
 };
 
-export const actionIcons: Record<ActionType, any> = {
+export const actionIcons: Record<string, any> = {
   whatsapp: MessageCircle,
   webhook: Anchor,
-  mover_etapa: FolderKanban,
+  mover_etapa: ArrowRightLeft,
   email: Mail,
-  criar_atividade: CheckSquare,
+  projeto: FolderOpen,
+  atividade: CheckSquare,
+  cliente: User,
   notificar_responsavel: Bell,
 };
 
