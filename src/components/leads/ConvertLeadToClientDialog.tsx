@@ -66,42 +66,43 @@ export function ConvertLeadToClientDialog({
   const finance = useVendaFinanceSnapshot(valorVenda, paymentItems);
 
   useEffect(() => {
-    if (lead && open) {
-      
-      
-      const saved = localStorage.getItem(`lead_conversion_${lead.id}`);
+    if (open) {
+      const source = selectedOrcamento || lead;
+      if (!source) return;
+
+      const saved = localStorage.getItem(`lead_conversion_${lead?.id || orcamentoId}`);
       if (saved) {
         const data = JSON.parse(saved);
         setStep1Data(data.step1Data || { 
-          nome: lead.nome || "", 
-          telefone: lead.telefone || "", 
-          email: lead.email || "", 
-          cep: lead.cep || "",
-          cidade: lead.cidade || "",
-          estado: lead.estado || "",
-          bairro: lead.bairro || "",
-          rua: lead.rua || "",
-          numero: lead.numero || "",
+          nome: source.nome || "", 
+          telefone: (source as any).telefone || "", 
+          email: (source as any).email || "", 
+          cep: (source as any).cep || "",
+          cidade: (source as any).cidade || "",
+          estado: (source as any).estado || "",
+          bairro: (source as any).bairro || "",
+          rua: (source as any).rua || "",
+          numero: (source as any).numero || "",
         });
         setStep2Data(data.step2Data || {
-          localizacao: (lead as any).localizacao || "",
-          observacoes: (lead as any).observacoes || "",
+          localizacao: (source as any).localizacao || "",
+          observacoes: (source as any).observacoes || "",
         });
       } else {
         const initialS1 = { 
-          nome: lead.nome || "", 
-          telefone: lead.telefone || "", 
-          email: lead.email || "", 
-          cep: (lead as any).cep || "",
-          cidade: (lead as any).cidade || "",
-          estado: (lead as any).estado || "",
-          bairro: (lead as any).bairro || "",
-          rua: (lead as any).rua || "",
-          numero: (lead as any).numero || "",
+          nome: source.nome || "", 
+          telefone: (source as any).telefone || "", 
+          email: (source as any).email || "", 
+          cep: (source as any).cep || "",
+          cidade: (source as any).cidade || "",
+          estado: (source as any).estado || "",
+          bairro: (source as any).bairro || "",
+          rua: (source as any).rua || "",
+          numero: (source as any).numero || "",
         };
         const initialS2 = {
-          localizacao: (lead as any).localizacao || "",
-          observacoes: (lead as any).observacoes || "",
+          localizacao: (source as any).localizacao || "",
+          observacoes: (source as any).observacoes || "",
         };
 
         setStep1Data(initialS1);
@@ -110,10 +111,10 @@ export function ConvertLeadToClientDialog({
         setComprovanteFiles([]);
         setPaymentItems([createEmptyItem()]);
       }
-    } else if (!open) {
+    } else {
       setCurrentStep(0);
     }
-  }, [lead?.id, open, orcamentoId]);
+  }, [lead?.id, selectedOrcamento?.id, open, orcamentoId]);
 
   const handleSubmit = async () => {
     setLoading(true);
