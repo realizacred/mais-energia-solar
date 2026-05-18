@@ -181,23 +181,34 @@ function useCreateAutomation() {
       notificar_responsavel: boolean;
       mensagem_notificacao: string | null;
       ativo: boolean;
+      type: 'modern' | 'legacy';
     }) => {
       const { tenantId } = await getCurrentTenantId();
+      
+      const insertData: any = {
+        tenant_id: tenantId,
+        nome: payload.nome,
+        tipo_gatilho: "tempo_parado",
+        tempo_horas: payload.tempo_horas,
+        tipo_acao: "mover_etapa",
+        notificar_responsavel: payload.notificar_responsavel,
+        mensagem_notificacao: payload.mensagem_notificacao,
+        ativo: payload.ativo,
+      };
+
+      if (payload.type === 'modern') {
+        insertData.pipeline_id = payload.pipeline_id;
+        insertData.stage_id = payload.stage_id;
+        insertData.destino_stage_id = payload.destino_stage_id;
+      } else {
+        insertData.funil_projeto_id = payload.pipeline_id;
+        insertData.etapa_projeto_id = payload.stage_id;
+        insertData.destino_etapa_projeto_id = payload.destino_stage_id;
+      }
+
       const { data, error } = await supabase
         .from("pipeline_automations")
-        .insert({
-          tenant_id: tenantId,
-          pipeline_id: payload.pipeline_id,
-          stage_id: payload.stage_id,
-          nome: payload.nome,
-          tipo_gatilho: "tempo_parado",
-          tempo_horas: payload.tempo_horas,
-          tipo_acao: "mover_etapa",
-          destino_stage_id: payload.destino_stage_id,
-          notificar_responsavel: payload.notificar_responsavel,
-          mensagem_notificacao: payload.mensagem_notificacao,
-          ativo: payload.ativo,
-        })
+        .insert(insertData)
         .select()
         .single();
       if (error) throw error;
