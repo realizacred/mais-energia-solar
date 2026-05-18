@@ -79,228 +79,133 @@ export function usePropostaRapidaLead() {
   }
 
   /**
-   * Executa a criação efetiva de projeto + deal + atualização de status do lead.
-   * NÃO checa duplicatas — chame `quickConvertToProposal` para ter o gate.
+   * Executa a criação atômica de Cliente + Projeto + Deal via RPC.
+   * RB-76: Unificação com convert_lead_to_venda_v2.
    */
-  async function executeCreateProjetoDeal(
+  async function executeUnifiedConversion(
     lead: QuickLeadData,
-    tenantId: string,
-    clienteId: string,
     overrideContext?: { existing: OpenDealMatch; reason: string }
   ) {
-    // Resolver pipeline COMERCIAL canônico (deals + projeto_funis em espelho).
-    const resolution = await resolveDefaultCommercialPipeline(tenantId);
-    const funilId: string | null = resolution.funilId;
-    const etapaId: string | null = resolution.etapaId;
-    const pipelineComercial = resolution.pipelineId ? { id: resolution.pipelineId } : null;
-    const dealStageId: string | null = resolution.stageId;
+    const rapidPayload = {
+      _lead_id: lead.id,
+      _payload: {
+        nome: lead.nome,
+        telefone: lead.telefone,
+        email: lead.email,
+        cpf_cnpj: lead.cpf_cnpj ?? null,
+        cep: lead.cep ?? null,
+        rua: lead.rua ?? null,
+        bairro: lead.bairro ?? null,
+        cidade: lead.cidade ?? null,
+        estado: lead.estado ?? null,
+        consultor_id: lead.consultor_id ?? null,
+        valor_projeto: lead.valor_estimado ?? 0,
+      },
+      _payment_composition: [], // sem pagamento na proposta rápida
+      _idempotency_key: lead.id + "_rapida",
+    };
 
-    // Criar projeto PRIMEIRO (deals.projeto_id é NOT NULL)
-    const { data: newProjeto, error: projetoError } = await supabase
-      .from("projetos")
-      .insert({
-        cliente_id: clienteId,
-        consultor_id: lead.consultor_id || null,
-        funil_id: funilId,
-        etapa_id: etapaId,
-        status: "criado",
-        tenant_id: tenantId,
-      } as any)
-      .select("id")
-      .single();
+    const { data, error } = await supabase.rpc(
+      "convert_lead_to_venda_v2",
+      rapidPayload
+    );
 
-    if (projetoError) throw projetoError;
+    if (error) throw error;
 
-    // Criar deal vinculado
-    let newDealId: string | null = null;
-    if (pipelineComercial && dealStageId) {
-      const { data: newDeal, error: dealError } = await supabase
-        .from("deals")
-        .insert({
-          pipeline_id: pipelineComercial.id,
-          stage_id: dealStageId,
-          owner_id: lead.consultor_id || null,
-          customer_id: clienteId,
-          projeto_id: newProjeto.id,
-          value: lead.valor_estimado || 0,
-          title: lead.nome,
-          tenant_id: tenantId,
-        } as any)
-        .select("id")
-        .single();
+    const clienteId = data.cliente_id || data.id;
+    const projetoId = data.projeto_id;
+    const dealId = data.deal_id;
 
-      if (dealError) throw dealError;
-      newDealId = newDeal.id;
-
-      await supabase
-        .from("projetos")
-        .update({ deal_id: newDealId } as any)
-        .eq("id", newProjeto.id);
+    if (!projetoId) {
+      throw new Error("Falha ao gerar projeto na conversão unificada.");
     }
 
-    await markLeadAsViewed(lead.id, tenantId);
-
-    // Atualizar status do lead para "Convertido"
-    const { data: convertidoStatus } = await supabase
-      .from("lead_status")
-      .select("id")
-      .eq("nome", "Convertido")
-      .maybeSingle();
-
-    if (convertidoStatus) {
-      await supabase
-        .from("leads")
-        .update({ status_id: convertidoStatus.id } as any)
-        .eq("id", lead.id)
-        .eq("tenant_id", tenantId);
-    }
-
-    // Audit log do override (se aplicável) — não bloqueia em caso de erro
+    // Audit log do override (se aplicável)
     if (overrideContext) {
       try {
         const { data: userResp } = await supabase.auth.getUser();
         const userId = userResp?.user?.id ?? null;
-        const userEmail = userResp?.user?.email ?? null;
+        const { tenantId } = await getCurrentTenantId();
         await supabase.from("audit_logs").insert({
           tenant_id: tenantId,
           user_id: userId,
-          user_email: userEmail,
+          user_email: userResp?.user?.email ?? null,
           acao: "lead_generate_project_duplicate_override",
           tabela: "deals",
-          registro_id: newDealId,
+          registro_id: dealId,
           dados_novos: {
             lead_id: lead.id,
             cliente_id: clienteId,
-            new_deal_id: newDealId,
-            new_projeto_id: newProjeto.id,
+            new_deal_id: dealId,
+            new_projeto_id: projetoId,
             existing_deal_id: overrideContext.existing.deal_id,
             existing_projeto_id: overrideContext.existing.projeto_id,
-            existing_owner_id: overrideContext.existing.owner_id,
-            existing_pipeline_id: overrideContext.existing.pipeline_id,
             reason: overrideContext.reason,
           },
         } as any);
       } catch (auditErr) {
-        console.warn("[usePropostaRapidaLead] Falha ao gravar audit log do override", auditErr);
+        console.warn("[usePropostaRapidaLead] Falha ao gravar audit log", auditErr);
       }
     }
 
-    toast.success("Projeto criado com sucesso!", {
-      description: "Deseja abrir o wizard de proposta ou ver no Kanban?",
-      duration: 8000,
-      action: {
-        label: "Ver no Kanban",
-        onClick: () => navigate("/admin/projetos"),
-      },
+    toast.success("Projeto preparado com sucesso!", {
+      description: "Abrindo wizard de proposta...",
+      duration: 3000,
     });
 
-    const wizardDealParam = newDealId || newProjeto.id;
+    const wizardDealParam = dealId || projetoId;
     navigate(
-      `/admin/propostas-nativas/nova?deal_id=${wizardDealParam}&customer_id=${clienteId}&lead_id=${lead.id}`
+      `/admin/propostas-nativas/nova?projeto_id=${projetoId}&deal_id=${wizardDealParam}&customer_id=${clienteId}&lead_id=${lead.id}`
     );
   }
 
   /**
-   * Resolve o cliente do lead (cria se necessário) e retorna { tenantId, clienteId }.
-   * Também trata o atalho de "projeto/proposta já existem para este cliente",
-   * que é independente do gate de duplicidade aberta (ali damos a melhor UX:
-   * abrir a proposta/projeto já existente do mesmo lead).
+   * Resolve o cliente do lead (usado agora apenas para checagem de duplicidade antes do RPC)
    */
-  async function resolveOrCreateCliente(lead: QuickLeadData) {
-    const { tenantId } = await getCurrentTenantId();
+  async function pickExistingClienteId(lead: QuickLeadData, tenantId: string) {
     const telefoneLimpo = lead.telefone_normalized || toCanonicalPhoneDigits(lead.telefone);
     const cpfCnpjLimpo = lead.cpf_cnpj?.replace(/\D/g, "") || null;
     const emailLimpo = lead.email?.trim().toLowerCase() || null;
 
-    const pickExistingCliente = async () => {
-      const baseSelect = "id";
+    const byLead = await supabase
+      .from("clientes")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("lead_id", lead.id)
+      .maybeSingle();
+    if (byLead.data?.id) return byLead.data.id;
 
-      const byLead = await supabase
+    if (telefoneLimpo) {
+      const byPhone = await supabase
         .from("clientes")
-        .select(baseSelect)
-        .eq("tenant_id", tenantId)
-        .eq("lead_id", lead.id)
-        .limit(1);
-      if (byLead.data?.[0]?.id) return byLead.data[0];
-
-      if (telefoneLimpo) {
-        const byPhone = await supabase
-          .from("clientes")
-          .select(baseSelect)
-          .eq("tenant_id", tenantId)
-          .eq("telefone_normalized", telefoneLimpo)
-          .limit(1);
-        if (byPhone.data?.[0]?.id) return byPhone.data[0];
-      }
-
-      if (cpfCnpjLimpo) {
-        const byCpf = await supabase
-          .from("clientes")
-          .select(baseSelect)
-          .eq("tenant_id", tenantId)
-          .eq("cpf_cnpj", cpfCnpjLimpo)
-          .limit(1);
-        if (byCpf.data?.[0]?.id) return byCpf.data[0];
-      }
-
-      if (emailLimpo) {
-        const byEmail = await supabase
-          .from("clientes")
-          .select(baseSelect)
-          .eq("tenant_id", tenantId)
-          .ilike("email", emailLimpo)
-          .limit(1);
-        if (byEmail.data?.[0]?.id) return byEmail.data[0];
-      }
-
-      const nameToken = lead.nome.trim().split(/\s+/).slice(0, 2).join(" ");
-      if (nameToken.length >= 6) {
-        const byImportedName = await supabase
-          .from("clientes")
-          .select("id, nome, telefone_normalized, email, cpf_cnpj")
-          .eq("tenant_id", tenantId)
-          .eq("external_source", "solarmarket")
-          .ilike("nome", `%${nameToken}%`)
-          .limit(10);
-
-        const leadName = lead.nome.trim().toLowerCase();
-        return byImportedName.data?.find((cliente: any) => {
-          const clienteName = String(cliente.nome || "").trim().toLowerCase();
-          const hasContact = !!(cliente.telefone_normalized || cliente.email || cliente.cpf_cnpj);
-          return !hasContact && clienteName.length >= 6 && (leadName.startsWith(clienteName) || clienteName.startsWith(leadName));
-        });
-      }
-
-      return null;
-    };
-
-    const existingCliente = await pickExistingCliente();
-
-    let clienteId = existingCliente?.id as string | undefined;
-
-    if (!clienteId) {
-      const { data: newCliente, error: clienteError } = await supabase
-        .from("clientes")
-        .insert({
-          nome: lead.nome,
-          telefone: lead.telefone,
-          cidade: lead.cidade || null,
-          estado: lead.estado || null,
-          bairro: lead.bairro || null,
-          rua: lead.rua || null,
-          cep: lead.cep || null,
-          lead_id: lead.id,
-          tenant_id: tenantId,
-          cliente_code: null, // Wave 3 Hardening: Trigger auto-generates professional sequence
-        } as any)
         .select("id")
-        .single();
-
-      if (clienteError) throw clienteError;
-      clienteId = newCliente.id;
+        .eq("tenant_id", tenantId)
+        .eq("telefone_normalized", telefoneLimpo)
+        .maybeSingle();
+      if (byPhone.data?.id) return byPhone.data.id;
     }
 
-    return { tenantId, clienteId: clienteId! };
+    if (cpfCnpjLimpo) {
+      const byCpf = await supabase
+        .from("clientes")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("cpf_cnpj", cpfCnpjLimpo)
+        .maybeSingle();
+      if (byCpf.data?.id) return byCpf.data.id;
+    }
+
+    if (emailLimpo) {
+      const byEmail = await supabase
+        .from("clientes")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .ilike("email", emailLimpo)
+        .maybeSingle();
+      if (byEmail.data?.id) return byEmail.data.id;
+    }
+
+    return null;
   }
 
   async function quickConvertToProposal(lead: QuickLeadData) {
@@ -309,58 +214,60 @@ export function usePropostaRapidaLead() {
     setLoadingLeadId(lead.id);
 
     try {
-      const { tenantId, clienteId } = await resolveOrCreateCliente(lead);
+      const { tenantId } = await getCurrentTenantId();
+      const clienteId = await pickExistingClienteId(lead, tenantId);
 
-      // Atalho legado: se este lead já tem projeto vinculado ao mesmo cliente,
+      // Atalho: se este lead já tem projeto vinculado ao mesmo cliente,
       // direciona para o existente (proposta/wizard) em vez de duplicar.
-      const { data: existingProjetos } = await supabase
-        .from("projetos")
-        .select("id, deal_id")
-        .eq("cliente_id", clienteId)
-        .eq("tenant_id", tenantId)
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      const existingProjeto = existingProjetos?.[0];
-      if (existingProjeto) {
-        const { data: existingPropostas } = await supabase
-          .from("propostas_nativas")
-          .select("id, status")
-          .eq("projeto_id", existingProjeto.id)
+      if (clienteId) {
+        const { data: existingProjetos } = await supabase
+          .from("projetos")
+          .select("id, deal_id")
+          .eq("cliente_id", clienteId)
           .eq("tenant_id", tenantId)
           .order("created_at", { ascending: false })
           .limit(1);
 
-        const propostaAtiva = existingPropostas?.[0];
-        await markLeadAsViewed(lead.id, tenantId);
+        const existingProjeto = existingProjetos?.[0];
+        if (existingProjeto) {
+          const { data: existingPropostas } = await supabase
+            .from("propostas_nativas")
+            .select("id, status")
+            .eq("projeto_id", existingProjeto.id)
+            .eq("tenant_id", tenantId)
+            .order("created_at", { ascending: false })
+            .limit(1);
 
-        if (propostaAtiva) {
-          toast.info("Lead já possui proposta. Abrindo proposta existente...");
-          navigate(`/admin/propostas-nativas/${propostaAtiva.id}`);
+          const propostaAtiva = existingPropostas?.[0];
+          await markLeadAsViewed(lead.id, tenantId);
+
+          if (propostaAtiva) {
+            toast.info("Lead já possui proposta. Abrindo proposta existente...");
+            navigate(`/admin/propostas-nativas/${propostaAtiva.id}`);
+            return;
+          }
+
+          toast.info("Lead já possui projeto. Abrindo wizard...");
+          navigate(
+            `/admin/propostas-nativas/nova?projeto_id=${existingProjeto.id}&deal_id=${existingProjeto.deal_id || existingProjeto.id}&customer_id=${clienteId}&lead_id=${lead.id}`
+          );
           return;
         }
 
-        toast.info("Lead já possui projeto. Abrindo wizard...");
-        navigate(
-          `/admin/propostas-nativas/nova?deal_id=${existingProjeto.deal_id || existingProjeto.id}&customer_id=${clienteId}&lead_id=${lead.id}`
-        );
-        return;
+        // GATE anti-duplicação: deal `open` para o mesmo cliente OU mesmo telefone normalizado.
+        const matches = await findOpenDealForLeadOrCliente({
+          tenantId,
+          clienteId,
+          telefone: lead.telefone,
+        });
+
+        if (matches.length > 0) {
+          setDuplicateGuard({ open: true, matches, pendingLead: lead });
+          return;
+        }
       }
 
-      // GATE anti-duplicação: deal `open` para o mesmo cliente OU mesmo telefone normalizado.
-      const matches = await findOpenDealForLeadOrCliente({
-        tenantId,
-        clienteId,
-        telefone: lead.telefone,
-      });
-
-      if (matches.length > 0) {
-        // Não cria. Abre o modal pedindo decisão.
-        setDuplicateGuard({ open: true, matches, pendingLead: lead });
-        return;
-      }
-
-      await executeCreateProjetoDeal(lead, tenantId, clienteId);
+      await executeUnifiedConversion(lead);
     } catch (err: any) {
       console.error("[usePropostaRapidaLead] Erro:", err);
       toast.error(err.message || "Erro ao criar proposta rápida.");
@@ -381,8 +288,7 @@ export function usePropostaRapidaLead() {
     setLoading(true);
     setLoadingLeadId(lead.id);
     try {
-      const { tenantId, clienteId } = await resolveOrCreateCliente(lead);
-      await executeCreateProjetoDeal(lead, tenantId, clienteId, { existing, reason });
+      await executeUnifiedConversion(lead, { existing, reason });
     } catch (err: any) {
       console.error("[usePropostaRapidaLead] Erro override:", err);
       toast.error(err.message || "Erro ao criar projeto.");
