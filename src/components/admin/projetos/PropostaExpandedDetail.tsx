@@ -1181,7 +1181,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     const { getOrCreateProposalToken } = await import("@/services/proposal/proposalDetail.service");
     const tipo = withTracking ? "tracked" : "public";
     const token = await getOrCreateProposalToken(p.id, latestVersao.id, tipo);
-    const url = `${getPublicUrl()}/proposta/${token}`;
+    const url = getProposalWebUrl(token);
 
     if (!withTracking) {
       setPublicUrl(url);
