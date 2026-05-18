@@ -228,7 +228,7 @@ export function usePropostaRapidaLead() {
           cep: lead.cep || null,
           lead_id: lead.id,
           tenant_id: tenantId,
-          cliente_code: `CLI-${Date.now()}`,
+          cliente_code: null, // Wave 3 Hardening: Trigger auto-generates professional sequence
         } as any)
         .select("id")
         .single();
