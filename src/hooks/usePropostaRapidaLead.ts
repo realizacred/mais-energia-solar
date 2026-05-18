@@ -16,14 +16,17 @@ import {
   findOpenDealForLeadOrCliente,
   type OpenDealMatch,
 } from "@/services/leads/findOpenDealForLeadOrCliente";
+import { toCanonicalPhoneDigits } from "@/utils/phone/toCanonicalPhoneDigits";
 import { toast } from "sonner";
-import type { Lead } from "@/types/lead";
 
 /** Dados mínimos necessários para conversão rápida */
 export interface QuickLeadData {
   id: string;
   nome: string;
   telefone: string;
+  telefone_normalized?: string | null;
+  email?: string | null;
+  cpf_cnpj?: string | null;
   cidade?: string | null;
   estado?: string | null;
   bairro?: string | null;
@@ -205,15 +208,73 @@ export function usePropostaRapidaLead() {
    */
   async function resolveOrCreateCliente(lead: QuickLeadData) {
     const { tenantId } = await getCurrentTenantId();
+    const telefoneLimpo = lead.telefone_normalized || toCanonicalPhoneDigits(lead.telefone);
+    const cpfCnpjLimpo = lead.cpf_cnpj?.replace(/\D/g, "") || null;
+    const emailLimpo = lead.email?.trim().toLowerCase() || null;
 
-    // Buscar cliente existente pelo lead_id OU telefone
-    // RB-76: Evitar duplicação por telefone/email/cpf se o lead for novo mas o contato já existir
-    const { data: existingCliente } = await supabase
-      .from("clientes")
-      .select("id")
-      .eq("tenant_id", tenantId)
-      .or(`lead_id.eq.${lead.id},telefone.eq.${lead.telefone}${lead.cep ? `,cep.eq.${lead.cep}` : ""}`)
-      .maybeSingle();
+    const pickExistingCliente = async () => {
+      const baseSelect = "id";
+
+      const byLead = await supabase
+        .from("clientes")
+        .select(baseSelect)
+        .eq("tenant_id", tenantId)
+        .eq("lead_id", lead.id)
+        .limit(1);
+      if (byLead.data?.[0]?.id) return byLead.data[0];
+
+      if (telefoneLimpo) {
+        const byPhone = await supabase
+          .from("clientes")
+          .select(baseSelect)
+          .eq("tenant_id", tenantId)
+          .eq("telefone_normalized", telefoneLimpo)
+          .limit(1);
+        if (byPhone.data?.[0]?.id) return byPhone.data[0];
+      }
+
+      if (cpfCnpjLimpo) {
+        const byCpf = await supabase
+          .from("clientes")
+          .select(baseSelect)
+          .eq("tenant_id", tenantId)
+          .eq("cpf_cnpj", cpfCnpjLimpo)
+          .limit(1);
+        if (byCpf.data?.[0]?.id) return byCpf.data[0];
+      }
+
+      if (emailLimpo) {
+        const byEmail = await supabase
+          .from("clientes")
+          .select(baseSelect)
+          .eq("tenant_id", tenantId)
+          .ilike("email", emailLimpo)
+          .limit(1);
+        if (byEmail.data?.[0]?.id) return byEmail.data[0];
+      }
+
+      const nameToken = lead.nome.trim().split(/\s+/).slice(0, 2).join(" ");
+      if (nameToken.length >= 6) {
+        const byImportedName = await supabase
+          .from("clientes")
+          .select("id, nome, telefone_normalized, email, cpf_cnpj")
+          .eq("tenant_id", tenantId)
+          .eq("external_source", "solarmarket")
+          .ilike("nome", `%${nameToken}%`)
+          .limit(10);
+
+        const leadName = lead.nome.trim().toLowerCase();
+        return byImportedName.data?.find((cliente: any) => {
+          const clienteName = String(cliente.nome || "").trim().toLowerCase();
+          const hasContact = !!(cliente.telefone_normalized || cliente.email || cliente.cpf_cnpj);
+          return !hasContact && clienteName.length >= 6 && (leadName.startsWith(clienteName) || clienteName.startsWith(leadName));
+        });
+      }
+
+      return null;
+    };
+
+    const existingCliente = await pickExistingCliente();
 
     let clienteId = existingCliente?.id as string | undefined;
 
@@ -238,8 +299,6 @@ export function usePropostaRapidaLead() {
       if (clienteError) throw clienteError;
       clienteId = newCliente.id;
     }
-
-    return { tenantId, clienteId: clienteId! };
 
     return { tenantId, clienteId: clienteId! };
   }
