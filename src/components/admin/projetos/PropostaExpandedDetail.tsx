@@ -401,7 +401,7 @@ function FinancialKPIs({ snapshot, latestVersao }: { snapshot: any; latestVersao
 // ─── SM (legacy_import) Tab Components ──────────────
 
 function SmResumoTab({ snapshot, latestVersao, wpPrice }: { snapshot: any; latestVersao: VersaoData | undefined; wpPrice: string | null }) {
-  const totalFinal = latestVersao?.valor_total || 0;
+  const totalFinal = getCanonicalProposalTotal(latestVersao as any);
   const equipCost = snapshot.equipment_cost || 0;
   const installCost = snapshot.installation_cost || 0;
   const equipPct = totalFinal > 0 ? (equipCost / totalFinal) * 100 : 0;
