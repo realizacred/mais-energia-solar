@@ -70,15 +70,18 @@ export function StepTecnico({
   // Force form reset when initialData changes to ensure re-hydration
   useEffect(() => {
     if (initialData.disjuntor_id || initialData.localizacao || initialData.observacoes || initialData.media_consumo) {
-      form.reset({
-        disjuntor_id: initialData.disjuntor_id || "",
-        transformador_id: initialData.transformador_id || "",
-        localizacao: initialData.localizacao || "",
-        simulacao_aceita_id: initialData.simulacao_aceita_id || "",
-        observacoes: initialData.observacoes || "",
-        media_consumo: initialData.media_consumo || 0,
-        consumo_previsto: initialData.consumo_previsto || 0,
-      });
+      // Use form.reset only if form is not dirty to avoid overwriting user edits
+      if (!form.formState.isDirty) {
+        form.reset({
+          disjuntor_id: initialData.disjuntor_id || "",
+          transformador_id: initialData.transformador_id || "",
+          localizacao: initialData.localizacao || "",
+          simulacao_aceita_id: initialData.simulacao_aceita_id || "",
+          observacoes: initialData.observacoes || "",
+          media_consumo: initialData.media_consumo || 0,
+          consumo_previsto: initialData.consumo_previsto || 0,
+        });
+      }
     }
   }, [initialData, form]);
 
