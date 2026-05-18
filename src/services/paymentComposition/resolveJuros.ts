@@ -34,40 +34,44 @@ function round2(v: number): number {
  * 4. If responsavel === "empresa" → parcelas use valorBase (empresa absorbs)
  */
 export function resolveJuros(item: PaymentItemInput): ResolvedJuros {
-  const valorBase = item.valor_base;
+  // If entry exists, interest should only apply to the remainder (body)
+  const valorEntrada = item.entrada ? Math.max(0, item.valor_entrada ?? 0) : 0;
+  const valorCorpo = Math.max(0, item.valor_base - valorEntrada);
 
   // No interest scenario
   if (item.juros_tipo === "sem_juros" || item.juros_valor <= 0) {
     return {
       effectiveResponsavel: item.juros_responsavel,
       valorJuros: 0,
-      valorBase,
-      valorComJuros: valorBase,
-      valorParaParcelas: valorBase,
+      valorBase: item.valor_base,
+      valorComJuros: item.valor_base,
+      valorParaParcelas: item.valor_base,
       hasInterest: false,
     };
   }
 
-  // Calculate interest amount
+  // Calculate interest amount based on valorCorpo (the part that actually gets financed)
   const valorJuros = item.juros_tipo === "percentual"
-    ? round2(valorBase * (item.juros_valor / 100))
+    ? round2(valorCorpo * (item.juros_valor / 100))
     : round2(item.juros_valor);
 
-  const valorComJuros = round2(valorBase + valorJuros);
+  const valorComJuros = round2(item.valor_base + valorJuros);
 
   // Defensive fallback: interest > 0 but responsavel "nao_aplica" → "cliente"
   const effectiveResponsavel: JurosResponsavel =
     item.juros_responsavel === "nao_aplica" ? "cliente" : item.juros_responsavel;
 
-  // Client pays → installments include interest
-  // Company absorbs → installments only base value
-  const valorParaParcelas =
-    effectiveResponsavel === "cliente" ? valorComJuros : valorBase;
+  // Client pays → installments include interest over the body
+  // Company absorbs → installments only body value
+  const corpoComJuros = effectiveResponsavel === "cliente" ? round2(valorCorpo + valorJuros) : valorCorpo;
+  
+  // Total to be split is Entrada + Body (with or without interest)
+  const valorParaParcelas = round2(valorEntrada + corpoComJuros);
 
   return {
     effectiveResponsavel,
     valorJuros,
-    valorBase,
+    valorBase: item.valor_base,
     valorComJuros,
     valorParaParcelas,
     hasInterest: true,
