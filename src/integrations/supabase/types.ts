@@ -1372,50 +1372,6 @@ export type Database = {
           },
         ]
       }
-      automation_message_templates: {
-        Row: {
-          ativo: boolean | null
-          canal: string
-          created_at: string | null
-          gatilho: string
-          id: string
-          metadata: Json | null
-          template: string
-          tenant_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          ativo?: boolean | null
-          canal?: string
-          created_at?: string | null
-          gatilho: string
-          id?: string
-          metadata?: Json | null
-          template: string
-          tenant_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          ativo?: boolean | null
-          canal?: string
-          created_at?: string | null
-          gatilho?: string
-          id?: string
-          metadata?: Json | null
-          template?: string
-          tenant_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "automation_message_templates_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       backfill_audit: {
         Row: {
           backfill_batch: string
@@ -14978,38 +14934,91 @@ export type Database = {
       notification_rules: {
         Row: {
           ativo: boolean | null
+          automation_id: string | null
           canal: string
           created_at: string | null
           destinatario: string
           evento: string
           id: string
+          metadata: Json | null
+          pipeline_id: string | null
+          projeto_etapa_id: string | null
+          projeto_funil_id: string | null
+          stage_id: string | null
           template_mensagem: string | null
           tenant_id: string
           updated_at: string | null
         }
         Insert: {
           ativo?: boolean | null
+          automation_id?: string | null
           canal: string
           created_at?: string | null
           destinatario: string
           evento: string
           id?: string
+          metadata?: Json | null
+          pipeline_id?: string | null
+          projeto_etapa_id?: string | null
+          projeto_funil_id?: string | null
+          stage_id?: string | null
           template_mensagem?: string | null
           tenant_id: string
           updated_at?: string | null
         }
         Update: {
           ativo?: boolean | null
+          automation_id?: string | null
           canal?: string
           created_at?: string | null
           destinatario?: string
           evento?: string
           id?: string
+          metadata?: Json | null
+          pipeline_id?: string | null
+          projeto_etapa_id?: string | null
+          projeto_funil_id?: string | null
+          stage_id?: string | null
           template_mensagem?: string | null
           tenant_id?: string
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "notification_rules_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_rules_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_rules_projeto_etapa_id_fkey"
+            columns: ["projeto_etapa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_rules_projeto_funil_id_fkey"
+            columns: ["projeto_funil_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_funis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_rules_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notification_rules_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -16233,9 +16242,7 @@ export type Database = {
           created_at: string
           destino_etapa_projeto_id: string | null
           destino_stage_id: string | null
-          etapa_projeto_id: string | null
           execucoes_total: number
-          funil_projeto_id: string | null
           id: string
           mensagem_notificacao: string | null
           nome: string
@@ -16261,9 +16268,7 @@ export type Database = {
           created_at?: string
           destino_etapa_projeto_id?: string | null
           destino_stage_id?: string | null
-          etapa_projeto_id?: string | null
           execucoes_total?: number
-          funil_projeto_id?: string | null
           id?: string
           mensagem_notificacao?: string | null
           nome?: string
@@ -16289,9 +16294,7 @@ export type Database = {
           created_at?: string
           destino_etapa_projeto_id?: string | null
           destino_stage_id?: string | null
-          etapa_projeto_id?: string | null
           execucoes_total?: number
-          funil_projeto_id?: string | null
           id?: string
           mensagem_notificacao?: string | null
           nome?: string
@@ -16324,20 +16327,6 @@ export type Database = {
             columns: ["destino_stage_id"]
             isOneToOne: false
             referencedRelation: "pipeline_stages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pipeline_automations_etapa_projeto_id_fkey"
-            columns: ["etapa_projeto_id"]
-            isOneToOne: false
-            referencedRelation: "projeto_etapas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pipeline_automations_funil_projeto_id_fkey"
-            columns: ["funil_projeto_id"]
-            isOneToOne: false
-            referencedRelation: "projeto_funis"
             referencedColumns: ["id"]
           },
           {
