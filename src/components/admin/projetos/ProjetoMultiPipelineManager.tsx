@@ -352,9 +352,18 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
     try {
       const { data: validations } = await supabase
         .from("pipeline_stage_validations")
-        .select("*")
-        .eq("stage_id", newStageId)
-        .eq("ativo", true);
+        .select(`
+          *,
+          pipeline_stages!inner (
+            id,
+            position
+          )
+        `)
+        .eq("ativo", true)
+        .or(
+          `stage_id.eq.${newStageId},` +
+          `and(aplicar_a_partir.eq.true,pipeline_stages.position.lte.${newStage?.position})`
+        );
 
       if (validations && validations.length > 0) {
         const [projectDocsRes, customFieldsRes, fieldsRes, ordersRes] = await Promise.all([

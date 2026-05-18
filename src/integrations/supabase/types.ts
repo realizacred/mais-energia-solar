@@ -16315,6 +16315,7 @@ export type Database = {
       }
       pipeline_stage_validations: {
         Row: {
+          aplicar_a_partir: boolean | null
           ativo: boolean | null
           bloquear_avanco: boolean | null
           configuracao: Json | null
@@ -16327,6 +16328,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          aplicar_a_partir?: boolean | null
           ativo?: boolean | null
           bloquear_avanco?: boolean | null
           configuracao?: Json | null
@@ -16339,6 +16341,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          aplicar_a_partir?: boolean | null
           ativo?: boolean | null
           bloquear_avanco?: boolean | null
           configuracao?: Json | null
