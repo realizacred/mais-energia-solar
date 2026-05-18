@@ -930,63 +930,65 @@ function ProjetoDetalheContent() {
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.12 }}
         >
-          {activeTab === "gerenciamento" && (
-            <GerenciamentoTab
-              deal={deal} history={ctx.history} stages={stages}
-              customerName={customerName} customerPhone={customerPhone}
-              customerEmail={customerEmail} customerCpfCnpj={customerCpfCnpj}
-              customerEmpresa={customerEmpresa}
-              customerAddress={customerAddress}
-              ownerName={ownerName}
-              currentStage={currentStage} currentPipeline={currentPipeline}
-              formatDate={formatDate} formatBRL={formatBRL} getStageNameById={getStageNameById}
-              userNamesMap={userNamesMap}
-              onRefreshCustomer={refreshCustomer}
-              onEditCliente={(id) => setEditClienteId(id)}
-            />
-          )}
-          {activeTab === "comunicacao" && (
-            <ProjetoComunicacaoResumo customerId={deal.customer_id} customerPhone={customerPhone} />
-          )}
-          {activeTab === "propostas" && (
-            <PropostasTab customerId={deal.customer_id} dealId={deal.id} dealTitle={deal.title} navigate={navigate} isClosed={isClosed} dealStatus={deal.status} projetoId={projetoId} />
-          )}
-          {activeTab === "documentos" && (
-            <DocumentosTab dealId={deal.id} clienteTelefone={customerPhone} />
-          )}
-          {activeTab === "instalacao" && (
-            <ProjetoInstalacaoTab dealId={deal.id} />
-          )}
-          {activeTab === "suprimentos" && (
-            <div className="p-6">
-              <SuprimentosListPageInline projetoId={projetoId ?? deal.id} />
-            </div>
-          )}
-          {activeTab === "concessionaria" && (
-            <div className="p-6">
-              <ProjetoConcessionariaTab dealId={deal.id} />
-            </div>
-          )}
-          {activeTab === "credito" && (
-            <div className="p-6">
-              <ProjetoCreditoTab 
-                dealId={deal.id} 
-                clienteId={deal.customer_id} 
-                clienteCpfCnpj={customerCpfCnpj}
-                valorProposta={deal.value}
+          <ProjetoDetalheErrorBoundary onBack={onBack} label={activeTab}>
+            {activeTab === "gerenciamento" && (
+              <GerenciamentoTab
+                deal={deal} history={ctx.history} stages={stages}
+                customerName={customerName} customerPhone={customerPhone}
+                customerEmail={customerEmail} customerCpfCnpj={customerCpfCnpj}
+                customerEmpresa={customerEmpresa}
+                customerAddress={customerAddress}
+                ownerName={ownerName}
+                currentStage={currentStage} currentPipeline={currentPipeline}
+                formatDate={formatDate} formatBRL={formatBRL} getStageNameById={getStageNameById}
+                userNamesMap={userNamesMap}
+                onRefreshCustomer={refreshCustomer}
+                onEditCliente={(id) => setEditClienteId(id)}
               />
-            </div>
-          )}
-          {activeTab === "recibos" && (
-            <ProjetoRecibosTab
-              filters={{ projeto_id: projetoId || "" }}
-              defaultClienteId={deal.customer_id ?? undefined}
-              defaultProjetoId={projetoId ?? undefined}
-              defaultDealId={deal.id}
-              title="Recibos do projeto"
-              emptyDescription="Nenhum recibo emitido para este projeto. Use 'Emitir recibo' para registrar sinal, parcela ou quitação."
-            />
-          )}
+            )}
+            {activeTab === "comunicacao" && (
+              <ProjetoComunicacaoResumo customerId={deal.customer_id} customerPhone={customerPhone} />
+            )}
+            {activeTab === "propostas" && (
+              <PropostasTab customerId={deal.customer_id} dealId={deal.id} dealTitle={deal.title} navigate={navigate} isClosed={isClosed} dealStatus={deal.status} projetoId={projetoId} />
+            )}
+            {activeTab === "documentos" && (
+              <DocumentosTab dealId={deal.id} clienteTelefone={customerPhone} />
+            )}
+            {activeTab === "instalacao" && (
+              <ProjetoInstalacaoTab dealId={deal.id} />
+            )}
+            {activeTab === "suprimentos" && (
+              <div className="p-6">
+                <SuprimentosListPageInline projetoId={projetoId ?? deal.id} />
+              </div>
+            )}
+            {activeTab === "concessionaria" && (
+              <div className="p-6">
+                <ProjetoConcessionariaTab dealId={deal.id} />
+              </div>
+            )}
+            {activeTab === "credito" && (
+              <div className="p-6">
+                <ProjetoCreditoTab 
+                  dealId={deal.id} 
+                  clienteId={deal.customer_id} 
+                  clienteCpfCnpj={customerCpfCnpj}
+                  valorProposta={deal.value}
+                />
+              </div>
+            )}
+            {activeTab === "recibos" && (
+              <ProjetoRecibosTab
+                filters={{ projeto_id: projetoId || "" }}
+                defaultClienteId={deal.customer_id ?? undefined}
+                defaultProjetoId={projetoId ?? undefined}
+                defaultDealId={deal.id}
+                title="Recibos do projeto"
+                emptyDescription="Nenhum recibo emitido para este projeto. Use 'Emitir recibo' para registrar sinal, parcela ou quitação."
+              />
+            )}
+          </ProjetoDetalheErrorBoundary>
         </motion.div>
       </AnimatePresence>
 
