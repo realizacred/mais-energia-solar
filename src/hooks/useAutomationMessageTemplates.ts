@@ -69,7 +69,7 @@ export function useSaveAutomationMessageTemplate() {
       } else {
         const { error } = await supabase
           .from("notification_rules")
-          .insert(dbPayload);
+          .insert(dbPayload as any);
         if (error) throw error;
       }
     },

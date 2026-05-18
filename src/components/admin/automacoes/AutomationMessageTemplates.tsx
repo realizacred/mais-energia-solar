@@ -1,13 +1,12 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { MessageCircle, Save, Plus, Trash2, Edit2, Zap } from "lucide-react";
+import { Edit2, Plus } from "lucide-react";
 import { useAutomationMessageTemplates, useSaveAutomationMessageTemplate } from "@/hooks/useAutomationMessageTemplates";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -41,9 +40,9 @@ export function AutomationMessageTemplates() {
   const handleEdit = (template: any) => {
     setEditingTemplate(template);
     setForm({
-      gatilho: template.gatilho,
+      gatilho: template.evento,
       canal: template.canal,
-      template: template.template,
+      template: template.template_mensagem,
       ativo: template.ativo
     });
     setIsDialogOpen(true);
@@ -62,7 +61,14 @@ export function AutomationMessageTemplates() {
 
   const handleSave = async () => {
     try {
-      await saveMutation.mutateAsync(editingTemplate ? { ...form, id: editingTemplate.id } : form);
+      const payload = {
+        evento: form.gatilho,
+        canal: form.canal,
+        template_mensagem: form.template,
+        ativo: form.ativo,
+        id: editingTemplate?.id
+      };
+      await saveMutation.mutateAsync(payload as any);
       toast({ title: "Sucesso", description: "Template salvo com sucesso." });
       setIsDialogOpen(false);
     } catch (error) {
@@ -112,7 +118,7 @@ export function AutomationMessageTemplates() {
               {templates.map((template) => (
                 <TableRow key={template.id}>
                   <TableCell className="font-medium">
-                    {GATILHOS.find(g => g.value === template.gatilho)?.label || template.gatilho}
+                    {GATILHOS.find(g => g.value === template.evento)?.label || template.evento}
                   </TableCell>
                   <TableCell className="capitalize">{template.canal}</TableCell>
                   <TableCell>
