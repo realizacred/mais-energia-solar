@@ -367,14 +367,14 @@ Deno.serve(async (req) => {
 
     const propostaId = tokenData.proposta_id;
     const tenantId = tokenData.tenant_id;
-    const mappedStatus = action === "aceitar" ? "aceita" : "recusada";
+    const mappedStatus = action === "aceitar" ? "accepted" : "rejected";
 
     // 2. Call canonical proposal_update_status RPC (Backend-driven atomic transition)
     // This handles: validation, status sync, deal status, financial snapshot, siblings rejection, and audit.
     const { data: rpcResult, error: rpcErr } = await admin.rpc("proposal_update_status", {
       p_proposta_id: propostaId,
       p_new_status: mappedStatus,
-      p_motivo: mappedStatus === "recusada" ? (motivo || "Aceite público recusado") : null
+      p_motivo: mappedStatus === "rejected" ? (motivo || "Aceite público recusado") : null
     });
 
     if (rpcErr || (rpcResult as any)?.error) {
@@ -392,7 +392,7 @@ Deno.serve(async (req) => {
     let snapshotHash: string | null = null;
     let aceitePayloadHash: string | null = null;
 
-    if (newStatus === "aceita") {
+    if (newStatus === "accepted") {
       try {
         const [{ data: versaoRow }, { data: tokRow }] = await Promise.all([
           admin.from("proposta_versoes").select("snapshot").eq("id", tokenData.versao_id).maybeSingle(),
@@ -421,7 +421,7 @@ Deno.serve(async (req) => {
       .eq("id", tokenData.id);
 
     // 7b. Generate Termo de Aceite PDF (non-blocking)
-    if (newStatus === "aceita") {
+    if (newStatus === "accepted") {
       try {
         const pdfUrl = await generateTermoAceitePdf(admin, {
           tenantId,

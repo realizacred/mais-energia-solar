@@ -10,32 +10,60 @@ export type ProposalStatus =
   | "draft"
   | "generated"
   | "sent"
+  | "viewed"
   | "accepted"
   | "rejected"
   | "expired"
+  | "cancelled"
   | "excluida"
   | "arquivada";
 
 const VALID_TRANSITIONS: Record<string, ProposalStatus[]> = {
-  draft: ["generated"],
-  generated: ["sent", "accepted", "rejected", "draft"],
-  sent: ["accepted", "rejected", "expired", "generated"],
-  accepted: ["rejected", "generated"],
+  draft: ["generated", "cancelled"],
+  generated: ["sent", "accepted", "rejected", "cancelled", "draft"],
+  sent: ["viewed", "accepted", "rejected", "expired", "cancelled", "generated"],
+  viewed: ["accepted", "rejected", "expired", "cancelled", "generated"],
+  accepted: ["rejected", "cancelled", "generated"],
   rejected: ["draft", "generated"],
-  expired: ["generated"],
+  expired: ["generated", "draft"],
+  cancelled: ["draft"],
   excluida: [],
   arquivada: [],
 };
 
 /** Check if a transition from → to is valid */
 export function canTransition(from: string, to: string): boolean {
-  const allowed = VALID_TRANSITIONS[from as ProposalStatus];
-  return allowed ? allowed.includes(to as ProposalStatus) : false;
+  const normalization: Record<string, ProposalStatus> = {
+    'rascunho': 'draft',
+    'gerada': 'generated',
+    'enviada': 'sent',
+    'vista': 'viewed',
+    'aceita': 'accepted',
+    'recusada': 'rejected',
+    'expirada': 'expired',
+    'cancelada': 'cancelled'
+  };
+  const canonicalFrom = normalization[from] || from;
+  const canonicalTo = normalization[to] || to;
+  
+  const allowed = VALID_TRANSITIONS[canonicalFrom as ProposalStatus];
+  return allowed ? allowed.includes(canonicalTo as ProposalStatus) : false;
 }
 
 /** Get all valid next states from current status */
 export function getNextStates(status: string): ProposalStatus[] {
-  return VALID_TRANSITIONS[status as ProposalStatus] || [];
+  const normalization: Record<string, ProposalStatus> = {
+    'rascunho': 'draft',
+    'gerada': 'generated',
+    'enviada': 'sent',
+    'vista': 'viewed',
+    'aceita': 'accepted',
+    'recusada': 'rejected',
+    'expirada': 'expired',
+    'cancelada': 'cancelled'
+  };
+  const canonical = normalization[status] || status;
+  return VALID_TRANSITIONS[canonical as ProposalStatus] || [];
 }
 
 /** UI helpers derived from state machine */
