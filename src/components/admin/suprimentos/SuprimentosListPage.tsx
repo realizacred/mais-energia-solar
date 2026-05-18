@@ -295,7 +295,7 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
         open={vincularOpen}
         onOpenChange={setVincularOpen}
         projetoId={projetoId || ""}
-        projetoCodigo={propostas?.[0]?.codigo || undefined}
+        projetoCodigo={projetoId ? (propostas?.[0]?.codigo || `SM-PROJ-${propostas?.[0]?.proposta_num}`) : undefined}
         clienteNome={projetoId ? propostas?.[0]?.cliente_nome : "Vários"}
         onSuccess={() => {
           setVincularOpen(false);

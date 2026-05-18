@@ -154,6 +154,8 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
   // Estado para interceptador de fornecedor
   const [fornecedorModal, setFornecedorModal] = useState<{
     projetoId: string;
+    projetoCodigo?: string;
+    clienteNome?: string;
     etapaId: string;
     etapaNome: string;
     membershipId: string;
@@ -169,10 +171,16 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
     if (!dealId) return;
     const { data } = await supabase
       .from("projetos")
-      .select("tenant_id, cliente_id")
+      .select("tenant_id, cliente_id, codigo, projeto_num, clientes(nome)")
       .eq("id", dealId)
       .maybeSingle();
-    if (data) setProjectData(data);
+    
+    if (data) {
+      setProjectData({
+        ...data,
+        cliente_nome: (data.clientes as any)?.nome
+      });
+    }
   }, [dealId]);
 
   const fetchOrdemCompra = useCallback(async () => {
@@ -1182,6 +1190,8 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
                           onClick={() => {
                             setFornecedorModal({
                               projetoId: dealId,
+                              projetoCodigo: projectData?.codigo || projectData?.projeto_num ? `SM-PROJ-${projectData.projeto_num}` : undefined,
+                              clienteNome: projectData?.cliente_nome,
                               etapaId: activeMembership.stage_id,
                               etapaNome: activeMembership.stage_name,
                               membershipId: activeMembership.id
@@ -1246,8 +1256,8 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
               open={!!fornecedorModal}
               onOpenChange={(open) => !open && setFornecedorModal(null)}
               projetoId={fornecedorModal?.projetoId || ""}
-              projetoCodigo={activeMembership?.pipeline_name?.includes('-') ? activeMembership.pipeline_name : undefined}
-              clienteNome={activeMembership?.pipeline_name}
+              projetoCodigo={fornecedorModal?.projetoCodigo}
+              clienteNome={fornecedorModal?.clienteNome}
               onSuccess={() => {
                 const { membershipId, etapaId } = fornecedorModal;
                 setFornecedorModal(null);
