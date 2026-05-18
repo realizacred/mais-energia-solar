@@ -1453,6 +1453,19 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   </Tooltip>
                 </TooltipProvider>
 
+                {p.status === 'accepted' && (
+                  <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none h-4 px-1.5 text-[10px] font-bold">Aceita</Badge>
+                )}
+                {p.status === 'generated' && (
+                  <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-100 border-none h-4 px-1.5 text-[10px] font-bold">Gerada</Badge>
+                )}
+                {p.status === 'rejected' && (
+                  <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-none h-4 px-1.5 text-[10px] font-bold">Recusada</Badge>
+                )}
+                {p.status === 'sent' && (
+                  <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none h-4 px-1.5 text-[10px] font-bold">Enviada</Badge>
+                )}
+
                 {p.versoes.length > 1 && (
                   <Badge variant="secondary" className="h-4 px-1.5 text-[11px] font-medium bg-muted text-muted-foreground border-none">
                     v{latestVersao?.versao_numero}
