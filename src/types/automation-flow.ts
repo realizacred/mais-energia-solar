@@ -87,7 +87,7 @@ export interface AutomationFlowNode {
     value?: string
     logic?: 'AND' | 'OR'
     // Search
-    searchType?: SearchType
+    searchType?: 'projeto' | 'atividade' | 'responsavel' | 'cliente'
   }
 }
 
