@@ -1160,8 +1160,8 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
                 {/* Exibição do fornecedor se for funil de Equipamento */}
                 {(activeMembership.pipeline_name.toLowerCase().includes('equipamento') || activeMembership.pipeline_name.toLowerCase().includes('suprimentos')) && ordemCompra && (() => {
                   const stageNameLower = activeMembership.stage_name.toLowerCase();
-                  const stageAdvanced = stageNameLower.includes('pedido pago') || stageNameLower.includes('depósito') || stageNameLower.includes('cliente') || stageNameLower.includes('instalação');
-                  const statusStillDraft = (ordemCompra.status || 'rascunho') === 'rascunho';
+                  const stageAdvanced = stageNameLower.includes('pedido pago') || stageNameLower.includes('depósito') || stageNameLower.includes('deposito') || stageNameLower.includes('cliente') || stageNameLower.includes('instalação') || stageNameLower.includes('instalacao');
+                  const statusStillDraft = (ordemCompra.status || 'rascunho') === 'rascunho' || (ordemCompra.status === 'enviada' && stageAdvanced);
                   const showDraftWarning = stageAdvanced && statusStillDraft;
                   return (
                   <motion.div
@@ -1235,7 +1235,7 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
                       <div className="mt-2 flex items-start gap-2 p-2 rounded-md border border-warning/30 bg-warning/5 text-warning">
                         <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                         <p className="text-[10px] leading-snug">
-                          Pedido está em etapa avançada do funil (<strong>{activeMembership.stage_name}</strong>), mas a ordem ainda está como <strong>rascunho</strong>. Edite o pedido para atualizar o status quando o fornecedor confirmar.
+                          A etapa está em <strong>"{activeMembership.stage_name}"</strong>, mas a ordem ainda está como <strong>"{ordemCompra.status || 'rascunho'}"</strong>. Clique em <strong>"Editar"</strong> e confirme os dados do pedido para atualizar.
                         </p>
                       </div>
                     )}
