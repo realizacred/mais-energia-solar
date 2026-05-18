@@ -943,6 +943,7 @@ export function StepConsumptionIntelligence({ leadFase }: { leadFase?: string | 
       latitude={locLatitude}
       somenteGhi={locSkipPoa}
       leadFase={leadFase}
+      mediaConsumoLead={(selectedLead as any)?.media_consumo}
       geracaoDesejadaKwh={(() => {
         const raw =
           (selectedLead as any)?.geracao_estimada_kwh ??
