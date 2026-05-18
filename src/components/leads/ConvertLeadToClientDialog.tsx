@@ -81,15 +81,15 @@ interface Simulacao {
 const formSchema = z.object({
   nome: z.string().min(2, "Nome é obrigatório"),
   telefone: z.string().min(10, "Telefone é obrigatório"),
-  email: z.string().min(1, "E-mail é obrigatório").email("E-mail inválido"),
+  email: z.string().optional().refine(val => !val || z.string().email().safeParse(val).success, "E-mail inválido"),
   cpf_cnpj: z.string().min(11, "CPF/CNPJ é obrigatório"),
   data_nascimento: z.string().optional(),
   cep: z.string().optional(),
-  estado: z.string().min(2, "Estado é obrigatório"),
-  cidade: z.string().min(2, "Cidade é obrigatória"),
-  bairro: z.string().min(1, "Bairro é obrigatório"),
-  rua: z.string().min(1, "Rua é obrigatória"),
-  numero: z.string().min(1, "Número é obrigatório"),
+  estado: z.string().optional(),
+  cidade: z.string().optional(),
+  bairro: z.string().optional(),
+  rua: z.string().optional(),
+  numero: z.string().optional(),
   complemento: z.string().optional(),
   disjuntor_id: z.string().min(1, "Disjuntor é obrigatório"),
   transformador_id: z.string().min(1, "Transformador é obrigatório"),
@@ -184,26 +184,52 @@ export function ConvertLeadToClientDialog({
   const simulacaoAceitaId = useWatch({ control: form.control, name: "simulacao_aceita_id" });
 
   // Fetch latest native proposal value for this lead (RB-76 / proposalTotals SSOT not available here)
+  // Fetch latest native proposal value for this lead (RB-76 / proposalTotals SSOT not available here)
   const { data: propostaVersaoValor = 0 } = useQuery({
     queryKey: ["convert-lead-proposta-valor", (lead as any)?.id],
     enabled: !!(lead as any)?.id,
     staleTime: 60_000,
+    gcTime: 300_000,
+    retry: 1,
+    meta: {
+      errorMessage: "Erro ao carregar valor da proposta"
+    },
     queryFn: async (): Promise<number> => {
-      const leadId = (lead as any).id as string;
-      const { data: propostas } = await supabase
-        .from("propostas_nativas")
-        .select("id")
-        .eq("lead_id", leadId);
-      const ids = (propostas ?? []).map((p: any) => p.id);
-      if (ids.length === 0) return 0;
-      const { data: versao } = await supabase
-        .from("proposta_versoes")
-        .select("valor_total, status, created_at")
-        .in("proposta_id", ids)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return Number((versao as any)?.valor_total ?? 0) || 0;
+      try {
+        const leadId = (lead as any).id as string;
+        
+        // Use a timeout to avoid hanging the modal
+        const fetchPromise = (async () => {
+          const { data: propostas } = await supabase
+            .from("propostas_nativas")
+            .select("id")
+            .eq("lead_id", leadId);
+          
+          const ids = (propostas ?? []).map((p: any) => p.id);
+          if (ids.length === 0) return 0;
+          
+          const { data: versao } = await supabase
+            .from("proposta_versoes")
+            .select("valor_total, status, created_at")
+            .in("proposta_id", ids)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+            
+          return Number((versao as any)?.valor_total ?? 0) || 0;
+        })();
+
+        // Race against a 10s timeout
+        return await Promise.race([
+          fetchPromise,
+          new Promise<number>((_, reject) => 
+            setTimeout(() => reject(new Error("Timeout carregando proposta")), 10000)
+          )
+        ]);
+      } catch (err) {
+        console.warn("[ConvertLead] Query timeout or error, using defaults:", err);
+        return 0;
+      }
     },
   });
 
@@ -225,7 +251,38 @@ export function ConvertLeadToClientDialog({
   // Explicit subscription so programmatic setValue always reflects in the UI
   const localizacaoValue = useWatch({ control: form.control, name: "localizacao" });
 
-  // CEP lookup is handled internally by AddressFields component
+  // CEP lookup handling: auto-trigger fetch when lead CEP is pre-filled
+  const currentCep = useWatch({ control: form.control, name: "cep" });
+  const [cepLookedUp, setCepLookedUp] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open && currentCep && currentCep.replace(/\D/g, "").length === 8 && currentCep !== cepLookedUp) {
+      // Small delay to ensure component is ready
+      const timer = setTimeout(() => {
+        const digits = currentCep.replace(/\D/g, "");
+        fetch(`https://viacep.com.br/ws/${digits}/json/`)
+          .then(r => r.json())
+          .then(data => {
+            if (!data.erro) {
+              // Only fill if current fields are empty to avoid overwriting user input
+              const currentRua = form.getValues("rua");
+              const currentBairro = form.getValues("bairro");
+              
+              if (!currentRua) form.setValue("rua", data.logradouro, { shouldValidate: true });
+              if (!currentBairro) form.setValue("bairro", data.bairro, { shouldValidate: true });
+              if (!form.getValues("cidade")) form.setValue("cidade", data.localidade, { shouldValidate: true });
+              if (!form.getValues("estado")) form.setValue("estado", data.uf, { shouldValidate: true });
+              
+              setCepLookedUp(currentCep);
+            }
+          })
+          .catch(err => console.warn("CEP auto-lookup failed:", err));
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [open, currentCep, cepLookedUp, form]);
+
+  // CEP lookup is handled internally by AddressFields component for manual typing
 
   // Bridge AddressFields ↔ react-hook-form
   const addressValue: AddressData = {
@@ -335,11 +392,12 @@ export function ConvertLeadToClientDialog({
       }
 
       if (savedData?.formData) {
+        const leadEmail = lead.email && lead.email.includes('@') ? lead.email : "";
         form.reset({
           nome: savedData.formData.nome || lead.nome || "",
           telefone: savedData.formData.telefone || lead.telefone || "",
-          email: savedData.formData.email || "",
-          cpf_cnpj: savedData.formData.cpf_cnpj || "",
+          email: savedData.formData.email || leadEmail,
+          cpf_cnpj: savedData.formData.cpf_cnpj || (lead as any).cpf_cnpj || "",
           data_nascimento: savedData.formData.data_nascimento || "",
           cep: savedData.formData.cep || lead.cep || "",
           estado: savedData.formData.estado || lead.estado || "",
@@ -377,11 +435,12 @@ export function ConvertLeadToClientDialog({
           });
         }
       } else {
+        const leadEmail = lead.email && lead.email.includes('@') ? lead.email : "";
         form.reset({
           nome: lead.nome || "",
           telefone: lead.telefone || "",
-          email: "",
-          cpf_cnpj: "",
+          email: leadEmail,
+          cpf_cnpj: (lead as any).cpf_cnpj || "",
           data_nascimento: "",
           cep: lead.cep || "",
           estado: lead.estado || "",
@@ -930,7 +989,7 @@ export function ConvertLeadToClientDialog({
   const canAdvanceStep = (step: number): boolean => {
     if (step === 0) {
       const v = form.getValues();
-      return !!(v.nome && v.telefone && v.estado && v.cidade);
+      return !!(v.nome && v.telefone && v.cpf_cnpj && v.cpf_cnpj.replace(/\D/g, '').length >= 11);
     }
     return true;
   };
@@ -955,8 +1014,8 @@ export function ConvertLeadToClientDialog({
 
   const Title = () => (
     <div className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
-      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-        <ShoppingCart className="w-5 h-5 text-primary" />
+      <div className="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center shrink-0">
+        <ShoppingCart className="w-5 h-5 text-teal-600" />
       </div>
       <div className="flex-1">
         <h2 className="text-base font-semibold text-foreground leading-none">
@@ -1007,29 +1066,30 @@ export function ConvertLeadToClientDialog({
             const StepIcon = step.icon;
             const isActive = idx === currentStep;
             const isDone = idx < currentStep;
-            const isVisited = idx < currentStep;
+            const isVisited = idx <= currentStep;
             const stepComplete = isVisited && isStepComplete(idx);
             const stepIncomplete = isVisited && !stepComplete;
+            const canAccess = idx === 0 || canAdvanceStep(idx - 1);
             return (
               <div key={idx} className="flex items-center gap-1 flex-1 min-w-0">
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => idx < currentStep && setCurrentStep(idx)}
+                  onClick={() => canAccess && setCurrentStep(idx)}
                   className={`flex items-center gap-2 px-2 sm:px-3 py-2 rounded-lg transition-colors w-full min-w-0 h-auto ${
                     isActive
-                      ? "bg-primary/10 text-primary hover:bg-primary/15"
+                      ? "bg-teal-500/10 text-teal-600 hover:bg-teal-500/15"
                       : stepComplete
                       ? "text-success cursor-pointer hover:bg-muted/50"
                       : stepIncomplete
                       ? "text-warning cursor-pointer hover:bg-muted/50"
                       : "text-muted-foreground hover:bg-transparent"
                   }`}
-                  disabled={idx > currentStep}
+                  disabled={!canAccess}
                 >
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
                     isActive
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-teal-600 text-white"
                       : stepComplete
                       ? "bg-success/10 text-success"
                       : stepIncomplete
@@ -1044,7 +1104,7 @@ export function ConvertLeadToClientDialog({
                   </div>
                 </Button>
                 {idx < STEPS.length - 1 && (
-                  <div className={`w-4 h-px shrink-0 ${stepComplete ? "bg-success" : stepIncomplete ? "bg-warning" : "bg-border"}`} />
+                  <div className={`w-4 h-px shrink-0 ${stepComplete ? "bg-success" : stepIncomplete ? "bg-warning" : "bg-teal-200"}`} />
                 )}
               </div>
             );
@@ -1138,8 +1198,8 @@ export function ConvertLeadToClientDialog({
                         name="email"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>E-mail *</FormLabel>
-                            <FormControl><EmailInput value={field.value || ""} onChange={field.onChange} required /></FormControl>
+                            <FormLabel>E-mail</FormLabel>
+                            <FormControl><EmailInput value={field.value || ""} onChange={field.onChange} /></FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -1458,7 +1518,11 @@ export function ConvertLeadToClientDialog({
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 {currentStep < STEPS.length - 1 ? (
-                  <Button type="button" onClick={handleNext} className="w-full sm:w-auto h-11 sm:h-9">
+                  <Button 
+                    type="button" 
+                    onClick={handleNext} 
+                    className="w-full sm:w-auto h-11 sm:h-9 bg-teal-600 hover:bg-teal-700 text-white"
+                  >
                     Próximo <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
                 ) : (
@@ -1488,7 +1552,7 @@ export function ConvertLeadToClientDialog({
                     </Button>
                     <Button
                       type="button"
-                      className="w-full sm:w-auto h-11 sm:h-9"
+                      className="w-full sm:w-auto h-11 sm:h-9 bg-teal-600 hover:bg-teal-700 text-white"
                       disabled={loading || savingAsLead}
                       onClick={async () => {
                         const valid = await form.trigger();
