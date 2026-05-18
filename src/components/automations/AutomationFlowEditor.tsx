@@ -146,36 +146,57 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
   };
 
   const handleSave = async () => {
-    const nomeTrimmed = name.trim();
-    if (!nomeTrimmed) {
+    const noGatilho = nodes.find(n => n.type === 'trigger');
+    const primeiraAcao = nodes.find(n => n.type === 'action');
+
+    const nomeAutomacao = name;
+    const isAtivo = active;
+
+    if (!nomeAutomacao?.trim()) {
       toast({ title: "Digite um nome para a automação", variant: "destructive" });
       return;
     }
-    
-    const trigger = nodes.find(n => n.type === 'trigger');
-    if (!trigger?.config?.triggerType) {
+    if (!noGatilho?.config?.triggerType) {
       toast({ title: "Configure o gatilho primeiro", variant: "destructive" });
       return;
     }
-    
+
     const { tenantId } = await getCurrentTenantId();
-    
-    saveFlowMutation.mutate({
-      automationId,
-      flow: { nodes },
-      basicData: { nome: nomeTrimmed, ativo: active, tenant_id: tenantId }
-    }, {
-      onSuccess: () => {
-        toast({ title: "Automação salva com sucesso!" });
-        setTimeout(() => {
-          onBack();
-        }, 1000);
-      },
-      onError: (err: any) => {
-        console.error('[SAVE ERROR]', err);
-        toast({ title: "Erro ao salvar: " + err.message, variant: "destructive" });
+
+    const payload = {
+      tenant_id: tenantId,
+      nome: nomeAutomacao.trim(),
+      ativo: isAtivo,
+      tipo_gatilho: noGatilho?.config?.triggerType ?? null,
+      projeto_funil_id: noGatilho?.config?.funil_id ?? null,
+      projeto_etapa_id: noGatilho?.config?.etapa_id ?? null,
+      canal_notificacao: primeiraAcao?.config?.actionType ?? null,
+      webhook_url: primeiraAcao?.config?.webhook_url ?? null,
+      template_mensagem: primeiraAcao?.config?.wa_content_template ?? null,
+      metadata: { nodes: nodes },
+    };
+
+    try {
+      if (automationId) {
+        const { error } = await supabase
+          .from('pipeline_automations')
+          .update(payload)
+          .eq('id', automationId)
+          .eq('tenant_id', tenantId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('pipeline_automations')
+          .insert(payload);
+        if (error) throw error;
       }
-    });
+
+      toast({ title: "Automação salva!" });
+      setTimeout(() => onBack(), 1000);
+    } catch (error: any) {
+      console.error('[SAVE ERROR]', error);
+      toast({ title: "Erro ao salvar: " + error.message, variant: "destructive" });
+    }
   };
 
   if (isLoadingFlow) return <LoadingState message="Carregando fluxograma..." />;
