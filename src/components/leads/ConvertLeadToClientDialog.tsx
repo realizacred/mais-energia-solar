@@ -75,6 +75,22 @@ export function ConvertLeadToClientDialog({
       return;
     }
 
+    // Purge legacy localStorage caches from older wizard versions.
+    // They used `{}` placeholders that overrode the orçamento fallback,
+    // causing the form to render empty. Mapper is now the only source.
+    try {
+      const legacyKeys = [
+        `lead_conversion_${lead?.id}`,
+        `lead_conversion_step1_${lead?.id}`,
+        `lead_conversion_step2_${lead?.id}`,
+        `convert_lead_wizard_${lead?.id}`,
+        `convert_wizard_${lead?.id}`,
+      ];
+      legacyKeys.forEach((k) => localStorage.removeItem(k));
+    } catch {
+      /* localStorage indisponível — ignorar */
+    }
+
     const mapped = mapSelectedOrcamentoToConversionData(selectedOrcamento, lead);
     const currentId = mapped._orcamento_id || mapped._lead_id || orcamentoId || null;
 
