@@ -9,7 +9,10 @@ import {
   Search, 
   FileText,
   CheckSquare,
-  Bell
+  Bell,
+  XCircle,
+  CheckCircle2,
+  UserCog
 } from "lucide-react";
 
 export const nodeIcons: Record<AutomationNodeType, any> = {
