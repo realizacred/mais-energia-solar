@@ -127,14 +127,7 @@ export function AutomationNodePanel({
             <button
               key={opt.type}
               onClick={() => {
-                const newNode: AutomationFlowNode = {
-                  id: crypto.randomUUID(),
-                  type: 'action',
-                  order: addingAfterIndex,
-                  config: { actionType: opt.type as ActionType }
-                };
-                onUpdate(newNode); // Hack to pass the config correctly if onSelectNewNodeType doesn't support it
-                onSelectNewNodeType('action');
+                onSelectNewNodeType('action', { actionType: opt.type as ActionType });
               }}
               className={cn(
                 "flex flex-col items-center justify-center p-3 gap-2 rounded-lg border transition-all text-xs font-medium h-20 text-center hover:shadow-sm",
