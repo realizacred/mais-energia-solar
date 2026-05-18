@@ -164,6 +164,35 @@ function AlertasFinanceirosProjeto({
   const { data: recebimento } = useClienteRecebimentoDetalhes(
     hasRecebimento ? customerId : null
   );
+  const queryClient = useQueryClient();
+  const [finishingPending, setFinishingPending] = useState(false);
+
+  // Ação para concluir projeto pendente (RB-108/111)
+  const handleConcluirPendencia = async () => {
+    if (!projetoId) return;
+    setFinishingPending(true);
+    try {
+      const { error } = await supabase
+        .from("projetos")
+        .update({ status: "criado" as any })
+        .eq("id", projetoId);
+      
+      if (error) throw error;
+
+      toast({ title: "Documentação concluída!", description: "O projeto agora seguirá o fluxo normal." });
+      
+      // Invalidate queries to refresh status everywhere
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] }),
+        queryClient.invalidateQueries({ queryKey: ["projeto-detalhe-data", dealId] }),
+        queryClient.invalidateQueries({ queryKey: ["projetos-pipeline"] })
+      ]);
+    } catch (err: any) {
+      toast({ title: "Erro ao concluir", description: err.message, variant: "destructive" });
+    } finally {
+      setFinishingPending(false);
+    }
+  };
 
   // Alerta de Documentação Pendente (RB-108)
   if (statusProjeto === "aguardando_documentacao") {
@@ -173,7 +202,7 @@ function AlertasFinanceirosProjeto({
           <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-amber-500/10 text-amber-600 shrink-0">
             <FileText className="w-5 h-5" />
           </div>
-            <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">Projeto Salvo Pendente</p>
             <p className="text-xs text-amber-700 dark:text-amber-300">
               Complete os dados do cliente e anexe os documentos obrigatórios para avançar no funil.
@@ -207,35 +236,7 @@ function AlertasFinanceirosProjeto({
 
   const { valorContratado, valorRecebido } = financial;
   const saldoDevedor = valorContratado - valorRecebido;
-  const queryClient = useQueryClient();
-  const [finishingPending, setFinishingPending] = useState(false);
 
-  // Ação para concluir projeto pendente (RB-108/111)
-  const handleConcluirPendencia = async () => {
-    if (!projetoId) return;
-    setFinishingPending(true);
-    try {
-      const { error } = await supabase
-        .from("projetos")
-        .update({ status: "criado" as any })
-        .eq("id", projetoId);
-      
-      if (error) throw error;
-
-      toast({ title: "Documentação concluída!", description: "O projeto agora seguirá o fluxo normal." });
-      
-      // Invalidate queries to refresh status everywhere
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] }),
-        queryClient.invalidateQueries({ queryKey: ["projeto-detalhe-data", dealId] }),
-        queryClient.invalidateQueries({ queryKey: ["projetos-pipeline"] })
-      ]);
-    } catch (err: any) {
-      toast({ title: "Erro ao concluir", description: err.message, variant: "destructive" });
-    } finally {
-      setFinishingPending(false);
-    }
-  };
 
   // 1. SE saldo <= 0 → Nenhum alerta
   if (valorContratado > 0 && saldoDevedor <= 0) return null;
