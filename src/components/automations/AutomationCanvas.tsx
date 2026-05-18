@@ -34,7 +34,8 @@ export function AutomationCanvas({
   selectedNodeId, 
   onNodeSelect, 
   onAddNode, 
-  onRemoveNode 
+  onRemoveNode,
+  availableFunis
 }: AutomationCanvasProps) {
   return (
     <div className="flex flex-col items-center py-8 space-y-4 min-h-full">
