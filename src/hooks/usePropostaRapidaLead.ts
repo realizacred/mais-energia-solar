@@ -162,12 +162,12 @@ export function usePropostaRapidaLead() {
 
   /**
    * Resolve o cliente do lead (usado agora apenas para checagem de duplicidade antes do RPC)
+   * RB-76/RB-62: Vínculo lead->cliente SEMPRE por telefone normalizado. NUNCA por nome.
    */
   async function pickExistingClienteId(lead: QuickLeadData, tenantId: string) {
     const telefoneLimpo = lead.telefone_normalized || toCanonicalPhoneDigits(lead.telefone);
-    const cpfCnpjLimpo = lead.cpf_cnpj?.replace(/\D/g, "") || null;
-    const emailLimpo = lead.email?.trim().toLowerCase() || null;
 
+    // 1. Check by explicit lead_id mapping
     const byLead = await supabase
       .from("clientes")
       .select("id")
@@ -176,6 +176,7 @@ export function usePropostaRapidaLead() {
       .maybeSingle();
     if (byLead.data?.id) return byLead.data.id;
 
+    // 2. Check by normalized phone (Source of Truth)
     if (telefoneLimpo) {
       const byPhone = await supabase
         .from("clientes")
@@ -184,26 +185,6 @@ export function usePropostaRapidaLead() {
         .eq("telefone_normalized", telefoneLimpo)
         .maybeSingle();
       if (byPhone.data?.id) return byPhone.data.id;
-    }
-
-    if (cpfCnpjLimpo) {
-      const byCpf = await supabase
-        .from("clientes")
-        .select("id")
-        .eq("tenant_id", tenantId)
-        .eq("cpf_cnpj", cpfCnpjLimpo)
-        .maybeSingle();
-      if (byCpf.data?.id) return byCpf.data.id;
-    }
-
-    if (emailLimpo) {
-      const byEmail = await supabase
-        .from("clientes")
-        .select("id")
-        .eq("tenant_id", tenantId)
-        .ilike("email", emailLimpo)
-        .maybeSingle();
-      if (byEmail.data?.id) return byEmail.data.id;
     }
 
     return null;
