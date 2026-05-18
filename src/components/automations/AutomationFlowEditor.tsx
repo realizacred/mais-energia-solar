@@ -209,6 +209,7 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
             }}
             onAddNode={handleAddNodeRequest}
             onRemoveNode={handleRemoveNode}
+            availableFunis={pipelines || []}
           />
         </main>
 
