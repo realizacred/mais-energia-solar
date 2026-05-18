@@ -53,7 +53,7 @@ export function StepTecnico({
 
   const form = useForm<Step2Data>({
     resolver: zodResolver(step2Schema),
-    defaultValues: {
+    values: {
       disjuntor_id: initialData.disjuntor_id || "",
       transformador_id: initialData.transformador_id || "",
       localizacao: initialData.localizacao || "",

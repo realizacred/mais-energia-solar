@@ -83,14 +83,17 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
           nome: lead.nome, 
           telefone: lead.telefone, 
           email: lead.email || "", 
-          cep: lead.cep || "",
-          cidade: lead.cidade || "",
-          estado: lead.estado || "",
-          bairro: lead.bairro || "",
-          rua: lead.rua || "",
-          numero: lead.numero || "",
+          cep: (lead as any).cep || "",
+          cidade: (lead as any).cidade || "",
+          estado: (lead as any).estado || "",
+          bairro: (lead as any).bairro || "",
+          rua: (lead as any).rua || "",
+          numero: (lead as any).numero || "",
         });
-        setStep2Data({});
+        setStep2Data({
+          localizacao: (lead as any).localizacao || "",
+          observacoes: (lead as any).observacoes || "",
+        });
         setIdentidadeFiles([]);
         setComprovanteFiles([]);
         setPaymentItems([createEmptyItem()]);
@@ -112,7 +115,13 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
       ]);
 
       const payload = { ...step1Data, ...step2Data, identidade_urls: identidadeUrls, comprovante_endereco_urls: comprovanteUrls, comprovante_beneficiaria_urls: beneficiariaUrls, assinatura_url: assinaturaUrls[0] || null };
-      const { data: res, error } = await supabase.rpc("convert_lead_to_venda_v2", { _lead_id: lead?.id, _payload: payload as any, _payment_composition: paymentItems as any, _idempotency_key: lead?.id });
+      const { data: res, error } = await supabase.rpc("convert_lead_to_venda_v2", { 
+        _lead_id: lead?.id, 
+        _payload: payload as any, 
+        _payment_composition: paymentItems as any, 
+        _idempotency_key: lead?.id,
+        _orcamento_id: orcamentoId 
+      });
       
       if (error || !(res as any)?.success) throw new Error((res as any)?.message || "Erro na conversão");
 
