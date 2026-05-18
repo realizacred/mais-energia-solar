@@ -149,6 +149,7 @@ function AlertasFinanceirosProjeto({
   projetoId, 
   setActiveTab,
   customerName,
+  customerCpfCnpj,
   statusProjeto
 }: {
   dealId: string;
