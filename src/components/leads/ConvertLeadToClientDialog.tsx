@@ -90,7 +90,10 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
           rua: lead.rua || "",
           numero: lead.numero || "",
         });
-        setStep2Data({});
+        setStep2Data({
+          localizacao: (lead as any).localizacao || "",
+          observacoes: lead.observacoes || "",
+        });
         setIdentidadeFiles([]);
         setComprovanteFiles([]);
         setPaymentItems([createEmptyItem()]);
