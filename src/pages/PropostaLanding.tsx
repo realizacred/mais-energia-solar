@@ -187,6 +187,8 @@ export default function PropostaLanding() {
       if (defaultC) setSelectedCenario(defaultC.id);
 
       if (propostaRes.data?.tenant_id) {
+        setPropostaStatus(propostaRes.data.status);
+
         const tenantId = propostaRes.data.tenant_id;
         const src = (propostaRes.data as any).external_source;
         setIsLegacyMigrated(src === "solarmarket" || src === "solar_market");
