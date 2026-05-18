@@ -21,11 +21,19 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { token_id, decisao } = body;
+    const { token_id, decisao: rawDecisao } = body;
 
-    if (!token_id || !decisao) {
+    if (!token_id || !rawDecisao) {
       return jsonError("token_id e decisao obrigatórios", 400);
     }
+
+    // Normalize and validate
+    const normalization: Record<string, string> = {
+      'accepted': 'aceita',
+      'rejected': 'recusada',
+      'viewed': 'visualizada'
+    };
+    const decisao = normalization[rawDecisao] || rawDecisao;
 
     if (!["aceita", "recusada", "visualizada"].includes(decisao)) {
       return jsonError("decisao deve ser 'aceita', 'recusada' ou 'visualizada'", 400);
