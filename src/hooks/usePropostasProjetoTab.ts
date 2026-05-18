@@ -101,12 +101,16 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
 
       const ids = data.map((p: any) => p.id);
 
-      // Fetch versoes
+      // Fetch versoes — incluímos `substituida_em` para identificar versão ATIVA
+      // (canonical: substituida_em IS NULL). Ordenação: ativa primeiro, depois
+      // por versao_numero desc. Garante que `versoes[0]` == versão ativa (consumida
+      // pelo PropostaExpandedDetail como `latestVersao`).
       const { data: versoes } = await supabase
         .from("proposta_versoes")
-        .select("id, proposta_id, versao_numero, valor_total, potencia_kwp, status, economia_mensal, geracao_mensal, payback_meses, tir, vpl, created_at, snapshot, output_pdf_path, output_docx_path, link_pdf, public_slug, gerado_em, usuario_editou_em, template_id_used, generation_status, generation_error")
+        .select("id, proposta_id, versao_numero, valor_total, potencia_kwp, status, economia_mensal, geracao_mensal, payback_meses, tir, vpl, created_at, snapshot, output_pdf_path, output_docx_path, link_pdf, public_slug, gerado_em, usuario_editou_em, template_id_used, generation_status, generation_error, substituida_em")
         .in("proposta_id", ids)
-        .order("created_at", { ascending: false });
+        .order("substituida_em", { ascending: true, nullsFirst: true })
+        .order("versao_numero", { ascending: false });
 
       // Fetch UC geração
       const versaoIds = (versoes || []).map((v: any) => v.id);
