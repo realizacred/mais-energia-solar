@@ -86,6 +86,10 @@ export interface AutomationFlowNode {
     wa_schedule_enabled?: boolean
     wa_schedule_tipo?: 'horas' | 'dias'
     wa_scheduled_valor?: number
+    
+    // Action - Atividade
+    atividade_titulo?: string
+    atividade_descricao?: string
 
     // Condition
     field?: string
