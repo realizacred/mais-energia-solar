@@ -63,40 +63,88 @@ export function AutomationNodePanel({
   }, [addingAfterIndex]);
 
   if (addingAfterIndex !== null) {
+    if (addingStep === 'type') {
+      return (
+        <div className="p-6 space-y-6">
+          <div>
+            <h2 className="text-lg font-bold">Adicionar Passo</h2>
+            <p className="text-xs text-muted-foreground">Escolha o tipo de nó para adicionar ao fluxo</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={() => setAddingStep('action-grid')}
+              className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-blue-200 hover:border-blue-500 hover:bg-blue-50 transition-all group"
+            >
+              <div className="p-3 rounded-lg bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <nodeIcons.action className="h-6 w-6" />
+              </div>
+              <span className="text-sm font-bold text-blue-700">Ação</span>
+            </button>
+            <button
+              onClick={() => onSelectNewNodeType('condition')}
+              className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-teal-200 hover:border-teal-500 hover:bg-teal-50 transition-all group"
+            >
+              <div className="p-3 rounded-lg bg-teal-100 text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition-colors">
+                <GitBranch className="h-6 w-6" />
+              </div>
+              <span className="text-sm font-bold text-teal-700">Condicional</span>
+            </button>
+            <button
+              onClick={() => onSelectNewNodeType('search')}
+              className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-purple-200 hover:border-purple-500 hover:bg-purple-50 transition-all group col-span-2"
+            >
+              <div className="p-3 rounded-lg bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                <Search className="h-6 w-6" />
+              </div>
+              <span className="text-sm font-bold text-purple-700">Procurar</span>
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="p-6 space-y-6">
-        <div>
-          <h2 className="text-lg font-bold">Adicionar Passo</h2>
-          <p className="text-xs text-muted-foreground">Escolha o tipo de nó para adicionar ao fluxo</p>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => setAddingStep('type')} className="h-8 w-8">
+            <ArrowRightLeft className="h-4 w-4 rotate-180" />
+          </Button>
+          <div>
+            <h2 className="text-lg font-bold">Escolha a Ação</h2>
+            <p className="text-xs text-muted-foreground">O que o sistema deve fazer neste passo?</p>
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <button
-            onClick={() => onSelectNewNodeType('action')}
-            className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-blue-200 hover:border-blue-500 hover:bg-blue-50 transition-all group"
-          >
-            <div className="p-3 rounded-lg bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-              <nodeIcons.action className="h-6 w-6" />
-            </div>
-            <span className="text-sm font-bold text-blue-700">Ação</span>
-          </button>
-          <button
-            onClick={() => onSelectNewNodeType('condition')}
-            className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-teal-200 hover:border-teal-500 hover:bg-teal-50 transition-all group"
-          >
-            <div className="p-3 rounded-lg bg-teal-100 text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition-colors">
-              <GitBranch className="h-6 w-6" />
-            </div>
-            <span className="text-sm font-bold text-teal-700">Condicional</span>
-          </button>
-          <button
-            onClick={() => onSelectNewNodeType('search')}
-            className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-purple-200 hover:border-purple-500 hover:bg-purple-50 transition-all group col-span-2"
-          >
-            <div className="p-3 rounded-lg bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-              <Search className="h-6 w-6" />
-            </div>
-            <span className="text-sm font-bold text-purple-700">Procurar</span>
-          </button>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { type: 'whatsapp', icon: MessageCircle, label: 'WhatsApp', color: 'text-teal-600 bg-teal-50 border-teal-100' },
+            { type: 'webhook', icon: Anchor, label: 'Webhook HTTP', color: 'text-blue-600 bg-blue-50 border-blue-100' },
+            { type: 'mover_etapa', icon: ArrowRightLeft, label: 'Mover Etapa', color: 'text-purple-600 bg-purple-50 border-purple-100' },
+            { type: 'email', icon: Mail, label: 'Enviar Email', color: 'text-gray-600 bg-gray-50 border-gray-100' },
+            { type: 'projeto', icon: FolderOpen, label: 'Projeto', color: 'text-green-600 bg-green-50 border-green-100' },
+            { type: 'atividade', icon: CheckSquare, label: 'Atividade', color: 'text-teal-600 bg-teal-50 border-teal-100' },
+            { type: 'cliente', icon: User, label: 'Cliente', color: 'text-pink-600 bg-pink-50 border-pink-100' },
+          ].map((opt) => (
+            <button
+              key={opt.type}
+              onClick={() => {
+                const newNode: AutomationFlowNode = {
+                  id: crypto.randomUUID(),
+                  type: 'action',
+                  order: addingAfterIndex,
+                  config: { actionType: opt.type as ActionType }
+                };
+                onUpdate(newNode); // Hack to pass the config correctly if onSelectNewNodeType doesn't support it
+                onSelectNewNodeType('action');
+              }}
+              className={cn(
+                "flex flex-col items-center justify-center p-3 gap-2 rounded-lg border transition-all text-xs font-medium h-20 text-center hover:shadow-sm",
+                opt.color
+              )}
+            >
+              <opt.icon className="h-5 w-5" />
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
     );
