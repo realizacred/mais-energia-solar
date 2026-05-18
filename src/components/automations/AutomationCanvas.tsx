@@ -96,6 +96,11 @@ export function AutomationCanvas({
                             {config.searchType === 'responsavel' ? 'Buscar no funil' : 'Funil vinculado'}
                           </Badge>
                         )}
+                        {node.type === 'action' && config.actionType && (
+                          <Badge variant="secondary" className={cn("text-[10px] h-4", ACTION_BADGE_COLORS[config.actionType] || 'bg-muted')}>
+                            {ACTION_LABELS[config.actionType] || config.actionType}
+                          </Badge>
+                        )}
                         {config.actionType === 'whatsapp' && (
                           <>
                             <Badge variant="secondary" className="text-[10px] h-4 bg-blue-100 text-blue-700 hover:bg-blue-100">
@@ -103,33 +108,26 @@ export function AutomationCanvas({
                                config.wa_message_type === 'image' ? 'Imagem' :
                                config.wa_message_type === 'document' ? 'Documento' : 'Áudio'}
                             </Badge>
-                            {config.wa_destinatario_tipo && (
-                              <Badge variant="secondary" className="text-[10px] h-4 bg-slate-100 text-slate-700 hover:bg-slate-100">
-                                Para: {config.wa_destinatario_tipo === 'cliente' ? 'Cliente' : 
-                                       config.wa_destinatario_tipo === 'responsavel' ? 'Responsável' : 'Fixo'}
-                              </Badge>
-                            )}
                           </>
-                        )}
-                        {config.webhook_url && (
-                          <Badge variant="secondary" className="text-[10px] h-4">Webhook</Badge>
                         )}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemoveNode(node.id);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {index > 0 && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemoveNode(node.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
