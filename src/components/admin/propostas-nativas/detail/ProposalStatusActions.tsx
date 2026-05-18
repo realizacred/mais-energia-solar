@@ -1,10 +1,3 @@
-/**
- * ProposalStatusActions.tsx
- * 
- * Accept/Reject/Revert/OS buttons for ProposalDetail.
- * Handles dialog state internally but delegates mutations to parent.
- */
-
 import { useState } from "react";
 import {
   CheckCircle2, XCircle, Wrench, Loader2, Undo2, Ban,
@@ -200,6 +193,35 @@ export function ProposalStatusActions({
               }}
             >
               Confirmar Remoção
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ══════ Cancel Proposal Dialog ══════ */}
+      <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar proposta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A proposta será marcada como cancelada e não poderá mais ser aceita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Motivo do cancelamento (opcional)</label>
+            <Textarea placeholder="Informe o motivo..." value={cancelMotivo} onChange={(e) => setCancelMotivo(e.target.value)} className="min-h-[80px]" />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                onUpdateStatus("cancelada", { motivo: cancelMotivo.trim() });
+                setCancelMotivo("");
+                setCancelOpen(false);
+              }}
+            >
+              Confirmar Cancelamento
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
