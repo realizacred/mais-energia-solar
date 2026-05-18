@@ -475,6 +475,12 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
     const isPedidoEfetuado = stageName.includes('pedido efetuado');
     const isPedidoPago = stageName.includes('pedido pago');
 
+    if ((isPedidoEfetuado || isPedidoPago) && !projetoIdAtual) {
+      toast({ title: "Projeto não identificado", description: "Aguarde o carregamento do projeto e tente novamente.", variant: "destructive" });
+      setSaving(null);
+      return;
+    }
+
     if (isPedidoEfetuado) {
       const { data: ordens } = await supabase
         .from('ordens_compra')
