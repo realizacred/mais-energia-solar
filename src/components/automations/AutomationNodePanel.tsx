@@ -237,7 +237,50 @@ export function AutomationNodePanel({
                   placeholder="https://api.seusistema.com/webhook"
                 />
               </div>
-...
+              <div className="space-y-2">
+                <Label>Secret (Header Authorization)</Label>
+                <Input 
+                  type="password"
+                  value={localConfig.webhook_secret || ''} 
+                  onChange={(e) => updateConfig({ webhook_secret: e.target.value })}
+                  placeholder="Token de segurança"
+                />
+              </div>
+            </div>
+          )}
+
+          {localConfig.actionType === 'whatsapp' && (
+            <div className="space-y-4 animate-in fade-in">
+              <div className="space-y-2">
+                <Label>Template da Mensagem</Label>
+                <Textarea 
+                  value={localConfig.template_mensagem || ''} 
+                  onChange={(e) => updateConfig({ template_mensagem: e.target.value, canal_notificacao: 'whatsapp' })}
+                  placeholder="Olá {nome_cliente}! Seu projeto..."
+                  rows={4}
+                />
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {['{nome_cliente}', '{valor_total}', '{potencia_kwp}', '{link_proposta}'].map(variable => (
+                    <button
+                      key={variable}
+                      onClick={() => updateConfig({ template_mensagem: (localConfig.template_mensagem || '') + variable })}
+                      className="px-2 py-1 bg-secondary hover:bg-secondary/80 rounded text-[10px] font-mono border border-border"
+                    >
+                      {variable}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Alert className="py-2 bg-blue-50 border-blue-100">
+                <Info className="h-3 w-3 text-blue-600" />
+                <AlertDescription className="text-[10px] text-blue-800">
+                  Mensagens serão enviadas via Evolution API (wa_outbox). Sem links externos.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
-
