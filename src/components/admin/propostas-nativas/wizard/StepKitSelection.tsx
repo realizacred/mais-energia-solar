@@ -209,6 +209,10 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
       potenciaMin: effectiveFilters.potenciaMin,
       potenciaMax: effectiveFilters.potenciaMax,
       searchText: effectiveFilters.searchText,
+      fabricanteInversor: effectiveFilters.fabricanteInversor,
+      inversorModelo: effectiveFilters.inversorModelo,
+      searchDistribuidor: effectiveFilters.searchDistribuidor,
+      searchModulo: effectiveFilters.searchModulo,
     })
       .then(async (response) => {
         setCatalogKits(response.data);
@@ -222,7 +226,7 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
       })
       .catch((err) => setCatalogError(err.message))
       .finally(() => setCatalogLoading(false));
-  }, [tab, page, potenciaIdeal, includeComponents, filters.potenciaMin, filters.potenciaMax, filters.searchText]);
+  }, [tab, page, potenciaIdeal, includeComponents, filters]);
 
   const handleSelectCatalogKit = async (kitId: string, kitName: string) => {
     // If items already exist, ask for confirmation
