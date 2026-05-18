@@ -197,6 +197,29 @@ export function StepTecnico({
             )}
           />
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField
+              control={form.control}
+              name="media_consumo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Consumo Médio (kWh)</FormLabel>
+                  <FormControl><Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="consumo_previsto"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Geração Prevista (kWh)</FormLabel>
+                  <FormControl><Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+
           <FormField
             control={form.control}
             name="observacoes"
