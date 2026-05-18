@@ -6,6 +6,8 @@ import { z } from "zod";
 import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, Wifi, AlertTriangle, Receipt, User, Wrench, Signature, CreditCard, Home, Zap, Wallet, ChevronLeft, ChevronRight, Check, RefreshCw } from "lucide-react";
 import { MissingDocsConfirmModal } from "./MissingDocsConfirmModal";
 import { PaymentComposer } from "@/components/admin/vendas/PaymentComposer";
+import { PaymentComposerBoundary } from "@/components/admin/vendas/PaymentComposerBoundary";
+import { useQuery } from "@tanstack/react-query";
 import type { PaymentItemInput } from "@/services/paymentComposition/types";
 import { useVendaFinanceSnapshot } from "@/hooks/useVendaFinanceSnapshot";
 import { useOfflineConversionSync, getCachedEquipment, setCachedEquipment } from "@/hooks/useOfflineConversionSync";
