@@ -1223,6 +1223,10 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
+                        Pedido em: {ordemCompra.data_pedido ? new Date(ordemCompra.data_pedido + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
                         Entrega: {ordemCompra.data_previsao_entrega ? new Date(ordemCompra.data_previsao_entrega + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
                       </div>
                     </div>
