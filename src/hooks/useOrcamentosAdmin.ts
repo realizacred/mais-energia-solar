@@ -68,7 +68,8 @@ export function useOrcamentosAdmin({
 
       let query = supabase
         .from("orcamentos")
-        .select(ORC_ADMIN_SELECT, { count: "exact" });
+        .select(ORC_ADMIN_SELECT, { count: "exact" })
+        .is("leads.deleted_at", null);
 
       // Apply standard filters
       // Phase 1: search uses telefone_normalized (canonical digits) + cidade.
