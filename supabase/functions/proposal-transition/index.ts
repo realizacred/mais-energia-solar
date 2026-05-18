@@ -107,25 +107,46 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 2. Validate transition
+    // 2. Validate and Normalize transition
     const currentStatus = proposta.status || "draft";
-    if (!canTransition(currentStatus, new_status)) {
-      return new Response(
-        JSON.stringify({
-          error: `Transição inválida: ${currentStatus} → ${new_status}`,
-          allowed: VALID_TRANSITIONS[currentStatus] || [],
-        }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    
+    // Normalize new_status from PT-BR if necessary
+    let canonicalStatus = new_status;
+    const normalizationMap: Record<string, string> = {
+      'rascunho':  'draft',
+      'gerada':    'generated',
+      'enviada':   'sent',
+      'vista':     'viewed',
+      'aceita':    'accepted',
+      'recusada':  'rejected',
+      'expirada':  'expired',
+      'cancelada': 'cancelled'
+    };
+    if (normalizationMap[new_status]) {
+      canonicalStatus = normalizationMap[new_status];
+    }
+
+    if (!canTransition(currentStatus, canonicalStatus)) {
+      // Also try normalizing currentStatus if it's in PT-BR in the DB
+      const currentCanonical = normalizationMap[currentStatus] || currentStatus;
+      if (!canTransition(currentCanonical, canonicalStatus)) {
+        return new Response(
+          JSON.stringify({
+            error: `Transição inválida: ${currentStatus} → ${canonicalStatus}`,
+            allowed: VALID_TRANSITIONS[currentCanonical] || [],
+          }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // 2b. Idempotency check — prevent duplicate terminal transitions
-    if (["accepted", "rejected", "cancelada"].includes(new_status)) {
+    if (["accepted", "rejected", "cancelled"].includes(canonicalStatus)) {
       const { data: existingEvent } = await admin
         .from("proposal_events")
         .select("id")
         .eq("proposta_id", proposta_id)
-        .eq("tipo", new_status)
+        .eq("tipo", canonicalStatus === "accepted" ? "proposta_aceita" : canonicalStatus === "rejected" ? "proposta_recusada" : "proposta_cancelada")
         .maybeSingle();
 
       if (existingEvent) {
@@ -133,53 +154,30 @@ Deno.serve(async (req) => {
           JSON.stringify({
             success: true,
             idempotent: true,
-            message: `Transição '${new_status}' já registrada anteriormente`,
+            message: `Transição '${canonicalStatus}' já registrada anteriormente`,
             previous_status: currentStatus,
-            new_status,
+            new_status: canonicalStatus,
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
 
-    // 3. Build update payload
-    const now = new Date().toISOString();
-    const updateData: Record<string, unknown> = { status: new_status };
+    // 3. Update status via RPC (centralized business logic)
+    // This handles: status update, versions sync, deal status, project snapshot, siblings rejection.
+    const { data: rpcResult, error: rpcErr } = await admin.rpc("proposal_update_status", {
+      p_proposta_id: proposta_id,
+      p_new_status: canonicalStatus,
+      p_motivo: motivo || null
+    });
 
-    if (new_status === "sent") updateData.enviada_at = now;
-    if (new_status === "accepted") {
-      updateData.aceita_at = transitionDate || now;
-      updateData.aceite_motivo = motivo || null;
-    }
-    if (new_status === "rejected") {
-      updateData.recusada_at = transitionDate || now;
-      updateData.recusa_motivo = motivo || null;
-    }
-    if (new_status !== "accepted") {
-      updateData.aceita_at = null;
-      updateData.aceite_motivo = null;
-    }
-    if (new_status !== "rejected") {
-      updateData.recusada_at = null;
-      updateData.recusa_motivo = null;
+    if (rpcErr || (rpcResult as any)?.error) {
+      console.error("[proposal-transition] RPC error:", rpcErr || (rpcResult as any)?.error);
+      throw new Error((rpcResult as any)?.error || "Erro ao atualizar status via RPC");
     }
 
-    // 4. Update status + set is_principal if accepting
-    if (new_status === "accepted") {
-      updateData.is_principal = true;
-    }
-
-    // 4x. Revert accept: clear is_principal when leaving accepted
-    if (currentStatus === "accepted" && new_status !== "accepted") {
-      updateData.is_principal = false;
-    }
-
-    const { error: updateErr } = await admin
-      .from("propostas_nativas")
-      .update(updateData)
-      .eq("id", proposta_id);
-
-    if (updateErr) throw updateErr;
+    // Use canonical status from here on
+    const finalStatus = canonicalStatus;
 
     // 4a. Sync proposta_versoes.status (latest version only — by ID)
     try {
