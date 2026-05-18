@@ -315,7 +315,8 @@ export function PipelineAutomations() {
   const [formMessage, setFormMessage] = useState("");
   const [formActive, setFormActive] = useState(true);
 
-  const { data: stages } = usePipelineStages(formPipelineId || null);
+  const selectedPipelineType = pipelines?.find(p => p.id === formPipelineId)?.type || 'modern';
+  const { data: stages } = usePipelineStages(formPipelineId || null, selectedPipelineType);
 
   // Reset stage selects when pipeline changes
   useEffect(() => {
