@@ -166,7 +166,7 @@ export function useProposalActions({ versaoId, propostaRaw, vm }: UseProposalAct
       if (!propostaRaw?.id || !versaoId) throw new Error("Proposta não carregada");
       const tipo = withTracking ? "tracked" : "public";
       const token = await getOrCreateProposalToken(propostaRaw.id, versaoId, tipo);
-      const url = `${getPublicUrl()}/proposta/${token}`;
+      const url = getProposalWebUrl(token);
       try {
         await navigator.clipboard.writeText(url);
       } catch {
