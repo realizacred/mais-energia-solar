@@ -91,9 +91,12 @@ export function AutomationCanvas({
                       )}
 
                       <div className="flex flex-wrap gap-1">
+                        {node.type === 'search' && (
+                          <Badge variant="secondary" className="text-[10px] h-4 bg-purple-100 text-purple-700 hover:bg-purple-100">PROCURAR</Badge>
+                        )}
                         {config.funil_id && (
                           <Badge variant="secondary" className="text-[10px] h-4 bg-teal-100 text-teal-700 hover:bg-teal-100">
-                            {config.searchType === 'responsavel' ? 'Buscar no funil' : 'Funil vinculado'}
+                            {config.searchType === 'responsavel' ? `Funil: ${availableFunis?.find(f => f.id === config.funil_id)?.name || '...'}` : 'Funil vinculado'}
                           </Badge>
                         )}
                         {node.type === 'action' && config.actionType && (
