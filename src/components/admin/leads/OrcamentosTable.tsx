@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus, Pencil, MoreHorizontal, UserRound, RotateCcw, ScrollText, Loader2, FolderOpen, Link2 } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus, Pencil, MoreHorizontal, UserRound, RotateCcw, ScrollText, Loader2, FolderOpen, Link2, Archive } from "lucide-react";
 import { VincularClienteDialog } from "./VincularClienteDialog";
 import { usePropostaRapidaLead } from "@/hooks/usePropostaRapidaLead";
 import type { QuickLeadData } from "@/hooks/usePropostaRapidaLead";
