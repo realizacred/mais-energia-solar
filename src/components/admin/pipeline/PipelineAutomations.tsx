@@ -95,14 +95,17 @@ function usePipelines() {
   return useQuery({
     queryKey: ["pipelines_for_automations"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pipelines")
-        .select("id, name")
-        .order("name");
-      if (error) throw error;
-      return data as PipelineOption[];
+      const [modernRes, legacyRes] = await Promise.all([
+        supabase.from("pipelines").select("id, name").order("name"),
+        supabase.from("projeto_funis").select("id, nome").order("nome")
+      ]);
+
+      const modern = (modernRes.data || []).map(p => ({ ...p, type: 'modern' as const }));
+      const legacy = (legacyRes.data || []).map(p => ({ id: p.id, name: p.nome, type: 'legacy' as const }));
+
+      return [...modern, ...legacy] as PipelineOption[];
     },
-    staleTime: 0, // Always fetch fresh to avoid FK violations (re-created pipelines)
+    staleTime: 0,
   });
 }
 
