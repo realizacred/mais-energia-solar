@@ -115,6 +115,8 @@ export function AutomationNodePanel({
 
   const panelTitle = node.type === 'trigger' 
     ? (node.config.triggerType ? TRIGGER_LABELS[node.config.triggerType] : 'Configurar Gatilho')
+    : node.type === 'search'
+    ? (node.config.searchType ? `Procurar ${node.config.searchType.charAt(0).toUpperCase() + node.config.searchType.slice(1)}` : 'Configurar Busca')
     : (node.config.actionType ? ACTION_LABELS[node.config.actionType] : 'Configurar Ação');
 
   return (
@@ -294,6 +296,63 @@ export function AutomationNodePanel({
                   placeholder="Olá {nome_cliente}! Este é um email automático..."
                   rows={4}
                 />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {node.type === 'search' && (
+        <div className="space-y-6">
+          <Label>O que deseja buscar?</Label>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { type: 'projeto', icon: FolderKanban, label: 'Projeto' },
+              { type: 'atividade', icon: CheckSquare, label: 'Atividade' },
+              { type: 'responsavel', icon: UserCog, label: 'Responsável' },
+              { type: 'cliente', icon: UserCog, label: 'Cliente' },
+            ].map((opt) => (
+              <button
+                key={opt.type}
+                onClick={() => updateConfig({ searchType: opt.type })}
+                className={cn(
+                  "flex flex-col items-center justify-center p-3 gap-2 rounded-lg border transition-all text-xs font-medium h-20 text-center",
+                  localConfig.searchType === opt.type 
+                    ? "bg-purple-50 border-purple-500 text-purple-700" 
+                    : "bg-card hover:bg-muted"
+                )}
+              >
+                <opt.icon className="h-5 w-5" />
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {localConfig.searchType === 'responsavel' && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 border-t pt-4">
+              <div className="space-y-2">
+                <Label>De qual funil?</Label>
+                <Select 
+                  value={localConfig.funil_id} 
+                  onValueChange={(v) => updateConfig({ funil_id: v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecione o funil" /></SelectTrigger>
+                  <SelectContent>
+                    {availableFunis.map(f => (
+                      <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          {localConfig.searchType === 'projeto' && (
+            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 border-t pt-4">
+              <Label>Campo de busca</Label>
+              <div className="flex items-center gap-2 p-2 bg-muted rounded-md text-xs text-muted-foreground">
+                <Info className="h-4 w-4" />
+                <span>Usará o ID do projeto atual automaticamente.</span>
               </div>
             </div>
           )}

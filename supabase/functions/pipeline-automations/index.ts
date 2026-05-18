@@ -48,8 +48,53 @@ serve(async (req: Request) => {
       const nodes = flow.nodes || [];
 
       let executedActions = 0;
+      let currentContext = context;
 
       for (const node of nodes) {
+        if (node.type === 'search') {
+          const config = node.config;
+          const searchResult: any = {};
+
+          try {
+            switch (config.searchType) {
+              case 'responsavel': {
+                const { data: funil } = await supabase
+                  .from('projeto_funis')
+                  .select('responsavel_id, consultores:responsavel_id(nome, email, telefone)')
+                  .eq('id', config.funil_id)
+                  .single();
+                
+                if (funil?.consultores) {
+                  searchResult.responsavel = {
+                    id: funil.responsavel_id,
+                    nome: funil.consultores.nome,
+                    email: funil.consultores.email,
+                    telefone: funil.consultores.telefone,
+                  };
+                }
+                break;
+              }
+              case 'projeto': {
+                searchResult.projeto = context.projeto;
+                break;
+              }
+              case 'cliente': {
+                const { data: proj } = await supabase.from('projetos').select('cliente_id').eq('id', context.projeto_id).single();
+                const { data: cliente } = await supabase
+                  .from('clientes')
+                  .select('*')
+                  .eq('id', proj?.cliente_id)
+                  .single();
+                if (cliente) searchResult.cliente = cliente;
+                break;
+              }
+            }
+            currentContext = { ...currentContext, procurar: { ...currentContext.procurar, ...searchResult } };
+          } catch (err) {
+            console.error(`[pipeline-automations] Search failed for node ${node.id}:`, err);
+          }
+        }
+
         if (node.type === 'action') {
           const config = node.config;
 
@@ -58,16 +103,16 @@ serve(async (req: Request) => {
             let telefone = "";
             switch (config.wa_destinatario_tipo) {
               case 'cliente':
-                telefone = context.cliente.telefone;
+                telefone = currentContext.cliente.telefone;
                 break;
               case 'responsavel':
-                telefone = context.responsavel.telefone;
+                telefone = currentContext.responsavel.telefone;
                 break;
               case 'fixo':
                 telefone = config.wa_destinatario_valor;
                 break;
               case 'variavel':
-                telefone = resolveVariable(config.wa_destinatario_valor, context);
+                telefone = resolveVariable(config.wa_destinatario_valor, currentContext);
                 break;
             }
 
@@ -81,7 +126,7 @@ serve(async (req: Request) => {
             const remoteJid = `${numLimpo}@s.whatsapp.net`;
 
             // 3. Interpolar template
-            const content = renderTemplate(config.wa_content_template, context);
+            const content = renderTemplate(config.wa_content_template, currentContext);
 
             // 4. Calcular scheduled_at
             let scheduledAt: string | null = null;
