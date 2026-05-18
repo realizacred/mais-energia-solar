@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, MessageCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Info, MessageCircle, AlertCircle, Loader2, MessageSquare } from "lucide-react";
 import { VARIABLES_CATALOG } from "@/lib/variablesCatalog";
 import { useWaInstances } from "@/hooks/useWaInstances";
 import { useAuth } from "@/hooks/useAuth";
