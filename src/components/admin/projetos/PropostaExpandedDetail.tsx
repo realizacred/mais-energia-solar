@@ -1209,7 +1209,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
         canal,
         lead_id: undefined,
       });
-      const canonicalUrl = `${getPublicUrl()}/proposta/${result.token}`;
+      const canonicalUrl = getProposalWebUrl(result.token);
       setPublicUrl(canonicalUrl);
       if (canal === "whatsapp" && result.whatsapp_sent) {
         toast({ title: "Proposta enviada via WhatsApp! ✅" });
