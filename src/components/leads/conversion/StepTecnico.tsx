@@ -18,6 +18,8 @@ const step2Schema = z.object({
   disjuntor_id: z.string().min(1, "Disjuntor é obrigatório"),
   transformador_id: z.string().min(1, "Transformador é obrigatório"),
   localizacao: z.string().min(1, "Localização é obrigatória"),
+  simulacao_aceita_id: z.string().optional(),
+  observacoes: z.string().optional(),
 });
 
 export type Step2Data = z.infer<typeof step2Schema>;
