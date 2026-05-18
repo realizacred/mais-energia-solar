@@ -1498,6 +1498,19 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
 
 ];
 
+// ── Variáveis do nó "Procurar" (Search) ───────────────────────
+
+export const SEARCH_VARIABLES: CatalogVariable[] = [
+  v("customizada", "procurar.responsavel.nome", "procurar_responsavel_nome", "Responsável: Nome", "Nome do responsável encontrado", "-", "João Responsável"),
+  v("customizada", "procurar.responsavel.email", "procurar_responsavel_email", "Responsável: Email", "Email do responsável encontrado", "-", "joao@email.com"),
+  v("customizada", "procurar.responsavel.telefone", "procurar_responsavel_telefone", "Responsável: Telefone", "Telefone do responsável encontrado", "-", "(31) 99999-9999"),
+  v("customizada", "procurar.cliente.nome", "procurar_cliente_nome", "Cliente: Nome", "Nome do cliente encontrado", "-", "Maria Cliente"),
+  v("customizada", "procurar.projeto.nome", "procurar_projeto_nome", "Projeto: Nome", "Nome do projeto encontrado", "-", "Projeto Solar Residencial"),
+];
+
+// Add search variables to the main catalog
+VARIABLES_CATALOG.push(...SEARCH_VARIABLES);
+
 // ── Variáveis Customizadas Default ───────────────────────────
 
 export const DEFAULT_CUSTOM_VARIABLES: Array<{
