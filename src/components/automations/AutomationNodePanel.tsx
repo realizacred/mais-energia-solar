@@ -178,8 +178,8 @@ export function AutomationNodePanel({
               </div>
 
               {isEquipamento && (
-                <Alert className="bg-amber-50 border-amber-200 text-amber-800">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <Alert className="bg-teal-50 border-teal-200 text-teal-800">
+                  <AlertTriangle className="h-4 w-4 text-teal-600" />
                   <AlertDescription className="text-[11px] font-medium leading-relaxed">
                     Interceptor RB-90: Este funil exige Fornecedor vinculado para mudança de etapas.
                   </AlertDescription>
