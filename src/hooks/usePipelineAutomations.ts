@@ -13,51 +13,49 @@ export function useAutomationFlow(automationId: string | null) {
       
       const { data, error } = await supabase
         .from("pipeline_automations")
-        .select("metadata")
+        .select("*")
         .eq("id", automationId)
         .single();
         
       if (error) throw error;
       
-      if (!data?.metadata || Object.keys(data.metadata).length === 0) {
-        const { data: fullAuto } = await supabase
-          .from("pipeline_automations")
-          .select("*")
-          .eq("id", automationId)
-          .single();
-          
-        if (fullAuto) {
-          const nodes: AutomationFlowNode[] = [
-            {
-              id: "trigger-1",
-              type: "trigger",
-              order: 0,
-              config: {
-                triggerType: fullAuto.tipo_gatilho as any,
-                funil_id: fullAuto.projeto_funil_id || fullAuto.pipeline_id || undefined,
-                etapa_id: fullAuto.projeto_etapa_id || fullAuto.stage_id || undefined,
-              }
-            },
-            {
-              id: "action-1",
-              type: "action",
-              order: 1,
-              config: {
-                actionType: fullAuto.tipo_acao as any,
-                webhook_url: fullAuto.webhook_url || undefined,
-                webhook_secret: fullAuto.webhook_secret || undefined,
-                webhook_headers: fullAuto.webhook_headers as any,
-                canal_notificacao: fullAuto.canal_notificacao || undefined,
-                template_mensagem: fullAuto.template_mensagem || undefined,
-                destino_etapa_id: fullAuto.destino_etapa_projeto_id || fullAuto.destino_stage_id || undefined,
-              }
-            }
-          ];
-          return { nodes } as AutomationFlow;
-        }
+      if (!data) return { nodes: [] } as AutomationFlow;
+
+      // Se tem metadata com nodes, usa ele
+      if ((data.metadata as any)?.nodes?.length > 0) {
+        return data.metadata as any as AutomationFlow;
       }
+
+      // Retrocompatibilidade: reconstruir do schema flat
+      const nodes: AutomationFlowNode[] = [];
       
-      return (data?.metadata as any as AutomationFlow) || { nodes: [] };
+      if (data.tipo_gatilho) {
+        nodes.push({
+          id: 'trigger-1',
+          type: 'trigger',
+          order: 1,
+          config: {
+            triggerType: data.tipo_gatilho as any,
+            funil_id: data.projeto_funil_id,
+            etapa_id: data.projeto_etapa_id,
+          }
+        });
+      }
+
+      if (data.canal_notificacao) {
+        nodes.push({
+          id: 'action-1',
+          type: 'action',
+          order: 2,
+          config: {
+            actionType: data.canal_notificacao as any,
+            webhook_url: data.webhook_url,
+            wa_content_template: data.template_mensagem,
+          }
+        });
+      }
+
+      return { nodes } as AutomationFlow;
     },
     enabled: !!automationId,
     staleTime: 1000 * 60 * 5,
@@ -76,34 +74,38 @@ export function useSaveAutomationFlow() {
       flow: AutomationFlow;
       basicData: { nome: string; ativo: boolean; tenant_id: string }
     }) => {
-      // Map first trigger and action to root columns for indexing
-      const trigger = flow.nodes.find(n => n.type === "trigger");
-      const action = flow.nodes.find(n => n.type === "action");
+      // Validar antes de salvar
+      const noGatilho = flow.nodes.find(n => n.type === 'trigger');
+      const primeiraAcao = flow.nodes.find(n => n.type === 'action');
+
+      if (!noGatilho?.config?.triggerType) {
+        throw new Error("Configure o gatilho primeiro");
+      }
       
       const payload: any = {
         tenant_id: basicData.tenant_id,
         nome: basicData.nome.trim(),
         ativo: basicData.ativo,
-        tipo_gatilho: trigger?.config.triggerType ?? null,
-        projeto_funil_id: trigger?.config.funil_id ?? null,
-        projeto_etapa_id: trigger?.config.etapa_id ?? null,
-        canal_notificacao: action?.config.actionType ?? null,
-        webhook_url: action?.config.webhook_url ?? null,
-        template_mensagem: action?.config.wa_content_template ?? null,
+        tipo_gatilho: noGatilho?.config?.triggerType ?? null,
+        projeto_funil_id: noGatilho?.config?.funil_id ?? null,
+        projeto_etapa_id: noGatilho?.config?.etapa_id ?? null,
+        canal_notificacao: primeiraAcao?.config?.actionType ?? null,
+        webhook_url: primeiraAcao?.config?.webhook_url ?? null,
+        template_mensagem: primeiraAcao?.config?.wa_content_template ?? null,
         metadata: flow as any,
       };
 
       if (automationId) {
         const { error } = await supabase
-          .from("pipeline_automations")
+          .from('pipeline_automations')
           .update(payload)
-          .eq("id", automationId)
-          .eq("tenant_id", basicData.tenant_id);
+          .eq('id', automationId)
+          .eq('tenant_id', basicData.tenant_id);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("pipeline_automations")
-          .insert([payload]);
+          .from('pipeline_automations')
+          .insert(payload);
         if (error) throw error;
       }
     },
