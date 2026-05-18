@@ -901,7 +901,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     setUpdatingStatus(true);
     try {
       // Use RPC for status transitions — tenant validation, state machine, and audit in backend
-      const { data: rpcResult, error } = await supabase.rpc("proposal_update_status" as any, {
+      const { data: rpcResult, error } = await supabase.rpc("proposal_update_status", {
         p_proposta_id: p.id,
         p_new_status: newStatus,
         p_motivo: extra?.motivo || null,
