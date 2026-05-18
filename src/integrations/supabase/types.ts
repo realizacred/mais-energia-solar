@@ -33618,6 +33618,7 @@ export type Database = {
         | "devolvido"
         | "repassado"
         | "cancelado"
+        | "sustado"
       commission_plan_type: "fixed" | "percentage" | "dynamic"
       cost_calc_strategy:
         | "fixed_amount"
@@ -33960,6 +33961,7 @@ export const Constants = {
         "devolvido",
         "repassado",
         "cancelado",
+        "sustado",
       ],
       commission_plan_type: ["fixed", "percentage", "dynamic"],
       cost_calc_strategy: [
