@@ -171,10 +171,16 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
     if (!dealId) return;
     const { data } = await supabase
       .from("projetos")
-      .select("tenant_id, cliente_id")
+      .select("tenant_id, cliente_id, codigo, projeto_num, clientes(nome)")
       .eq("id", dealId)
       .maybeSingle();
-    if (data) setProjectData(data);
+    
+    if (data) {
+      setProjectData({
+        ...data,
+        cliente_nome: (data.clientes as any)?.nome
+      });
+    }
   }, [dealId]);
 
   const fetchOrdemCompra = useCallback(async () => {
