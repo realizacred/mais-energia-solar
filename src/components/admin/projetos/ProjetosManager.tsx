@@ -408,7 +408,6 @@ export function ProjetosManager() {
   }, [setSearchParams]);
   const [activeTab, setActiveTab] = useState<string>("kanban");
   const [showCentralPendencias, setShowCentralPendencias] = useState(true);
-  const [showCentralPendencias, setShowCentralPendencias] = useState(true);
   const [dynamicEtiquetas, setDynamicEtiquetas] = useState<DynamicEtiqueta[]>([]);
   const [defaultFunilApplied, setDefaultFunilApplied] = useState(false);
 
