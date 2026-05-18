@@ -61,7 +61,7 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
       const saved = localStorage.getItem(`lead_conversion_${lead.id}`);
       if (saved) {
         const data = JSON.parse(saved);
-        console.log("[ConvertLeadToClientDialog] Found saved data:", data);
+        
         setStep1Data(data.step1Data || { 
           nome: lead.nome, 
           telefone: lead.telefone, 
