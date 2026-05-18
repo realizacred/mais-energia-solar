@@ -1191,8 +1191,8 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
                           className="h-7 text-[10px] w-fit gap-1 border-warning/40 hover:bg-warning/10"
                           onClick={() => {
                             setFornecedorModal({
-                              projetoId: dealId,
-                              projetoCodigo: projectData?.codigo || projectData?.projeto_num ? `SM-PROJ-${projectData.projeto_num}` : undefined,
+                              projetoId: projetoId || dealId,
+                              projetoCodigo: projectData?.codigo || (projectData?.projeto_num ? `SM-PROJ-${projectData.projeto_num}` : undefined),
                               clienteNome: projectData?.cliente_nome,
                               etapaId: activeMembership.stage_id,
                               etapaNome: activeMembership.stage_name,
