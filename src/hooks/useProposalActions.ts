@@ -31,9 +31,11 @@ export function useProposalActions({ versaoId, propostaRaw, vm }: UseProposalAct
   const qc = useQueryClient();
 
   const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ["proposal-detail", versaoId] });
-    qc.invalidateQueries({ queryKey: ["proposta-aceita-gate"] });
-    qc.invalidateQueries({ queryKey: ["deal-propostas"] });
+    invalidatePropostaCaches(qc, {
+      propostaId: propostaRaw?.id || null,
+      dealId: propostaRaw?.deal_id || null,
+      versaoId: versaoId || null,
+    });
   };
 
   // ─── Transition Status (backend-driven) ─────────────────
