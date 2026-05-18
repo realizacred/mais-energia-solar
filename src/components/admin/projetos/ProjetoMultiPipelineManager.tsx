@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveOrdemStatusByEquipamentoStage } from "@/lib/ordemCompraStageSync";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Layers, Plus, X, Check, ChevronDown, ChevronRight, Trash2, Loader2, GripVertical, Trophy, XCircle, AlertTriangle,
@@ -546,33 +547,38 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
       if (error) throw error;
 
       // Sincronizar status da ordem com a etapa do funil de Equipamento
-      if (membership?.pipeline_name.toLowerCase().includes('equipamento') || membership?.pipeline_name.toLowerCase().includes('suprimentos')) {
-        let novoStatus: string | null = null;
-        if (stageName.includes('pedido efetuado')) novoStatus = 'pedido_efetuado';
-        else if (stageName.includes('pedido pago')) novoStatus = 'deposito_pago';
-        else if (stageName.includes('depósito')) novoStatus = 'deposito_confirmado';
-        else if (stageName.includes('cliente')) novoStatus = 'entregue_cliente';
-        else if (stageName.includes('instalação')) novoStatus = 'instalado';
-        else if (stageName.includes('sistema em operação')) novoStatus = 'concluido';
+      if (
+        membership?.pipeline_name.toLowerCase().includes("equipamento") ||
+        membership?.pipeline_name.toLowerCase().includes("suprimentos")
+      ) {
+        const { data: ordem } = await supabase
+          .from("ordens_compra")
+          .select("id, status")
+          .eq("projeto_id", projetoIdAtual)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-        if (novoStatus) {
-          const { data: ordem } = await supabase
-            .from('ordens_compra')
-            .select('id')
-            .eq('projeto_id', projetoIdAtual)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (ordem) {
+        if (ordem) {
+          const novoStatus = resolveOrdemStatusByEquipamentoStage(
+            stageName,
+            (ordem as any).status,
+          );
+          if (novoStatus) {
             await supabase
-              .from('ordens_compra')
+              .from("ordens_compra")
               .update({ status: novoStatus } as any)
-              .eq('id', (ordem as any).id);
+              .eq("id", (ordem as any).id);
+            await supabase.from("ordens_compra_eventos" as any).insert({
+              ordem_compra_id: (ordem as any).id,
+              tipo: "status_alterado",
+              descricao: `Status alterado para ${novoStatus} (sync funil → etapa "${stageName}")`,
+            });
             fetchOrdemCompra();
           }
         }
       }
+
 
       toast({ title: "Etapa atualizada" });
 
