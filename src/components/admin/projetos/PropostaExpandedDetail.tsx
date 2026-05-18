@@ -631,7 +631,7 @@ function NativeResumoTab({ snapshot, ucsDetail, latestVersao, wpPrice, buildSumm
                   <td />
                   <td className="py-3 px-3 text-right">
                     {wpPrice && <span className="text-[10px] text-primary font-semibold block">R$ {wpPrice.replace('.', ',')} / Wp</span>}
-                    <span className="font-bold text-foreground text-sm">{formatBRL(latestVersao?.valor_total || 0)}</span>
+                    <span className="font-bold text-foreground text-sm">{formatBRL(getCanonicalProposalTotal(latestVersao as any))}</span>
                   </td>
                   <td />
                 </tr>
