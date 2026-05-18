@@ -42,6 +42,8 @@ import { usePropostaExpandedSnapshot, usePropostaExpandedUcs, usePropostaExpande
 import { useReabrirProposta, useIsAdminOrGerente } from "@/hooks/useReabrirProposta";
 import { useProposalTemplates } from "@/hooks/useProposalTemplates";
 import { PropostaBadge } from "./PropostaBadge";
+import { getAvailableProposalActions } from "@/domain/proposal/proposalActionsHelper";
+
 
 
 // ─── Types ──────────────────────────────────────────
