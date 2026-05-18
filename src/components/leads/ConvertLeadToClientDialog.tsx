@@ -958,7 +958,7 @@ export function ConvertLeadToClientDialog({
   const canAdvanceStep = (step: number): boolean => {
     if (step === 0) {
       const v = form.getValues();
-      return !!(v.nome && v.telefone && v.estado && v.cidade);
+      return !!(v.nome && v.telefone && v.cpf_cnpj && v.cpf_cnpj.replace(/\D/g, '').length >= 11);
     }
     return true;
   };
@@ -1035,15 +1035,16 @@ export function ConvertLeadToClientDialog({
             const StepIcon = step.icon;
             const isActive = idx === currentStep;
             const isDone = idx < currentStep;
-            const isVisited = idx < currentStep;
+            const isVisited = idx <= currentStep;
             const stepComplete = isVisited && isStepComplete(idx);
             const stepIncomplete = isVisited && !stepComplete;
+            const canAccess = idx === 0 || canAdvanceStep(idx - 1);
             return (
               <div key={idx} className="flex items-center gap-1 flex-1 min-w-0">
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => idx < currentStep && setCurrentStep(idx)}
+                  onClick={() => canAccess && setCurrentStep(idx)}
                   className={`flex items-center gap-2 px-2 sm:px-3 py-2 rounded-lg transition-colors w-full min-w-0 h-auto ${
                     isActive
                       ? "bg-teal-500/10 text-teal-600 hover:bg-teal-500/15"
@@ -1053,7 +1054,7 @@ export function ConvertLeadToClientDialog({
                       ? "text-warning cursor-pointer hover:bg-muted/50"
                       : "text-muted-foreground hover:bg-transparent"
                   }`}
-                  disabled={idx > currentStep}
+                  disabled={!canAccess}
                 >
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
                     isActive
@@ -1486,7 +1487,11 @@ export function ConvertLeadToClientDialog({
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 {currentStep < STEPS.length - 1 ? (
-                  <Button type="button" onClick={handleNext} className="w-full sm:w-auto h-11 sm:h-9">
+                  <Button 
+                    type="button" 
+                    onClick={handleNext} 
+                    className="w-full sm:w-auto h-11 sm:h-9 bg-teal-600 hover:bg-teal-700 text-white"
+                  >
                     Próximo <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
                 ) : (
@@ -1516,7 +1521,7 @@ export function ConvertLeadToClientDialog({
                     </Button>
                     <Button
                       type="button"
-                      className="w-full sm:w-auto h-11 sm:h-9"
+                      className="w-full sm:w-auto h-11 sm:h-9 bg-teal-600 hover:bg-teal-700 text-white"
                       disabled={loading || savingAsLead}
                       onClick={async () => {
                         const valid = await form.trigger();
