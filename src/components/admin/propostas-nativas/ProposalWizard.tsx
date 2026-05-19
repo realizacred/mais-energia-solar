@@ -1549,8 +1549,13 @@ function ProposalWizardContent() {
         const restoredPdfPath = (versao as any)?.output_pdf_path ?? null;
         const restoredDocxPath = (versao as any)?.output_docx_path ?? null;
         const restoredLinkPdf = (versao as any)?.link_pdf ?? null;
+        const restoredGenStatus = (versao as any)?.generation_status ?? null;
 
-        if (restoredPdfPath) {
+        if (restoredGenStatus === "rendering_pdf" || restoredGenStatus === "processing") {
+          // If we left the page during generation, pick it back up
+          setRendering(true);
+          setGenerationStatus("rendering_pdf");
+        } else if (restoredPdfPath) {
           setOutputPdfPath(restoredPdfPath);
           setOutputDocxPath(restoredDocxPath);
           setExternalPdfUrl(null);
@@ -1574,6 +1579,9 @@ function ProposalWizardContent() {
           setOutputDocxPath(null);
           setExternalPdfUrl(restoredLinkPdf);
           setGenerationStatus("ready");
+        } else if (restoredGenStatus === "error") {
+          setGenerationStatus("error");
+          setGenerationError((versao as any)?.generation_error || "Erro na geração anterior");
         }
 
 
