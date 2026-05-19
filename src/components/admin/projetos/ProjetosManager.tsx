@@ -726,6 +726,10 @@ export function ProjetosManager() {
               <Layers className="h-4 w-4" />
               <span className="hidden sm:inline">Funil</span>
             </TabsTrigger>
+            <TabsTrigger value="pendencias" className="gap-1.5 text-xs">
+              <Clock className="h-4 w-4" />
+              <span className="hidden sm:inline">Pendências</span>
+            </TabsTrigger>
             <TabsTrigger value="performance" className="gap-1.5 text-xs">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Performance</span>
