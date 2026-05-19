@@ -675,7 +675,7 @@ interface Props {
 }
 
 
-export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, onToggle, dealId, customerId, onRefresh, isOutdated, onSetPrincipal, onArchive }: Props) {
+export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, onToggle, dealId, dealStatus, customerId, onRefresh, isOutdated, onSetPrincipal, onArchive }: Props) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: tenantCtx } = useQuery({ queryKey: ["current-tenant-id"], queryFn: getCurrentTenantId, staleTime: 1000 * 60 * 15 });
