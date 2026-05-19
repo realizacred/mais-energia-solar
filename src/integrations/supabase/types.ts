@@ -32042,27 +32042,17 @@ export type Database = {
         }
         Returns: Json
       }
-      convert_lead_to_venda_v2:
-        | {
-            Args: {
-              _idempotency_key?: string
-              _lead_id: string
-              _payload: Json
-              _payment_composition: Json
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              _idempotency_key?: string
-              _is_pending?: boolean
-              _lead_id: string
-              _orcamento_id?: string
-              _payload: Json
-              _payment_composition: Json
-            }
-            Returns: Json
-          }
+      convert_lead_to_venda_v2: {
+        Args: {
+          _idempotency_key?: string
+          _is_pending?: boolean
+          _lead_id: string
+          _orcamento_id?: string
+          _payload: Json
+          _payment_composition: Json
+        }
+        Returns: Json
+      }
       create_appointment_idempotent: {
         Args: {
           _all_day?: boolean
