@@ -226,7 +226,7 @@ function ProposalMessageConfigPageInner() {
 
   // Identifica variáveis usadas e seu status
   const usedVariablesAnalysis = useMemo(() => {
-    const currentText = templates[activeTemplateKey] || previewText;
+    const currentText = templates[activeTemplateKey] || DEFAULT_TEMPLATES[activeTemplateKey as keyof typeof DEFAULT_TEMPLATES] || "";
     const matches = currentText.match(/\{\{([^}]+)\}\}/g) || [];
     const uniqueKeys = [...new Set(matches.map(m => m.replace(/\{\{|\}\}/g, '')))];
 
