@@ -349,16 +349,15 @@ function StageDealCardImpl({
         )}
 
         {/* OPERATIONAL INFO: SLA / Time in Stage + Responsibility */}
-        <div className="flex items-center justify-between bg-muted/30 rounded-md p-1.5 border border-border/40">
+        <div className="flex items-center justify-between bg-muted/30 rounded-md p-1.5">
           <div className="flex flex-col gap-0.5">
             <span className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">
               {isBlocked ? "Parado há" : "Com a bola há"}
             </span>
             <div className={cn(
-              "flex items-center gap-1 text-[11px] font-bold tabular-nums",
-              isCritical ? "text-destructive" :
-              isDelayed ? "text-orange-600" :
-              isAttention ? "text-warning" :
+              "flex items-center gap-1 text-[12px] font-bold tabular-nums",
+              isCritical || isBlocked ? "text-destructive" :
+              isDelayed ? "text-warning" :
               "text-foreground"
             )}>
               <Clock className="h-3 w-3" />
