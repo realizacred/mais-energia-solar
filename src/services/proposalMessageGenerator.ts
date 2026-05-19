@@ -34,6 +34,7 @@ export interface ProposalMessageContext {
   paybackMeses: number | null;
   valorTotal: number | null;
   linkProposta: string | null;
+  linkPdf: string | null;
   tipoTelhado: string | null;
   distribuidora: string | null;
   consultorNome: string | null;
