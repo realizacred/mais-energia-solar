@@ -190,14 +190,25 @@ export function ConvertLeadToClientDialog({
         _is_pending: isPending
       });
       
-      if (error || !(res as any)?.success) throw new Error((res as any)?.message || "Erro na conversão");
+      if (error) {
+        throw new Error(error.message || "Erro na execução da RPC");
+      }
+
+      if (!(res as any)?.success) {
+        throw new Error((res as any)?.message || "Erro na conversão");
+      }
 
       localStorage.removeItem(`lead_conversion_${lead?.id}`);
       toast({ title: isPending ? "Progresso salvo!" : "Venda convertida!", description: isPending ? "O projeto foi criado como pendente de documentação." : "O lead foi processado com sucesso." });
       onOpenChange(false);
       onSuccess?.();
     } catch (err: any) {
-      toast({ title: "Erro na conversão", description: err.message, variant: "destructive" });
+      console.error("Erro na conversão:", err);
+      toast({ 
+        title: "Erro na conversão", 
+        description: err.message || "Ocorreu um erro inesperado durante a conversão.", 
+        variant: "destructive" 
+      });
     } finally {
       setLoading(false);
     }
