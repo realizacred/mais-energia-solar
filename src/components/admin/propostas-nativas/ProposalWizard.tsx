@@ -2604,9 +2604,24 @@ function ProposalWizardContent() {
             setHtmlPreview(renderResult.html);
             setGenerationStatus("ready");
             setRendering(false);
+            
+            // Explicitly mark as completed in DB for HTML templates too
+            await supabase
+              .from("proposta_versoes")
+              .update({ generation_status: "ready" } as any)
+              .eq("id", genResult.versao_id);
           } catch (e: any) {
             setGenerationStatus("error");
             setGenerationError(e.message || "Erro ao renderizar HTML");
+            
+            // Mark as error in DB
+            await supabase
+              .from("proposta_versoes")
+              .update({ 
+                generation_status: "error",
+                generation_error: e.message || "Erro ao renderizar HTML"
+              } as any)
+              .eq("id", genResult.versao_id);
           }
         })();
       }
