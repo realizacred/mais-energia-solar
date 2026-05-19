@@ -494,9 +494,9 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                       />
                     )}
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      className="w-full h-8 text-xs font-medium border-dashed border-primary/40 text-primary hover:bg-primary/5"
+                      className="w-full h-8 text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/5"
                       onClick={() => onNewProject?.({
                         pipelineId: stage.pipeline_id,
                         stageId: stage.id,
