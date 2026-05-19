@@ -150,6 +150,8 @@ function ProposalMessageConfigPageInner() {
   const [previewStyle, setPreviewStyle] = useState<MessageStyle>("completa");
   const [copiedPlaceholder, setCopiedPlaceholder] = useState<string | null>(null);
   const [previewTab, setPreviewTab] = useState<"text" | "structure">("text");
+  const [editingBlock, setEditingBlock] = useState<string | null>(null);
+  const [previewChannel, setPreviewChannel] = useState<"whatsapp" | "email" | "plain">("whatsapp");
 
   // Initialize from config (sem setState durante render)
   useEffect(() => {
