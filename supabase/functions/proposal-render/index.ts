@@ -60,6 +60,7 @@ Deno.serve(async (req) => {
     if (!versao.snapshot) return jsonError("Versão sem snapshot — gere a proposta primeiro", 400);
 
     // ── 4. IDEMPOTÊNCIA ─────────────────────────────────────
+    const force = body.force === true;
     const { data: existingRender } = await adminClient
       .from("proposta_renders")
       .select("id, url, html, created_at")
@@ -68,9 +69,25 @@ Deno.serve(async (req) => {
       .eq("tipo", "html")
       .maybeSingle();
 
-    if (existingRender) {
+    if (existingRender && !force) {
       return jsonOk({ success: true, idempotent: true, render_id: existingRender.id, url: existingRender.url, html: existingRender.html });
     }
+
+    // Set status to generating
+    await adminClient.from("proposta_versoes")
+      .update({ generation_status: "generating" })
+      .eq("id", versao_id);
+
+    // Record start event
+    await adminClient.from("proposal_events").insert({
+      proposta_id: versao.proposta_id,
+      tipo: "docx_started",
+      payload: { versao_id: versao.id, template_id: versao.template_id_used },
+      tenant_id: tenantId,
+      user_id: userId
+    });
+    
+    const startTime = Date.now();
 
     // ── 5. DADOS PARALELOS ──────────────────────────────────
     // Determine template ID: prefer versao.template_id_used, fallback to proposta.template_id
@@ -199,6 +216,7 @@ Deno.serve(async (req) => {
     }
 
     // ── PROMOTE STATUS ──────────────────────────────────────
+    const duration = Date.now() - startTime;
     await Promise.all([
       adminClient.from("propostas_nativas")
         .update({ status: "gerada" })
@@ -211,11 +229,36 @@ Deno.serve(async (req) => {
         })
         .eq("id", versao.id)
         .eq("tenant_id", tenantId),
+      adminClient.from("proposal_events").insert({
+        proposta_id: versao.proposta_id,
+        tipo: "docx_ready",
+        payload: { 
+          versao_id: versao.id, 
+          duration_ms: duration,
+          render_id: render!.id
+        },
+        tenant_id: tenantId,
+        user_id: userId
+      })
     ]);
 
     return jsonOk({ success: true, idempotent: false, render_id: render!.id, html, url: null });
-  } catch (err) {
+  } catch (err: any) {
     console.error("[proposal-render] Error:", err);
+    
+    // Record failure
+    try {
+      const versaoId = (await req.json()).versao_id;
+      if (versaoId) {
+        await adminClient.from("proposta_versoes")
+          .update({ 
+            generation_status: "failed", 
+            generation_error: err?.message || "Erro desconhecido" 
+          })
+          .eq("id", versaoId);
+      }
+    } catch { /* ignore */ }
+
     return jsonError((err as any)?.message ?? "Erro interno", 500);
   }
 });
