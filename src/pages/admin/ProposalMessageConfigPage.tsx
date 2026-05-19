@@ -21,8 +21,12 @@ import { PageErrorBoundary } from "@/components/common/PageErrorBoundary";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import {
   MessageCircle, Settings2, Save, RotateCcw, Eye, Variable,
-  ToggleLeft, Sliders, Copy, CheckCircle, ShieldAlert
+  ToggleLeft, Sliders, Copy, CheckCircle, ShieldAlert,
+  GripVertical, Pencil, ArrowUp, ArrowDown, Check,
+  ExternalLink, ChevronRight, Wand2, Sparkles,
+  Smartphone, Mail as MailIcon, FileText
 } from "lucide-react";
+import { Reorder, useDragControls } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
