@@ -13,7 +13,7 @@ import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
   ChevronDown, MoreVertical, ExternalLink, AlertCircle, AlertTriangle, CheckCircle, Loader2,
   Link2, MessageCircle, Mail, CalendarCheck, RefreshCw, Home, Building2, Star, FolderOpen, MessageSquareText, RotateCcw,
-  FilePlus, FileCheck, Clock, TrendingUp, PiggyBank, Timer
+  FilePlus, FileCheck, Clock, TrendingUp, PiggyBank, Timer, Trophy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
