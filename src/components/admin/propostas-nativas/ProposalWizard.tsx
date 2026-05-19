@@ -43,13 +43,14 @@ const STEPS = [
 
 function WizardContent() {
   const [currentStep, setCurrentStep] = useState(0);
-  const { selectedLead, handleUCsChange, ucs } = useWizardContext();
+  const { selectedLead, handleUCsChange, ucs, comercial, setComercial } = useWizardContext();
   const leadFase = selectedLead?.rede_atendimento;
 
   const renderStep = () => {
     switch (currentStep) {
       case 0: return <StepCliente />;
-      case 1: return <StepComercial />;
+      case 1: return <StepComercial comercial={comercial} onComercialChange={setComercial} />;
+
       case 2: return <StepLocalizacao />;
       case 3: return <StepUCsEnergia onNext={() => setCurrentStep(4)} onBack={() => setCurrentStep(2)} />;
       case 4: return <StepConsumptionIntelligence leadFase={leadFase} />;
