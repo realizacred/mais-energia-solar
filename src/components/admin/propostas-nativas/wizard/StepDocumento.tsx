@@ -1130,9 +1130,6 @@ export function StepDocumento({
                   <FileDown className="h-3.5 w-3.5" />
                   Baixar DOCX (Editável)
                 </Button>
-              </div>
-            </div>
-          )}
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
