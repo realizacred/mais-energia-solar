@@ -518,15 +518,13 @@ Deno.serve(async (req) => {
         .limit(1)
         .maybeSingle(),
       // ── TEMPLATE: Fetch default template if not provided ──
-      !body.template_id
-        ? adminClient.from("proposta_templates")
-            .select("id")
+        adminClient.from("proposta_templates")
+            .select("id, template_html")
             .eq("tenant_id", tenantId)
             .eq("ativo", true)
-            .eq("is_default", true)
+            .eq(body.template_id ? "id" : "is_default", body.template_id || true)
             .limit(1)
-            .maybeSingle()
-        : Promise.resolve({ data: null, error: null }),
+            .maybeSingle(),
     ]);
 
     // Resolve template_id (payload > default from DB)
@@ -930,6 +928,7 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
       calc_hash: hash,
       gerado_em: new Date().toISOString(),
       grupo: backendGrupo,
+      web_template_snapshot: templateRes.data?.template_html || null,
       regra_lei_14300: {
         versao: `${anoAtual}-01`,
         fio_b_ano: anoAtual,
