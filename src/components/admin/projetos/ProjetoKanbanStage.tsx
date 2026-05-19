@@ -743,25 +743,20 @@ function ResizableKanbanColumn({
         </div>
 
         {/* ── Metrics row ── */}
-        <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground">
-          <span className="flex items-center gap-0.5 font-bold text-[11px] font-mono text-success">
-            <DollarSign className="h-3 w-3" />
-            {formatBRL(totalValue)}
-          </span>
-          {totalKwp > 0 && (
-            <span className="flex items-center gap-0.5 font-mono font-bold text-info text-[11px]">
-              <Zap className="h-3 w-3" />
-              {formatKwp(totalKwp)}
-            </span>
-          )}
-          <Badge variant="secondary" className="text-[9px] h-4 px-1.5 font-bold ml-auto rounded-full bg-primary/10 text-primary border-0">
-            {count}
+        <div className="flex items-center gap-2.5 text-[9px] text-muted-foreground/60">
+          <Badge variant="secondary" className="text-[10px] h-4.5 px-2 font-black rounded-lg bg-foreground/5 text-foreground border-0">
+            {count} projetos
           </Badge>
-          {overdueCount > 0 && (
-            <Badge variant="destructive" className="text-[9px] h-4 px-1.5 font-bold rounded-full">
-              {overdueCount} ⚠
-            </Badge>
-          )}
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="flex items-center gap-0.5 font-mono">
+              {formatBRL(totalValue)}
+            </span>
+            {totalKwp > 0 && (
+              <span className="flex items-center gap-0.5 font-mono">
+                {formatKwp(totalKwp)}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
