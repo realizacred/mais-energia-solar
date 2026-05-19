@@ -251,7 +251,7 @@ export function StageDealCard({
                 <PropostaBadge 
                   type={(() => {
                     const normalized = deal.proposta_status?.toLowerCase() ?? "";
-                    if (["aceita", "accepted", "aprovada", "ganha"].includes(normalized)) return "aceita";
+                    if (["aceita", "accepted"].includes(normalized)) return "aceita";
                     if (["enviada", "sent", "visualizada", "vista"].includes(normalized)) return "enviada";
                     if (["gerada", "generated"].includes(normalized)) return "gerada";
                     if (["rascunho", "draft"].includes(normalized)) return "rascunho";
