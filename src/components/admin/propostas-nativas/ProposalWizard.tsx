@@ -2232,6 +2232,10 @@ function ProposalWizardContent() {
               cidade: lead.cidade, media_consumo: lead.media_consumo,
               tipo_telhado: lead.tipo_telhado,
               municipio_ibge_codigo: lead.municipio_ibge_codigo || undefined,
+              observacoes: lead.observacoes,
+              orc_observacoes: orc.observacoes,
+              source_type: "orcamento",
+
             });
             if (lead.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(lead.municipio_ibge_codigo);
           }
