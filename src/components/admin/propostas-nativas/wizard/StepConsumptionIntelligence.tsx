@@ -643,7 +643,7 @@ function StepConsumptionIntelligenceImpl({
           </p>
         </div>
       </div>
-    </div>
+
       {/* ─── Modals */}
       <UCConfigModal
         open={configModal.open}
