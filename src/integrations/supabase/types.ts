@@ -5258,6 +5258,8 @@ export type Database = {
           title: string
           updated_at: string
           value: number
+          won_at: string | null
+          won_by: string | null
         }
         Insert: {
           created_at?: string
@@ -5289,6 +5291,8 @@ export type Database = {
           title: string
           updated_at?: string
           value?: number
+          won_at?: string | null
+          won_by?: string | null
         }
         Update: {
           created_at?: string
@@ -5320,6 +5324,8 @@ export type Database = {
           title?: string
           updated_at?: string
           value?: number
+          won_at?: string | null
+          won_by?: string | null
         }
         Relationships: [
           {
