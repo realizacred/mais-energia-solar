@@ -1,7 +1,9 @@
 import { Sun, Cpu, Plus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatBRL, cn } from "../types";
+import { formatBRL } from "../types";
+import { cn } from "@/lib/utils";
+
 
 
 export interface KitCardData {
