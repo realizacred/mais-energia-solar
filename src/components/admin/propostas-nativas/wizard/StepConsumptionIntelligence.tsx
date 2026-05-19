@@ -484,6 +484,30 @@ function StepConsumptionIntelligenceImpl({
 
         <LeadBriefingPanel />
 
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 relative overflow-hidden group">
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+              <Zap className="h-6 w-6 text-primary" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-sm font-black uppercase tracking-widest text-primary">Assistente de Dimensionamento</h4>
+              <p className="text-xs text-muted-foreground max-w-xl">
+                Baseado no consumo de <strong>{formatNumberBR(consumoTotal)} kWh</strong> e na irradiação local, 
+                recomendo um sistema de <span className="text-primary font-bold">{potenciaIdeal.toFixed(2)} kWp</span>.
+              </p>
+            </div>
+            <Button 
+              className="ml-auto bg-primary text-primary-foreground font-black text-[10px] uppercase tracking-widest h-9"
+              onClick={applyPotIdeal}
+              disabled={Math.abs(potenciaKwp - potenciaIdeal) < 0.1}
+            >
+              {Math.abs(potenciaKwp - potenciaIdeal) < 0.1 ? "Potência Aplicada" : "Aplicar Recomendação"}
+            </Button>
+          </div>
+          <Target className="h-24 w-24 text-primary/5 absolute -right-4 -bottom-4 group-hover:scale-110 transition-transform" />
+        </div>
+
+
         {/* ─── Metric Cockpit Summary */}
         <div className="flex flex-wrap items-center gap-6 text-[11px] text-muted-foreground bg-muted/30 p-3 rounded-lg border border-border/40">
           <div className="flex items-center gap-2">
