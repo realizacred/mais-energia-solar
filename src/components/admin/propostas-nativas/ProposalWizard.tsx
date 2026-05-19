@@ -1907,6 +1907,4 @@
           onConfirmGenerate={handleGateConfirmed}
         />
       )}
-    </div>
-  );
 }
