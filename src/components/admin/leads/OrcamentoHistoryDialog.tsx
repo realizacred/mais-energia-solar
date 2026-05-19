@@ -38,6 +38,8 @@ export function OrcamentoHistoryDialog({
   onViewOrcamento,
   onWhatsApp,
   onConvertOrcamento,
+  onArchiveOrcamento,
+
 }: OrcamentoHistoryDialogProps) {
   if (!group) return null;
 
