@@ -32,6 +32,7 @@ import { ProjetoPerformanceDashboard } from "./ProjetoPerformanceDashboard";
 import { EtiquetasManager } from "./EtiquetasManager";
 import { ProjetoPipelineTemplates } from "./ProjetoPipelineTemplates";
 import { CentralPendencias } from "./CentralPendencias";
+import { differenceInDays, differenceInHours } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast as sonnerToast } from "sonner";
 
