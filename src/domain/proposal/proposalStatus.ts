@@ -45,8 +45,8 @@ export function normalizeStatus(status: string | null | undefined): ProposalStat
 export interface ProposalLike {
   status: string | null | undefined;
   aceita_at?: string | null;
-  accepted_via?: string | null;
 }
+
 
 /**
  * Verifica se a proposta foi FORMALMENTE aceita.
