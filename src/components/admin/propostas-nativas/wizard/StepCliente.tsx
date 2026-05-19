@@ -397,7 +397,11 @@ function StepClienteForm({
   }, [cliente.celular, cliente.cnpj_cpf]);
 
   const handleSelect = (lead: any) => {
-    onSelectLead(lead);
+    onSelectLead({
+      ...lead,
+      geracao_estimada_kwh: Number(lead.consumo_previsto) > 0 ? Number(lead.consumo_previsto) : undefined,
+      source_type: "lead"
+    });
     onClienteChange({
       ...cliente,
       nome: lead.nome || cliente.nome,
@@ -411,6 +415,7 @@ function StepClienteForm({
     });
     setSearch("");
   };
+
 
   const [fetchingCep, setFetchingCep] = useState(false);
   const { lookup: lookupCep } = useCepLookup();
