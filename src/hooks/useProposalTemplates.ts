@@ -16,6 +16,7 @@ export interface PropostaTemplate {
   tipo: string;
   thumbnail_url: string | null;
   is_default: boolean;
+  template_html: string | null;
 }
 
 export interface EmailTemplate {
@@ -36,7 +37,7 @@ export function useProposalTemplates() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("proposta_templates")
-        .select("id, nome, descricao, grupo, categoria, tipo, thumbnail_url, is_default")
+        .select("id, nome, descricao, grupo, categoria, tipo, thumbnail_url, is_default, template_html")
         .eq("ativo", true)
         .order("ordem", { ascending: true });
       if (error) throw error;
