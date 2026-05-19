@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeProposalSnapshot, type NormalizedProposalSnapshot } from "@/domain/proposal/normalizeProposalSnapshot";
 
-export type PublicProposalMode = "web" | "pdf" | "pending" | "error";
+export type PublicProposalMode = "web" | "pdf" | "generating" | "failed" | "error";
 
 export interface PublicProposalResolution {
   mode: PublicProposalMode;
@@ -15,6 +15,8 @@ export interface PublicProposalResolution {
   webTemplateHtml?: any;
   error?: string;
   statusComercial?: string;
+  generationStatus?: string;
+  generationError?: string;
 }
 
 /**
@@ -44,7 +46,7 @@ export async function resolvePublicProposal(token: string): Promise<PublicPropos
     // 2. Busca dados da versão e proposta
     const [versaoRes, propostaRes] = await Promise.all([
       supabase.from("proposta_versoes")
-        .select("id, snapshot, output_pdf_path, template_id_used, link_pdf, status")
+        .select("id, snapshot, output_pdf_path, template_id_used, link_pdf, status, generation_status, generation_error")
         .eq("id", td.versao_id)
         .single(),
       supabase.from("propostas_nativas")
@@ -71,7 +73,34 @@ export async function resolvePublicProposal(token: string): Promise<PublicPropos
     const templateType = templateRes?.tipo === "html" ? "html" : "docx";
 
     // 4. Lógica de Decisão de Modo
-    
+    const generationStatus = versao.generation_status || "pending";
+    const generationError = versao.generation_error;
+
+    // Se o status for explicitamente 'failed', mostramos erro amigável de geração
+    if (generationStatus === "failed") {
+      return {
+        mode: "failed",
+        propostaId: td.proposta_id,
+        versaoId: td.versao_id,
+        tokenData: td,
+        generationStatus,
+        generationError,
+        templateType: templateRes?.tipo === "html" ? "html" : "docx"
+      };
+    }
+
+    // Se estiver gerando, mostramos tela de espera
+    if (generationStatus === "generating" || generationStatus === "pending") {
+      return {
+        mode: "generating",
+        propostaId: td.proposta_id,
+        versaoId: td.versao_id,
+        tokenData: td,
+        generationStatus,
+        templateType: templateRes?.tipo === "html" ? "html" : "docx"
+      };
+    }
+
     // Se for HTML, tentamos modo WEB
     if (templateType === "html") {
       let webTemplateHtml = rawSnapshot?.web_template_snapshot;
@@ -91,7 +120,8 @@ export async function resolvePublicProposal(token: string): Promise<PublicPropos
           templateType: "html",
           webTemplateHtml,
           pdfPath: versao.output_pdf_path,
-          statusComercial: propostaRes.data?.status
+          statusComercial: propostaRes.data?.status,
+          generationStatus
         };
       }
     }
@@ -106,16 +136,18 @@ export async function resolvePublicProposal(token: string): Promise<PublicPropos
         snapshot: normalizedSnapshot,
         templateType: "docx",
         pdfPath: versao.output_pdf_path || versao.link_pdf,
-        statusComercial: propostaRes.data?.status
+        statusComercial: propostaRes.data?.status,
+        generationStatus
       };
     }
 
-    // Se não tem PDF ainda, mas a versão existe, está pendente
+    // Fallback para gerando se nada estiver pronto mas não houve erro explícito
     return {
-      mode: "pending",
+      mode: "generating",
       propostaId: td.proposta_id,
       versaoId: td.versao_id,
       tokenData: td,
+      generationStatus,
       templateType
     };
 
