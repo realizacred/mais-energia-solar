@@ -46,6 +46,17 @@ export function ProposalWizard() {
   const { user } = useAuth();
   const isAdminOrGerente = user?.role === "admin" || user?.role === "gerente";
 
+  // Data loading via hook (merged state)
+  const wizardData = useWizardDataLoaders({ 
+    propostaId: propostaIdFromUrl, 
+    versaoId: versaoIdFromUrl,
+    dealId: dealIdFromUrl,
+    customerId: customerIdFromUrl,
+    leadId: leadIdFromUrl,
+    orcId: orcIdFromUrl
+  });
+
+  // Proxy for legacy references (to avoid breaking thousands of lines)
   const {
     cliente, setCliente, projectAddress, setProjectAddress,
     ucs, setUcs, handleUCsChange, premissas, setPremissas,
@@ -67,7 +78,7 @@ export function ProposalWizard() {
     showNewVersionConfirm, setShowNewVersionConfirm,
     pendingUpdateAction, setPendingUpdateAction,
     showPosDialog, setShowPosDialog, showGateModal, setShowGateModal,
-    gateValidation, handleGateConfirmed,
+    gateValidation, 
     blockReason, setBlockReason, blockMissing, setBlockMissing,
     showBlockModal, setShowBlockModal,
     generationStatus, setGenerationStatus, generationError, setGenerationError,
@@ -84,15 +95,11 @@ export function ProposalWizard() {
     persistAtomic, buildPersistParams, invalidateProposalCaches,
     generateProposal, renderProposal, savePricingHistory,
     normalizeTopologyValue, mapLeadTipoTelhadoToProposal,
-    collectSnapshot, handleUpdate, handlePosDialogConfirm,
-  } = useWizardDataLoaders({ 
-    propostaId: propostaIdFromUrl, 
-    versaoId: versaoIdFromUrl,
-    dealId: dealIdFromUrl,
-    customerId: customerIdFromUrl,
-    leadId: leadIdFromUrl,
-    orcId: orcIdFromUrl
-  });
+    collectSnapshot, 
+  } = wizardData;
+
+  const { handleUpdate, handlePosDialogConfirm, handleGateConfirmed } = wizardData;
+
 
 
   const ClientContextPanel = useMemo(() => {
