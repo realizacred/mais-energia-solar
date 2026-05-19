@@ -57,7 +57,7 @@ import {
 import { formatBRL } from "@/lib/formatters";
 import { toast } from "@/hooks/use-toast";
 import { getOrCreateProposalToken } from "@/services/proposal/proposalDetail.service";
-import { getProposalWebUrl, getProposalPdfSignedUrl } from "@/services/proposal/proposalLinks";
+import { getProposalWebUrl, getMaskedPdfUrl } from "@/services/proposal/proposalLinks";
 import { ProposalMessageDrawer } from "@/components/admin/projetos/ProposalMessageDrawer";
 
 interface Props {
