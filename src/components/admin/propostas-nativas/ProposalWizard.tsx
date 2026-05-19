@@ -610,6 +610,7 @@ function ProposalWizardContent() {
     itens, layouts, manualKits, adicionais, servicos, venda,
     pagamentoOpcoes, nomeProposta, descricaoProposta, templateSelecionado,
     step, geracaoMensalEstimada, formasPagamentoProprias, precoFinal,
+    proposalTemplates,
   ]);
 
   // ─── Local draft: auto-save to localStorage on every state change
