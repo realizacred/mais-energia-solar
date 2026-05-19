@@ -399,15 +399,14 @@ function StageDealCardImpl({
 
         {/* METRICS & ETIQUETAS (Commercial Data - Secondary) */}
         <div className="flex items-center justify-between pt-1.5 border-t border-border/30 mt-1">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 text-[10px] font-mono">
-              <Zap className="h-2.5 w-2.5 text-success" />
-              <span className="font-bold">{hasKwp ? deal.deal_kwp.toFixed(1).replace(".", ",") : "—"}</span>
-              <span className="text-muted-foreground text-[8px]">kWp</span>
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
+              <Zap className="h-2.5 w-2.5 opacity-60" />
+              <span className="font-semibold text-foreground/80">{hasKwp ? deal.deal_kwp.toFixed(1).replace(".", ",") : "—"}</span>
+              <span className="text-[8px] opacity-70">kWp</span>
             </div>
-            <div className="flex items-center gap-1 text-[10px] font-mono">
-              <DollarSign className="h-2.5 w-2.5 text-warning" />
-              <span className="font-bold">{hasValue ? formatBRL(deal.deal_value) : "—"}</span>
+            <div className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
+              <span className="font-semibold text-foreground/80">{hasValue ? formatBRL(deal.deal_value) : "—"}</span>
             </div>
           </div>
 
