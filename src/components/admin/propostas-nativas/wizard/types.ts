@@ -25,6 +25,11 @@ export interface LeadSelection {
   rede_atendimento?: string;
   /** Código IBGE do município (propagado de leads ou clientes) */
   municipio_ibge_codigo?: string | null;
+  observacoes?: string | null;
+  /** Observações do orçamento vinculado (se houver) */
+  orc_observacoes?: string | null;
+  /** Origem dos dados (lead ou orçamento) */
+  source_type?: "lead" | "orcamento";
 }
 
 export interface ClienteData {
