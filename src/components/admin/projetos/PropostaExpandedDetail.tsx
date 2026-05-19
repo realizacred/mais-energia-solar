@@ -1306,6 +1306,23 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
       toast({ title: "Erro ao gerar link", description: e.message, variant: "destructive" });
     }
   };
+
+  const handleCopyPdfLink = async () => {
+    try {
+      // PDF masking sempre usa token rastreável para garantir que resolvemos o path correto
+      const { token } = await resolvePublicProposalUrl(true);
+      const url = getMaskedPdfUrl(token);
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        window.prompt("Copie o link do PDF abaixo:", url);
+      }
+      toast({ title: "Link do PDF (mascarado) copiado! 📄" });
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar link do PDF", description: e.message, variant: "destructive" });
+    }
+  };
+
   const copyPublicLink = () => handleCopyLink(false);
   const copyTrackedLink = () => handleCopyLink(true);
 
