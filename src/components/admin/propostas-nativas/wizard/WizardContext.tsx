@@ -275,6 +275,7 @@ export function WizardProvider({ children, initialData = {} }: { children: React
 
   const value = useMemo(() => ({
     selectedLead, setSelectedLead,
+    comercial, setComercial,
     cliente, setCliente,
     clienteMunicipioIbgeCodigo, setClienteMunicipioIbgeCodigo,
     locEstado, setLocEstado,
@@ -315,7 +316,7 @@ export function WizardProvider({ children, initialData = {} }: { children: React
     handleSelectLead,
     handleLocTipoTelhadoChange,
   }), [
-    selectedLead, cliente, clienteMunicipioIbgeCodigo, locEstado, locCidade,
+    selectedLead, comercial, cliente, clienteMunicipioIbgeCodigo, locEstado, locCidade,
     locTipoTelhado, locDistribuidoraId, locDistribuidoraNome, locIrradiacao,
     locGhiSeries, locSkipPoa, locLatitude, mapSnapshots, distanciaKm,
     projectAddress, ucs, ucsRestoreEpoch, bumpUcsRestoreEpoch,
@@ -326,6 +327,7 @@ export function WizardProvider({ children, initialData = {} }: { children: React
     handleItensChange, handleUCsChange, handleVendaChange,
     handleSelectLead, handleLocTipoTelhadoChange,
   ]);
+
 
   return <WizardContext.Provider value={value}>{children}</WizardContext.Provider>;
 }
