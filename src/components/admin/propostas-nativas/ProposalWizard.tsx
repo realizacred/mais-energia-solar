@@ -1,4 +1,3 @@
-  }, [collectSnapshot, savedPropostaId, savedVersaoId, potenciaKwp, precoFinal, geracaoMensalEstimada, ucs, selectedLead, resolvedDealId, nomeProposta, cliente]);
 
   const ClientContextPanel = useMemo(() => {
     if (!selectedLead) return null;
@@ -51,7 +50,7 @@
                           className="h-5 w-5 ml-0.5 text-blue-600 hover:text-blue-700 hover:bg-blue-100"
                           onClick={() => {
                             if (!ucs.length) return;
-                            handleUcsChange(prev => {
+                            handleUCsChange(prev => {
                               const updated = [...prev];
                               updated[0] = { ...updated[0], consumo_mensal: geracao };
                               return updated;
@@ -123,7 +122,7 @@
         </div>
       </div>
     );
-  }, [selectedLead, ucs, handleUcsChange]);
+  }, [selectedLead, ucs, handleUCsChange]);
 
   const applyPersistResult = useCallback((res: AtomicPersistResult) => {
     if (res.status === "error" || res.status === "blocked") return;
