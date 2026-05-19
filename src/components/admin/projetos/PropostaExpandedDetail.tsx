@@ -1981,10 +1981,11 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
               <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
                 <RotateCcw className="w-5 h-5 text-warning" />
               </div>
-              <AlertDialogTitle>Cancelar aceite formal?</AlertDialogTitle>
+              <AlertDialogTitle>{p.aceita_at ? "Cancelar aceite formal?" : "Reverter status de aceite?"}</AlertDialogTitle>
             </div>
             <AlertDialogDescription className="space-y-3">
-              <p>Esta é uma ação administrativa crítica. O aceite será removido e a proposta voltará ao estado de negociação.</p>
+              <p>{p.aceita_at ? "Esta é uma ação administrativa crítica. O aceite será removido e a proposta voltará ao estado de negociação." : "Esta proposta possui status 'Aceito' mas não tem evidência formal (data de aceite). Ao reverter, ela voltará para o estado de negociação."}</p>
+
               <div className="space-y-1.5 pt-2">
                 <Label className="text-xs font-bold text-foreground">Motivo do cancelamento (obrigatório) *</Label>
                 <Textarea 
