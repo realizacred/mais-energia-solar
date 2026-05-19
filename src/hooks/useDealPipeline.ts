@@ -420,6 +420,8 @@ export function useDealPipeline() {
         const custId = customerMap.get(d.deal_id);
         const proposta = bestPropostaByDeal.get(d.deal_id) || null;
         const loc = custId ? locationMap.get(custId) : null;
+        const dealPendencias = (pendenciasMap.get(d.deal_id) || []).filter(p => p.status !== 'resolvida' && p.status !== 'cancelada');
+        
         return {
           ...d,
           notas: notasMap.get(d.deal_id) || d.notas || null,
@@ -434,6 +436,7 @@ export function useDealPipeline() {
           customer_state: loc?.state || null,
           expected_close_date: closeDateMap.get(d.deal_id) || null,
           doc_checklist: docChecklistMap.get(d.deal_id) || null,
+          pendencias: dealPendencias,
         };
       });
     } else {
@@ -443,6 +446,7 @@ export function useDealPipeline() {
         customer_id: customerMap.get(d.deal_id) || null,
         expected_close_date: closeDateMap.get(d.deal_id) || null,
         doc_checklist: docChecklistMap.get(d.deal_id) || null,
+        pendencias: (pendenciasMap.get(d.deal_id) || []).filter(p => p.status !== 'resolvida' && p.status !== 'cancelada'),
       }));
     }
 
