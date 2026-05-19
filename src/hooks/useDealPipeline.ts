@@ -71,6 +71,15 @@ export interface DealKanbanCard {
   // Enriched deal fields
   expected_close_date?: string | null;
   doc_checklist?: Record<string, boolean> | null;
+  // Operational pendencies
+  pendencias?: {
+    id: string;
+    titulo: string;
+    criticidade: 'baixa' | 'media' | 'alta' | 'critica';
+    status: string;
+    bloqueia_fluxo: boolean;
+    sla_at?: string | null;
+  }[];
 }
 
 export interface OwnerColumn {
