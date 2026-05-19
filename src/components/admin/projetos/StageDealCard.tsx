@@ -1,4 +1,4 @@
-import { useState, useMemo, memo } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect, memo } from "react";
 import { formatBRLCompact as formatBRL } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -108,6 +108,28 @@ function StageDealCardImpl({
   onSchedule,
   cardVisibleFields,
 }: StageDealCardProps) {
+  // -------- Stale-closure shield (RB-176 / AP-54) --------
+  // A custom equality do `memo` IGNORA identidade de callbacks (eles são recriados
+  // inline pelo pai a cada render). Para evitar que handlers do card disparem uma
+  // versão "velha" do callback do pai, mantemos os últimos refs vivos via useRef
+  // e expomos handlers internos ESTÁVEIS que sempre leem do ref + `deal` corrente.
+  // Isso preserva a memoização (sem rebind por render do pai) E garante frescor.
+  const latest = useRef({ onClick, onDragStart, onProposalClick, onArchive, onTransfer, onTag, onSchedule });
+  useEffect(() => {
+    latest.current = { onClick, onDragStart, onProposalClick, onArchive, onTransfer, onTag, onSchedule };
+  });
+
+  const handleClick = useCallback(() => latest.current.onClick?.(), []);
+  const handleDragStart = useCallback(
+    (e: React.DragEvent) => latest.current.onDragStart?.(e, deal.deal_id),
+    [deal.deal_id],
+  );
+  // handleProposalClick intencionalmente omitido: prop existe mas não é consumida no JSX hoje.
+  const handleArchive = useCallback(() => latest.current.onArchive?.(deal), [deal]);
+  const handleTransfer = useCallback(() => latest.current.onTransfer?.(deal), [deal]);
+  const handleTag = useCallback(() => latest.current.onTag?.(deal), [deal]);
+  const handleSchedule = useCallback(() => latest.current.onSchedule?.(deal), [deal]);
+
   const allEtiquetaCfgs = useMemo(() => {
     const cfgs: { label: string; short: string; cor: string; icon: string | null }[] = [];
     if (deal.etiqueta_ids && deal.etiqueta_ids.length > 0) {
@@ -215,8 +237,8 @@ function StageDealCardImpl({
   const cardContent = (
     <div
       draggable
-      onDragStart={e => onDragStart(e, deal.deal_id)}
-      onClick={onClick}
+      onDragStart={handleDragStart}
+      onClick={handleClick}
       className={cn(
         "kanban-card group transition-all duration-200",
         borderClass,
@@ -452,30 +474,30 @@ function StageDealCardImpl({
           <ContextMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
             Ações rápidas
           </ContextMenuLabel>
-          <ContextMenuItem className="text-xs gap-2" onClick={() => onClick()}>
+          <ContextMenuItem className="text-xs gap-2" onClick={handleClick}>
             <ExternalLink className="h-3.5 w-3.5" /> Abrir detalhes
           </ContextMenuItem>
           <ContextMenuItem className="text-xs gap-2" onClick={() => { if (deal.customer_phone) setWhatsappDialogOpen(true); }} disabled={!deal.customer_phone}>
             <MessageSquare className="h-3.5 w-3.5" /> Enviar WhatsApp
           </ContextMenuItem>
-          <ContextMenuItem className="text-xs gap-2" onClick={() => onSchedule?.(deal)}>
+          <ContextMenuItem className="text-xs gap-2" onClick={handleSchedule}>
             <Calendar className="h-3.5 w-3.5" /> Agendar compromisso
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
             Gerenciar
           </ContextMenuLabel>
-          <ContextMenuItem className="text-xs gap-2" onClick={() => onTransfer?.(deal)}>
+          <ContextMenuItem className="text-xs gap-2" onClick={handleTransfer}>
             <UserPlus className="h-3.5 w-3.5" /> Transferir consultor
           </ContextMenuItem>
-          <ContextMenuItem className="text-xs gap-2" onClick={() => onTag?.(deal)}>
+          <ContextMenuItem className="text-xs gap-2" onClick={handleTag}>
             <Tag className="h-3.5 w-3.5" /> Alterar etiqueta
           </ContextMenuItem>
           <ContextMenuItem className="text-xs gap-2" onClick={() => { navigator.clipboard.writeText(deal.deal_id); }}>
             <Copy className="h-3.5 w-3.5" /> Copiar ID
           </ContextMenuItem>
           <ContextMenuSeparator />
-          <ContextMenuItem className="text-xs gap-2 text-destructive focus:text-destructive" onClick={() => onArchive?.(deal)}>
+          <ContextMenuItem className="text-xs gap-2 text-destructive focus:text-destructive" onClick={handleArchive}>
             <Archive className="h-3.5 w-3.5" /> Arquivar
           </ContextMenuItem>
         </ContextMenuContent>
@@ -493,12 +515,20 @@ function StageDealCardImpl({
 /**
  * Memoized export — RB-176 / AP-54 compliance.
  *
- * Stability contract: re-render apenas quando dados visíveis do card mudarem.
- * Callbacks (onClick, onDragStart, onProposalClick, onArchive, onTransfer, onTag,
- * onSchedule) são intencionalmente IGNORADOS na equality:
- *  - Eles são recriados a cada render do pai (arrow inline);
- *  - Comportamento é estável (delegam para setters/handlers estáveis do parent);
- *  - Só disparam em gesto do usuário, sem closure stale relevante.
+ * Stability contract:
+ *  - Re-render APENAS quando dados visíveis do card mudarem: `deal` (ref), `isDragging`,
+ *    `hasAutomation`, `dynamicEtiquetas`, `cardVisibleFields`.
+ *  - Callbacks (onClick, onDragStart, onProposalClick, onArchive, onTransfer, onTag,
+ *    onSchedule) são INTENCIONALMENTE IGNORADOS na equality — pais inline-arrow os
+ *    recriam a cada render e isso destruiria a memoização.
+ *
+ * Stale-closure shield (interno):
+ *  - Os callbacks externos vivos são espelhados em `latest` (useRef) atualizado em
+ *    cada commit (`useEffect` sem deps). Handlers internos do card são `useCallback`
+ *    estáveis que sempre disparam `latest.current.*` com o `deal` corrente do render.
+ *  - Resultado: mesmo que o pai passe um onArchive/onTransfer/... "novo" sem mudar
+ *    `deal` (e nós pulemos o render), o próximo clique ainda chamará a versão MAIS
+ *    NOVA do callback — sem closure stale, sem flicker, sem rebind.
  *
  * Re-renderiza quando: `deal` muda por referência (React Query structural sharing
  * já garante referência estável quando o conteúdo não muda), drag state muda,
