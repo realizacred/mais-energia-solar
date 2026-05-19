@@ -270,7 +270,7 @@ export function EmitirReciboModal({
                     .from("propostas_nativas")
                     .select("id, deal_id, status, created_at")
                     .eq("deal_id", dealId)
-                    .eq("status", "aceita")
+                    .in("status", ["accepted", "aceita"])
                     .order("created_at", { ascending: false })
                     .limit(1)
                     .maybeSingle(),
