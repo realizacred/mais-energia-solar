@@ -512,7 +512,17 @@ export function ProjetosManager() {
       return next;
     }, { replace: true });
   }, [setSearchParams]);
-  const [activeTab, setActiveTab] = useState<string>("kanban");
+  const [activeTab, setActiveTab] = useState<string>("operacional");
+
+  // Sync viewMode with the active tab: Kanban tab never shows "lista"; Lista tab forces "lista".
+  useEffect(() => {
+    if (activeTab === "lista" && viewMode !== "lista") {
+      setViewMode("lista");
+    } else if (activeTab === "kanban" && viewMode === "lista") {
+      setViewMode("kanban-etapa");
+    }
+     
+  }, [activeTab]);
   
   const [dynamicEtiquetas, setDynamicEtiquetas] = useState<DynamicEtiqueta[]>([]);
   const [defaultFunilApplied, setDefaultFunilApplied] = useState(false);
@@ -828,9 +838,17 @@ export function ProjetosManager() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <TabsList className="bg-muted/50 border border-border/40">
+            <TabsTrigger value="operacional" className="gap-1.5 text-xs">
+              <ShieldAlert className="h-4 w-4" />
+              <span className="hidden sm:inline">Visão Operacional</span>
+            </TabsTrigger>
             <TabsTrigger value="kanban" className="gap-1.5 text-xs">
               <Layers className="h-4 w-4" />
-              <span className="hidden sm:inline">Funil</span>
+              <span className="hidden sm:inline">Kanban</span>
+            </TabsTrigger>
+            <TabsTrigger value="lista" className="gap-1.5 text-xs">
+              <LayoutGrid className="h-4 w-4" />
+              <span className="hidden sm:inline">Lista</span>
             </TabsTrigger>
             <TabsTrigger value="pendencias" className="gap-1.5 text-xs">
               <Clock className="h-4 w-4" />
@@ -860,8 +878,8 @@ export function ProjetosManager() {
           )}
         </div>
 
-        <TabsContent value="kanban" className="space-y-5 mt-0">
-          {/* ── Cockpit Operacional Executivo ── */}
+        {/* ─── Visão Operacional — cockpit puro, sem kanban ─── */}
+        <TabsContent value="operacional" className="space-y-5 mt-0">
           <OperationalCockpitKpis
             kpis={{
               blocked: operationalKPIs.blocked,
@@ -873,233 +891,275 @@ export function ProjetosManager() {
             }}
           />
 
-          {/* ── Fila Inteligente full-width ── */}
           <OperationalQueue
             projetos={projetos}
             etapas={etapas}
             onViewProjeto={(p) => setSelectedProjetoId(p.deal_id || p.id)}
           />
 
-          {/* ── Gargalos Operacionais ── */}
           <BottleneckCenter projetos={projetos} etapas={etapas} />
-
-
-            <div className="rounded-xl border border-border/60 bg-card overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
-              {/* Summary bar — top */}
-              <div className="px-4 py-2.5 flex items-center justify-between border-b border-border/40">
-                <div className="flex items-center gap-4 flex-wrap">
-                  <div className="flex items-center gap-1.5">
-                    <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-sm font-bold text-foreground">{projetos.length}</span>
-                    <span className="text-xs text-muted-foreground">projetos</span>
-                  </div>
-                  {totalValue > 0 && (
-                    <div className="flex items-center gap-1.5">
-                      <DollarSign className="h-3.5 w-3.5 text-success" />
-                      <span className="text-sm font-bold font-mono text-foreground">{formatBRL(totalValue)}</span>
-                      <span className="text-xs text-muted-foreground">total</span>
-                    </div>
-                  )}
-                  {totalKwp > 0 && (
-                    <div className="flex items-center gap-1.5">
-                      <Zap className="h-3.5 w-3.5 text-warning" />
-                      <span className="text-sm font-bold font-mono text-foreground">{formatKwp(totalKwp, 1)}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-1.5">
-                    <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-sm font-bold text-foreground">{adaptedOwnerColumns.length}</span>
-                    <span className="text-xs text-muted-foreground">consultores</span>
-                  </div>
-                </div>
-
-                {/* Color Legend — lateral toggle */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 gap-1.5 text-[10px] text-muted-foreground hover:text-foreground"
-                  onClick={() => setLegendOpen(prev => !prev)}
-                >
-                  <Info className="h-3 w-3" />
-                  Legenda
-                </Button>
-              </div>
-
-              {/* Filters row */}
-              <div className="px-4 py-3">
-                <ProjetoFilters
-                  searchTerm={filters.search}
-                  onSearchChange={(v) => handleFilterChange("search", v)}
-                  funis={activeFunis}
-                  filterFunil={selectedFunilId ?? (viewMode === "kanban-consultor" ? "todos" : "")}
-                  onFilterFunilChange={(v) => handleFilterChange("pipelineId", v)}
-                  filterConsultor={filters.consultorId}
-                  onFilterConsultorChange={(v) => handleFilterChange("ownerId", v)}
-                  consultores={consultoresFilter}
-                  filterStatus={filters.status}
-                  onFilterStatusChange={(v) => handleFilterChange("status", v)}
-                  filterResponsavel={filters.responsavel_operacional || "todos"}
-                  onFilterResponsavelChange={(v) => handleFilterChange("responsavel_operacional", v)}
-                  filterTipoProjetoSolar={filters.tipo_projeto_solar || "todos"}
-                  onFilterTipoProjetoSolarChange={(v) => handleFilterChange("tipo_projeto_solar", v)}
-                  etiquetas={dynamicEtiquetas.map(e => ({ id: e.id, nome: e.nome, cor: e.cor, tenant_id: "" }))}
-                  filterEtiquetas={filters.etiquetaIds || []}
-                  onFilterEtiquetasChange={(ids) => { applyFilters({ etiquetaIds: ids }); savePrefs({ etiquetaIds: ids }); updateUrlFilter({ etiquetas: ids }); }}
-                  viewMode={viewMode}
-                  onViewModeChange={setViewMode}
-                  onClearFilters={clearFilters}
-                  onEditEtapas={(funilId) => setEditingEtapasFunilId(funilId)}
-                  onCreateFunil={() => setTemplateDialogOpen(true)}
-                  allowAllFunis={viewMode === "kanban-consultor"}
-                />
-              </div>
-
-              {/* Template dialog for creating new funnels */}
-              <ProjetoPipelineTemplates
-                open={templateDialogOpen}
-                onOpenChange={setTemplateDialogOpen}
-                onCreateFromTemplate={(name, stgs) => {
-                  // Create funil + etapas from template
-                  createFunil(name);
-                }}
-                onCreateBlank={(name) => createFunil(name)}
-              />
-
-              {/* Etapa Manager Dialog — adapted to Pipeline/PipelineStage interface */}
-              {editingEtapasFunilId && (
-                <ProjetoEtapaManagerDialog
-                  pipeline={{
-                    id: editingEtapasFunilId,
-                    tenant_id: funis.find(f => f.id === editingEtapasFunilId)?.tenant_id || "",
-                    name: funis.find(f => f.id === editingEtapasFunilId)?.nome || "",
-                    kind: "process",
-                    version: 1,
-                    is_active: funis.find(f => f.id === editingEtapasFunilId)?.ativo ?? true,
-                    created_at: "",
-                  }}
-                  stages={etapas
-                    .filter(e => e.funil_id === editingEtapasFunilId)
-                    .map(etapaToPipelineStage)}
-                  allPipelines={funis
-                    .filter(f => f.ativo && f.id !== editingEtapasFunilId)
-                    .map(f => ({
-                      id: f.id,
-                      tenant_id: f.tenant_id,
-                      name: f.nome,
-                      kind: "process" as const,
-                      version: 1,
-                      is_active: f.ativo,
-                      created_at: "",
-                    }))}
-                  onClose={() => setEditingEtapasFunilId(null)}
-                  onCreateStage={(funilId, name, categoria) => createEtapa(funilId, name, (categoria || "aberto") as any)}
-                  onRenameStage={renameEtapa}
-                  onReorderStages={reorderEtapas}
-                  onDeleteStage={deleteEtapa}
-                   onDeletePipeline={async (id, moveDealsTo) => {
-                     return await deleteFunil(id) ?? true;
-                   }}
-                />
-              )}
-            </div>
-
-            {/* Kanban / List + Legend lateral */}
-            <div className="flex gap-0">
-              <div className="flex-1 min-w-0">
-                {loading ? (
-                  <ProjetoKanbanSkeleton />
-                ) : viewMode === "kanban-etapa" ? (
-                  <ProjetoKanbanStage
-                    stages={adaptedStages}
-                    deals={adaptedDeals.filter(d => {
-                      // Filter deals to the selected funil
-                      if (!selectedFunilId) return true;
-                      return d.pipeline_id === selectedFunilId;
-                    })}
-                    onMoveToStage={(projetoId, etapaId) => moveProjetoToEtapa(projetoId, etapaId)}
-                    onViewProjeto={(deal) => setSelectedProjetoId(deal.deal_id)}
-                    onViewProjetoTab={(deal, tab) => {
-                      setSearchParams((prev) => {
-                        const next = new URLSearchParams(prev);
-                        next.set("projeto", deal.deal_id);
-                        next.set("tab", tab);
-                        return next;
-                      }, { replace: true });
-                    }}
-                    pipelineName={funis.find(f => f.id === selectedFunilId)?.nome}
-                    onNewProject={(ctx) => {
-                      setDefaultConsultorId(ctx?.consultorId || (filters.consultorId !== "todos" ? filters.consultorId : undefined));
-                      setDefaultModalFunilId(ctx?.pipelineId);
-                      setDefaultStageId(ctx?.stageId);
-                      setNovoProjetoOpen(true);
-                    }}
-                    dynamicEtiquetas={dynamicEtiquetas}
-                  />
-                ) : viewMode === "kanban-consultor" ? (
-                  <ProjetoKanbanConsultor
-                    ownerColumns={adaptedOwnerColumns}
-                    allDeals={adaptedDeals}
-                    onViewProjeto={(deal) => setSelectedProjetoId(deal.deal_id)}
-                    onViewProjetoTab={(deal, tab) => {
-                      setSearchParams((prev) => {
-                        const next = new URLSearchParams(prev);
-                        next.set("projeto", deal.deal_id);
-                        next.set("tab", tab);
-                        return next;
-                      }, { replace: true });
-                    }}
-                    onMoveDealToOwner={(projetoId, consultorId) => moveProjetoToConsultor(projetoId, consultorId)}
-                    onNewProject={(consultorId) => {
-                      setDefaultConsultorId(consultorId);
-                      setDefaultModalFunilId(undefined);
-                      setDefaultStageId(undefined);
-                      setNovoProjetoOpen(true);
-                    }}
-                    dynamicEtiquetas={dynamicEtiquetas}
-                  />
-                ) : (
-                  <ProjetoListView
-                    projetos={statusFiltered}
-                    etapas={selectedFunilEtapas}
-                    onViewProjeto={(p) => setSelectedProjetoId(p.deal_id || p.id)}
-                  />
-                )}
-              </div>
-
-              {/* Lateral Legend Panel */}
-              {legendOpen && (
-                <div className="w-48 shrink-0 border-l border-border bg-card/80 rounded-r-xl p-3 hidden sm:block animate-in slide-in-from-right-2 duration-200">
-                  <p className="text-[10px] font-semibold text-foreground uppercase tracking-wider mb-3">Bordas dos cards</p>
-                  <div className="space-y-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-1 h-5 rounded-full shrink-0 bg-success" />
-                      <span className="text-[11px] text-foreground font-medium">Negociação ganha</span>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-1 h-5 rounded-full shrink-0 bg-destructive" />
-                      <span className="text-[11px] text-foreground font-medium leading-tight">Cancelado / estagnado +7d</span>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-1 h-5 rounded-full shrink-0 bg-warning" />
-                      <span className="text-[11px] text-foreground font-medium">Estagnado +3 dias</span>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-1 h-5 rounded-full shrink-0 bg-muted-foreground/60" />
-                      <span className="text-[11px] text-foreground font-medium">Sem proposta</span>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-1 h-5 rounded-full bg-primary shrink-0" />
-                      <span className="text-[11px] text-foreground font-medium">Com proposta</span>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-1 h-5 rounded-full bg-accent shrink-0" />
-                      <span className="text-[11px] text-foreground font-medium">Etiqueta do projeto</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
         </TabsContent>
+
+        {/* ─── Kanban — ambiente de trabalho limpo ─── */}
+        <TabsContent value="kanban" className="space-y-4 mt-0">
+          <div className="rounded-xl border border-border/60 bg-card overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
+            <div className="px-4 py-2.5 flex items-center justify-between border-b border-border/40">
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-sm font-bold text-foreground">{projetos.length}</span>
+                  <span className="text-xs text-muted-foreground">projetos</span>
+                </div>
+                {totalValue > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <DollarSign className="h-3.5 w-3.5 text-success" />
+                    <span className="text-sm font-bold font-mono text-foreground">{formatBRL(totalValue)}</span>
+                    <span className="text-xs text-muted-foreground">total</span>
+                  </div>
+                )}
+                {totalKwp > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <Zap className="h-3.5 w-3.5 text-warning" />
+                    <span className="text-sm font-bold font-mono text-foreground">{formatKwp(totalKwp, 1)}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-sm font-bold text-foreground">{adaptedOwnerColumns.length}</span>
+                  <span className="text-xs text-muted-foreground">consultores</span>
+                </div>
+              </div>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+                onClick={() => setLegendOpen(prev => !prev)}
+              >
+                <Info className="h-3 w-3" />
+                Legenda
+              </Button>
+            </div>
+
+            <div className="px-4 py-3">
+              <ProjetoFilters
+                searchTerm={filters.search}
+                onSearchChange={(v) => handleFilterChange("search", v)}
+                funis={activeFunis}
+                filterFunil={selectedFunilId ?? (viewMode === "kanban-consultor" ? "todos" : "")}
+                onFilterFunilChange={(v) => handleFilterChange("pipelineId", v)}
+                filterConsultor={filters.consultorId}
+                onFilterConsultorChange={(v) => handleFilterChange("ownerId", v)}
+                consultores={consultoresFilter}
+                filterStatus={filters.status}
+                onFilterStatusChange={(v) => handleFilterChange("status", v)}
+                filterResponsavel={filters.responsavel_operacional || "todos"}
+                onFilterResponsavelChange={(v) => handleFilterChange("responsavel_operacional", v)}
+                filterTipoProjetoSolar={filters.tipo_projeto_solar || "todos"}
+                onFilterTipoProjetoSolarChange={(v) => handleFilterChange("tipo_projeto_solar", v)}
+                etiquetas={dynamicEtiquetas.map(e => ({ id: e.id, nome: e.nome, cor: e.cor, tenant_id: "" }))}
+                filterEtiquetas={filters.etiquetaIds || []}
+                onFilterEtiquetasChange={(ids) => { applyFilters({ etiquetaIds: ids }); savePrefs({ etiquetaIds: ids }); updateUrlFilter({ etiquetas: ids }); }}
+                viewMode={viewMode === "lista" ? "kanban-etapa" : viewMode}
+                onViewModeChange={(m) => { if (m === "lista") { setActiveTab("lista"); } else { setViewMode(m); } }}
+                onClearFilters={clearFilters}
+                onEditEtapas={(funilId) => setEditingEtapasFunilId(funilId)}
+                onCreateFunil={() => setTemplateDialogOpen(true)}
+                allowAllFunis={viewMode === "kanban-consultor"}
+              />
+            </div>
+
+            <ProjetoPipelineTemplates
+              open={templateDialogOpen}
+              onOpenChange={setTemplateDialogOpen}
+              onCreateFromTemplate={(name, stgs) => { createFunil(name); }}
+              onCreateBlank={(name) => createFunil(name)}
+            />
+
+            {editingEtapasFunilId && (
+              <ProjetoEtapaManagerDialog
+                pipeline={{
+                  id: editingEtapasFunilId,
+                  tenant_id: funis.find(f => f.id === editingEtapasFunilId)?.tenant_id || "",
+                  name: funis.find(f => f.id === editingEtapasFunilId)?.nome || "",
+                  kind: "process",
+                  version: 1,
+                  is_active: funis.find(f => f.id === editingEtapasFunilId)?.ativo ?? true,
+                  created_at: "",
+                }}
+                stages={etapas
+                  .filter(e => e.funil_id === editingEtapasFunilId)
+                  .map(etapaToPipelineStage)}
+                allPipelines={funis
+                  .filter(f => f.ativo && f.id !== editingEtapasFunilId)
+                  .map(f => ({
+                    id: f.id,
+                    tenant_id: f.tenant_id,
+                    name: f.nome,
+                    kind: "process" as const,
+                    version: 1,
+                    is_active: f.ativo,
+                    created_at: "",
+                  }))}
+                onClose={() => setEditingEtapasFunilId(null)}
+                onCreateStage={(funilId, name, categoria) => createEtapa(funilId, name, (categoria || "aberto") as any)}
+                onRenameStage={renameEtapa}
+                onReorderStages={reorderEtapas}
+                onDeleteStage={deleteEtapa}
+                onDeletePipeline={async (id, moveDealsTo) => {
+                  return await deleteFunil(id) ?? true;
+                }}
+              />
+            )}
+          </div>
+
+          <div className="flex gap-0">
+            <div className="flex-1 min-w-0">
+              {loading ? (
+                <ProjetoKanbanSkeleton />
+              ) : viewMode === "kanban-consultor" ? (
+                <ProjetoKanbanConsultor
+                  ownerColumns={adaptedOwnerColumns}
+                  allDeals={adaptedDeals}
+                  onViewProjeto={(deal) => setSelectedProjetoId(deal.deal_id)}
+                  onViewProjetoTab={(deal, tab) => {
+                    setSearchParams((prev) => {
+                      const next = new URLSearchParams(prev);
+                      next.set("projeto", deal.deal_id);
+                      next.set("tab", tab);
+                      return next;
+                    }, { replace: true });
+                  }}
+                  onMoveDealToOwner={(projetoId, consultorId) => moveProjetoToConsultor(projetoId, consultorId)}
+                  onNewProject={(consultorId) => {
+                    setDefaultConsultorId(consultorId);
+                    setDefaultModalFunilId(undefined);
+                    setDefaultStageId(undefined);
+                    setNovoProjetoOpen(true);
+                  }}
+                  dynamicEtiquetas={dynamicEtiquetas}
+                />
+              ) : (
+                <ProjetoKanbanStage
+                  stages={adaptedStages}
+                  deals={adaptedDeals.filter(d => {
+                    if (!selectedFunilId) return true;
+                    return d.pipeline_id === selectedFunilId;
+                  })}
+                  onMoveToStage={(projetoId, etapaId) => moveProjetoToEtapa(projetoId, etapaId)}
+                  onViewProjeto={(deal) => setSelectedProjetoId(deal.deal_id)}
+                  onViewProjetoTab={(deal, tab) => {
+                    setSearchParams((prev) => {
+                      const next = new URLSearchParams(prev);
+                      next.set("projeto", deal.deal_id);
+                      next.set("tab", tab);
+                      return next;
+                    }, { replace: true });
+                  }}
+                  pipelineName={funis.find(f => f.id === selectedFunilId)?.nome}
+                  onNewProject={(ctx) => {
+                    setDefaultConsultorId(ctx?.consultorId || (filters.consultorId !== "todos" ? filters.consultorId : undefined));
+                    setDefaultModalFunilId(ctx?.pipelineId);
+                    setDefaultStageId(ctx?.stageId);
+                    setNovoProjetoOpen(true);
+                  }}
+                  dynamicEtiquetas={dynamicEtiquetas}
+                />
+              )}
+            </div>
+
+            {legendOpen && (
+              <div className="w-48 shrink-0 border-l border-border bg-card/80 rounded-r-xl p-3 hidden sm:block animate-in slide-in-from-right-2 duration-200">
+                <p className="text-[10px] font-semibold text-foreground uppercase tracking-wider mb-3">Bordas dos cards</p>
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-1 h-5 rounded-full shrink-0 bg-success" />
+                    <span className="text-[11px] text-foreground font-medium">Negociação ganha</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-1 h-5 rounded-full shrink-0 bg-destructive" />
+                    <span className="text-[11px] text-foreground font-medium leading-tight">Cancelado / estagnado +7d</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-1 h-5 rounded-full shrink-0 bg-warning" />
+                    <span className="text-[11px] text-foreground font-medium">Estagnado +3 dias</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-1 h-5 rounded-full shrink-0 bg-muted-foreground/60" />
+                    <span className="text-[11px] text-foreground font-medium">Sem proposta</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-1 h-5 rounded-full bg-primary shrink-0" />
+                    <span className="text-[11px] text-foreground font-medium">Com proposta</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-1 h-5 rounded-full bg-accent shrink-0" />
+                    <span className="text-[11px] text-foreground font-medium">Etiqueta do projeto</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* ─── Lista — listagem operacional limpa ─── */}
+        <TabsContent value="lista" className="space-y-4 mt-0">
+          <div className="rounded-xl border border-border/60 bg-card overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
+            <div className="px-4 py-2.5 flex items-center gap-4 flex-wrap border-b border-border/40">
+              <div className="flex items-center gap-1.5">
+                <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-sm font-bold text-foreground">{statusFiltered.length}</span>
+                <span className="text-xs text-muted-foreground">projetos</span>
+              </div>
+              {totalValue > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <DollarSign className="h-3.5 w-3.5 text-success" />
+                  <span className="text-sm font-bold font-mono text-foreground">{formatBRL(totalValue)}</span>
+                  <span className="text-xs text-muted-foreground">total</span>
+                </div>
+              )}
+            </div>
+
+            <div className="px-4 py-3">
+              <ProjetoFilters
+                searchTerm={filters.search}
+                onSearchChange={(v) => handleFilterChange("search", v)}
+                funis={activeFunis}
+                filterFunil={selectedFunilId ?? ""}
+                onFilterFunilChange={(v) => handleFilterChange("pipelineId", v)}
+                filterConsultor={filters.consultorId}
+                onFilterConsultorChange={(v) => handleFilterChange("ownerId", v)}
+                consultores={consultoresFilter}
+                filterStatus={filters.status}
+                onFilterStatusChange={(v) => handleFilterChange("status", v)}
+                filterResponsavel={filters.responsavel_operacional || "todos"}
+                onFilterResponsavelChange={(v) => handleFilterChange("responsavel_operacional", v)}
+                filterTipoProjetoSolar={filters.tipo_projeto_solar || "todos"}
+                onFilterTipoProjetoSolarChange={(v) => handleFilterChange("tipo_projeto_solar", v)}
+                etiquetas={dynamicEtiquetas.map(e => ({ id: e.id, nome: e.nome, cor: e.cor, tenant_id: "" }))}
+                filterEtiquetas={filters.etiquetaIds || []}
+                onFilterEtiquetasChange={(ids) => { applyFilters({ etiquetaIds: ids }); savePrefs({ etiquetaIds: ids }); updateUrlFilter({ etiquetas: ids }); }}
+                viewMode="lista"
+                onViewModeChange={(m) => { if (m !== "lista") { setActiveTab("kanban"); setViewMode(m); } }}
+                onClearFilters={clearFilters}
+                onEditEtapas={(funilId) => setEditingEtapasFunilId(funilId)}
+                onCreateFunil={() => setTemplateDialogOpen(true)}
+                allowAllFunis
+              />
+            </div>
+          </div>
+
+          {loading ? (
+            <ProjetoKanbanSkeleton />
+          ) : (
+            <ProjetoListView
+              projetos={statusFiltered}
+              etapas={selectedFunilEtapas}
+              onViewProjeto={(p) => setSelectedProjetoId(p.deal_id || p.id)}
+            />
+          )}
+        </TabsContent>
+
 
 
         <TabsContent value="pendencias" className="mt-0">
