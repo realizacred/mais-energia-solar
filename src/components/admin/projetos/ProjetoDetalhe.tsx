@@ -2858,6 +2858,8 @@ interface LinkedOrcamento {
   status_id: string | null;
   status_nome?: string;
   created_at: string;
+  observacoes?: string | null;
+  lead_observacoes?: string | null;
 }
 
 function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealStatus, projetoId }: { customerId: string | null; dealId: string; dealTitle: string; navigate: any; isClosed?: boolean; dealStatus?: string; projetoId?: string | null }) {
@@ -2911,18 +2913,22 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
 
         const { data: leads } = await (supabase as any)
           .from("leads")
-          .select("id, lead_code")
+          .select("id, lead_code, observacoes")
           .or(`telefone_normalized.ilike.%${suffix}%,telefone.ilike.%${suffix}%`)
           .limit(10);
 
         if (leads && leads.length > 0) {
           const leadIds = leads.map((l: any) => l.id);
           const leadCodeMap = new Map<string, string>();
-          leads.forEach((l: any) => leadCodeMap.set(l.id, l.lead_code));
+          const leadObsMap = new Map<string, string>();
+          leads.forEach((l: any) => {
+            leadCodeMap.set(l.id, l.lead_code);
+            if (l.observacoes) leadObsMap.set(l.id, l.observacoes);
+          });
 
           const { data: orcs } = await supabase
             .from("orcamentos")
-            .select("id, orc_code, lead_id, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, estado, cidade, status_id, created_at")
+            .select("id, orc_code, lead_id, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, estado, cidade, status_id, created_at, observacoes")
             .in("lead_id", leadIds)
             .order("created_at", { ascending: false })
             .limit(20);
@@ -2941,6 +2947,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
             setLinkedOrcs(orcs.map((o: any) => ({
               ...o,
               lead_code: leadCodeMap.get(o.lead_id) || null,
+              lead_observacoes: leadObsMap.get(o.lead_id) || null,
               status_nome: o.status_id ? statusMap.get(o.status_id) || "—" : "—",
             })));
           }
@@ -3072,95 +3079,129 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
               return (
                 <div
                   key={orc.id}
-                  className="flex items-center gap-3 rounded-lg border border-border/60 bg-card px-3 py-2 transition-all hover:border-primary/30 hover:shadow-sm"
+                  className="flex flex-col gap-2 rounded-lg border border-border/60 bg-card px-3 py-2 transition-all hover:border-primary/30 hover:shadow-sm"
                 >
-                  {/* Codes */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {orc.lead_code && (
-                      <span className="text-[10px] font-mono font-bold text-primary">
-                        {orc.lead_code}
+                  <div className="flex items-center gap-3 w-full">
+                    {/* Codes */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {orc.lead_code && (
+                        <span className="text-[10px] font-mono font-bold text-primary">
+                          {orc.lead_code}
+                        </span>
+                      )}
+                      <span className="text-[10px] font-mono text-muted-foreground">
+                        {orc.orc_code || `ORC-${orc.id.slice(0, 6)}`}
                       </span>
-                    )}
-                    <span className="text-[10px] font-mono text-muted-foreground">
-                      {orc.orc_code || `ORC-${orc.id.slice(0, 6)}`}
-                    </span>
-                  </div>
-
-                  {/* Separator */}
-                  <div className="h-4 w-px bg-border/60 shrink-0" />
-
-                  {/* Metrics row */}
-                  <div className="flex items-center gap-4 flex-1 min-w-0 text-[11px]">
-                    <div className="shrink-0">
-                      <span className="text-muted-foreground">Consumo </span>
-                      <span className="font-semibold text-foreground">{orc.media_consumo || 0} kWh</span>
                     </div>
-                    {orc.consumo_previsto > 0 && (
+
+                    {/* Separator */}
+                    <div className="h-4 w-px bg-border/60 shrink-0" />
+
+                    {/* Metrics row */}
+                    <div className="flex items-center gap-4 flex-1 min-w-0 text-[11px]">
                       <div className="shrink-0">
-                        <span className="text-muted-foreground">Geração Prev. </span>
-                        <span className="font-semibold text-success">{orc.consumo_previsto} kWh</span>
+                        <span className="text-muted-foreground">Consumo </span>
+                        <span className="font-semibold text-foreground">{orc.media_consumo || 0} kWh</span>
                       </div>
-                    )}
-                    <div className="shrink-0">
-                      <span className="text-muted-foreground">Telhado </span>
-                      <span className="font-semibold text-foreground truncate">{orc.tipo_telhado || "—"}</span>
+                      {orc.consumo_previsto > 0 && (
+                        <div className="shrink-0">
+                          <span className="text-muted-foreground">Geração Prev. </span>
+                          <span className="font-semibold text-success">{orc.consumo_previsto} kWh</span>
+                        </div>
+                      )}
+                      <div className="shrink-0">
+                        <span className="text-muted-foreground">Telhado </span>
+                        <span className="font-semibold text-foreground truncate">{orc.tipo_telhado || "—"}</span>
+                      </div>
+                      <div className="shrink-0">
+                        <span className="text-muted-foreground">Fase </span>
+                        <span className="font-semibold text-foreground truncate">{orc.rede_atendimento || "—"}</span>
+                      </div>
+                      {orc.cidade && (
+                        <span className="text-[10px] text-muted-foreground truncate">
+                          {orc.cidade}, {orc.estado}
+                        </span>
+                      )}
                     </div>
-                    <div className="shrink-0">
-                      <span className="text-muted-foreground">Fase </span>
-                      <span className="font-semibold text-foreground truncate">{orc.rede_atendimento || "—"}</span>
+
+                    {/* Proposal indicator + action */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {linkedProposta && (() => {
+                        const normStatus = normalizeStatus(linkedProposta.status);
+                        return (
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[9px] gap-1 border-opacity-20",
+                              normStatus === 'accepted' && "bg-success/10 text-success border-success/40",
+                              normStatus === 'generated' && "bg-primary/10 text-primary border-primary/40",
+                              normStatus === 'sent' && "bg-info/10 text-info border-info/40",
+                              normStatus === 'rejected' && "bg-destructive/10 text-destructive border-destructive/40"
+                            )}
+                          >
+                            {normStatus === 'accepted' ? (
+                              <><CheckCircle className="h-2.5 w-2.5" /> Proposta aceita</>
+                            ) : normStatus === 'rejected' ? (
+                              <><XCircle className="h-2.5 w-2.5" /> Proposta recusada</>
+                            ) : normStatus === 'sent' ? (
+                              <><Eye className="h-2.5 w-2.5" /> Proposta enviada</>
+                            ) : (
+                              <><CheckCircle className="h-2.5 w-2.5" /> Proposta gerada</>
+                            )}
+                          </Badge>
+                        );
+                      })()}
+                      {!isClosed && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 text-[10px] gap-1 px-2"
+                          onClick={() => {
+                            const params = new URLSearchParams({ deal_id: dealId });
+                            if (customerId) params.set("customer_id", customerId);
+                            if (projetoId) params.set("projeto_id", projetoId);
+                            params.set("lead_id", orc.lead_id);
+                            params.set("orc_id", orc.id);
+                            navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
+                          }}
+                        >
+                          <Plus className="h-2.5 w-2.5" /> Criar Proposta
+                        </Button>
+                      )}
                     </div>
-                    {orc.cidade && (
-                      <span className="text-[10px] text-muted-foreground truncate">
-                        {orc.cidade}, {orc.estado}
-                      </span>
-                    )}
                   </div>
 
-                  {/* Proposal indicator + action */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {linkedProposta && (() => {
-                      const normStatus = normalizeStatus(linkedProposta.status);
-                      return (
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-[9px] gap-1 border-opacity-20",
-                            normStatus === 'accepted' && "bg-success/10 text-success border-success/40",
-                            normStatus === 'generated' && "bg-primary/10 text-primary border-primary/40",
-                            normStatus === 'sent' && "bg-info/10 text-info border-info/40",
-                            normStatus === 'rejected' && "bg-destructive/10 text-destructive border-destructive/40"
-                          )}
-                        >
-                          {normStatus === 'accepted' ? (
-                            <><CheckCircle className="h-2.5 w-2.5" /> Proposta aceita</>
-                          ) : normStatus === 'rejected' ? (
-                            <><XCircle className="h-2.5 w-2.5" /> Proposta recusada</>
-                          ) : normStatus === 'sent' ? (
-                            <><Eye className="h-2.5 w-2.5" /> Proposta enviada</>
-                          ) : (
-                            <><CheckCircle className="h-2.5 w-2.5" /> Proposta gerada</>
-                          )}
-                        </Badge>
-                      );
-                    })()}
-                    {!isClosed && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-6 text-[10px] gap-1 px-2"
-                        onClick={() => {
-                          const params = new URLSearchParams({ deal_id: dealId });
-                          if (customerId) params.set("customer_id", customerId);
-                          if (projetoId) params.set("projeto_id", projetoId);
-                          params.set("lead_id", orc.lead_id);
-                          params.set("orc_id", orc.id);
-                          navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
-                        }}
-                      >
-                        <Plus className="h-2.5 w-2.5" /> Criar Proposta
-                      </Button>
-                    )}
-                  </div>
+                  {/* Observations row */}
+                  {(orc.observacoes || orc.lead_observacoes) && (
+                    <div className="flex flex-col gap-1 border-t border-border/40 pt-1.5 px-1">
+                      {orc.lead_observacoes && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-start gap-1.5 text-[10px] text-muted-foreground italic cursor-help">
+                              <UserCircle className="h-3 w-3 shrink-0 mt-0.5" />
+                              <span className="line-clamp-1">{orc.lead_observacoes}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="max-w-[300px] text-[10px]">
+                            {orc.lead_observacoes}
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      {orc.observacoes && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-start gap-1.5 text-[10px] text-primary/80 font-medium cursor-help">
+                              <StickyNote className="h-3 w-3 shrink-0 mt-0.5" />
+                              <span className="line-clamp-1">{orc.observacoes}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="max-w-[300px] text-[10px]">
+                            {orc.observacoes}
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
