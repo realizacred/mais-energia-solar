@@ -47,9 +47,14 @@ export function useProposalActions({ versaoId, propostaRaw, vm }: UseProposalAct
     },
     onSuccess: (result) => {
       const labels: Record<string, string> = {
-        aceita: "Aceita", recusada: "Recusada", enviada: "Enviada", cancelada: "Cancelada",
-        vista: "Vista", gerada: "Gerada",
+        aceita: "Aceita", accepted: "Aceita",
+        recusada: "Recusada", rejected: "Recusada",
+        enviada: "Enviada", sent: "Enviada",
+        cancelada: "Cancelada", cancelled: "Cancelada",
+        vista: "Vista", viewed: "Vista",
+        gerada: "Gerada", generated: "Gerada",
       };
+
       toast({ title: `Proposta marcada como "${labels[result.new_status] || result.new_status}"` });
 
       if (result.commission_pct && result.new_status === "aceita" && vm) {
