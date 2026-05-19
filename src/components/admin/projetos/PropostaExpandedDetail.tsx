@@ -46,6 +46,8 @@ import { useReabrirProposta, useIsAdminOrGerente } from "@/hooks/useReabrirPropo
 import { useProposalTemplates } from "@/hooks/useProposalTemplates";
 import { PropostaBadge } from "./PropostaBadge";
 import { getAvailableProposalActions } from "@/domain/proposal/proposalActionsHelper";
+import { isProposalAccepted, normalizeStatus } from "@/domain/proposal/proposalStatus";
+
 
 
 
