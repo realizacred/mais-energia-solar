@@ -17,12 +17,24 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { PageErrorBoundary } from "@/components/common/PageErrorBoundary";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import {
   MessageCircle, Settings2, Save, RotateCcw, Eye, Variable,
-  ToggleLeft, Sliders, Copy, CheckCircle, ShieldAlert
+  ToggleLeft, Sliders, Copy, CheckCircle, ShieldAlert,
+  GripVertical, Pencil, ArrowUp, ArrowDown, Check,
+  ExternalLink, ChevronRight, Wand2, Sparkles,
+  Smartphone, Mail as MailIcon, FileText
 } from "lucide-react";
+import { Reorder, useDragControls } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -146,6 +158,8 @@ function ProposalMessageConfigPageInner() {
   const [previewStyle, setPreviewStyle] = useState<MessageStyle>("completa");
   const [copiedPlaceholder, setCopiedPlaceholder] = useState<string | null>(null);
   const [previewTab, setPreviewTab] = useState<"text" | "structure">("text");
+  const [editingBlock, setEditingBlock] = useState<string | null>(null);
+  const [previewChannel, setPreviewChannel] = useState<"whatsapp" | "email" | "plain">("whatsapp");
 
   // Initialize from config (sem setState durante render)
   useEffect(() => {
@@ -370,67 +384,123 @@ function ProposalMessageConfigPageInner() {
                   </Select>
                 </div>
 
-                <div className="space-y-2 pt-2">
+                <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Conteúdo do template</Label>
                     <div className="flex items-center gap-2">
-                      <Select 
-                        onValueChange={(val) => {
-                          const current = templates[activeTemplateKey] || "";
-                          setTemplates(prev => ({ ...prev, [activeTemplateKey]: current + val }));
-                        }}
-                      >
-                        <SelectTrigger className="h-7 text-[10px] w-auto gap-1 border-primary/30 text-primary hover:bg-primary/5">
-                          <Variable className="h-3 w-3" />
-                          <span>Inserir Variável</span>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <ScrollArea className="h-[200px]">
-                            {PLACEHOLDER_CATALOG.map(v => (
-                              <SelectItem key={v.key} value={`{{${v.key}}}`} title={v.example}>
-                                <div className="flex flex-col gap-0.5">
-                                  <span className="text-[11px] font-mono">{`{{${v.key}}}`}</span>
-                                  <span className="text-[9px] text-muted-foreground">{v.label}</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </ScrollArea>
-                        </SelectContent>
-                      </Select>
+                      {templates[activeTemplateKey] && (
+                        <Select 
+                          onValueChange={(val) => {
+                            const current = templates[activeTemplateKey] || "";
+                            setTemplates(prev => ({ ...prev, [activeTemplateKey]: current + val }));
+                          }}
+                        >
+                          <SelectTrigger className="h-7 text-[10px] w-auto gap-1 border-primary/30 text-primary hover:bg-primary/5">
+                            <Variable className="h-3 w-3" />
+                            <span>Variável</span>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <ScrollArea className="h-[200px]">
+                              {PLACEHOLDER_CATALOG.map(v => (
+                                <SelectItem key={v.key} value={`{{${v.key}}}`} title={v.example}>
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-[11px] font-mono">{`{{${v.key}}}`}</span>
+                                    <span className="text-[9px] text-muted-foreground">{v.label}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </ScrollArea>
+                          </SelectContent>
+                        </Select>
+                      )}
+                      
                       {templates[activeTemplateKey] ? (
-                        <Badge className="text-[10px] bg-amber-500 hover:bg-amber-600">Customizado</Badge>
+                        <Badge className="text-[10px] bg-amber-500 hover:bg-amber-600 gap-1">
+                          <Pencil className="h-2.5 w-2.5" />
+                          Customizado
+                        </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[10px] bg-muted/50">Padrão do Sistema</Badge>
+                        <Badge variant="soft-success" className="text-[10px] gap-1">
+                          <Sparkles className="h-2.5 w-2.5" />
+                          Gerado automaticamente
+                        </Badge>
                       )}
                     </div>
                   </div>
-                  <Textarea
-                    value={templates[activeTemplateKey] || ""}
-                    onChange={(e) => setTemplates(prev => ({ ...prev, [activeTemplateKey]: e.target.value }))}
-                    placeholder="Deixe vazio para usar o gerador automático baseado em blocos. Use {{variavel}} para inserir dados dinâmicos."
-                    className="min-h-[320px] text-sm font-mono leading-relaxed resize-y focus-visible:ring-primary border-muted-foreground/20"
-                  />
-                  <div className="bg-muted/30 p-2 rounded border border-dashed border-muted-foreground/30">
-                    <p className="text-[10px] text-muted-foreground italic">
-                      Dica: Deixe este campo <strong>vazio</strong> se quiser que o sistema monte a mensagem sozinho usando os botões de ligar/desligar na aba <strong>Blocos</strong>.
-                    </p>
+
+                  <div className="relative group">
+                    <Textarea
+                      value={templates[activeTemplateKey] || previewText}
+                      onChange={(e) => {
+                        if (!templates[activeTemplateKey]) return; // Readonly if not custom
+                        setTemplates(prev => ({ ...prev, [activeTemplateKey]: e.target.value }));
+                      }}
+                      readOnly={!templates[activeTemplateKey]}
+                      placeholder="Este conteúdo é gerado automaticamente. Clique em 'Editar manualmente' para customizar."
+                      className={cn(
+                        "min-h-[350px] text-sm font-mono leading-relaxed resize-y focus-visible:ring-primary border-muted-foreground/20 transition-all",
+                        !templates[activeTemplateKey] && "bg-muted/40 cursor-default opacity-80 select-none grayscale-[0.5]"
+                      )}
+                    />
+                    
+                    {!templates[activeTemplateKey] && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        <Button 
+                          variant="secondary" 
+                          size="sm" 
+                          className="shadow-xl border border-primary/20 pointer-events-auto"
+                          onClick={() => setTemplates(prev => ({ ...prev, [activeTemplateKey]: previewText }))}
+                        >
+                          <Pencil className="h-3.5 w-3.5 mr-2 text-primary" />
+                          Editar manualmente
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                       <FileText className="h-3 w-3" />
+                       {(templates[activeTemplateKey] || previewText).length} caracteres
+                    </div>
+                    
+                    {templates[activeTemplateKey] && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-[10px] text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setTemplates(prev => {
+                          const next = { ...prev };
+                          delete next[activeTemplateKey];
+                          return next;
+                        })}
+                      >
+                        <RotateCcw className="h-3 w-3 mr-1" />
+                        Voltar para automático
+                      </Button>
+                    )}
                   </div>
                 </div>
 
-                {templates[activeTemplateKey] && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-destructive"
-                    onClick={() => setTemplates(prev => {
-                      const next = { ...prev };
-                      delete next[activeTemplateKey];
-                      return next;
-                    })}
-                  >
-                    Limpar customização (usar padrão)
-                  </Button>
-                )}
+                <Separator className="my-4" />
+                
+                {/* AI Preparation Section */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest flex items-center gap-1.5">
+                      <Wand2 className="h-3 w-3 text-primary" />
+                      Sugestões de IA (Experimental)
+                    </Label>
+                    <Badge variant="outline" className="text-[9px] opacity-70">Em breve</Badge>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {["Mais persuasivo", "Mais técnico", "Mais curto", "Foco economia"].map(sug => (
+                      <Button key={sug} variant="outline" size="sm" className="h-7 text-[10px] opacity-60 cursor-not-allowed">
+                        {sug}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -447,108 +517,163 @@ function ProposalMessageConfigPageInner() {
                 <div className="flex items-start gap-2 rounded-md border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800/60 p-2.5">
                   <ShieldAlert className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                   <div className="text-[11px] leading-snug text-amber-900 dark:text-amber-200">
-                    <strong>Pré-visualização com dados de exemplo.</strong> Os valores
-                    abaixo (cliente "João Silva", R$ 42.500, PROP-2026-0042…) são fictícios
-                    e servem só para ver o layout do template. A mensagem real é gerada na
-                    proposta com dados verdadeiros do cliente.
+                    <strong>Pré-visualização em tempo real.</strong> Estes valores são fictícios
+                    para exemplificar o layout. O texto que você vê no <strong>Editor</strong> (esquerda)
+                    é exatamente o que será usado.
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Select
-                    value={previewMode}
-                    onValueChange={(v) => setPreviewMode(v as MessageMode)}
-                  >
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cliente">👤 Cliente</SelectItem>
-                      <SelectItem value="consultor">📋 Consultor</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    value={previewStyle}
-                    onValueChange={(v) => setPreviewStyle(v as MessageStyle)}
-                  >
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="curta">Curta</SelectItem>
-                      <SelectItem value="completa">Completa</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Badge variant="outline" className="text-[9px] gap-1 ml-auto">
-                    <Eye className="h-3 w-3" />
-                    Dados de exemplo
-                  </Badge>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 p-1 bg-muted rounded-lg border border-border/50">
+                    <Button 
+                      variant={previewChannel === "whatsapp" ? "secondary" : "ghost"} 
+                      size="sm" 
+                      className="h-7 text-[10px] px-2 gap-1.5"
+                      onClick={() => setPreviewChannel("whatsapp")}
+                    >
+                      <Smartphone className="h-3 w-3" /> WhatsApp
+                    </Button>
+                    <Button 
+                      variant={previewChannel === "email" ? "secondary" : "ghost"} 
+                      size="sm" 
+                      className="h-7 text-[10px] px-2 gap-1.5"
+                      onClick={() => setPreviewChannel("email")}
+                    >
+                      <MailIcon className="h-3 w-3" /> E-mail
+                    </Button>
+                    <Button 
+                      variant={previewChannel === "plain" ? "secondary" : "ghost"} 
+                      size="sm" 
+                      className="h-7 text-[10px] px-2 gap-1.5"
+                      onClick={() => setPreviewChannel("plain")}
+                    >
+                      <FileText className="h-3 w-3" /> Texto puro
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={previewMode}
+                      onValueChange={(v) => setPreviewMode(v as MessageMode)}
+                    >
+                      <SelectTrigger className="h-8 w-[110px] text-[11px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cliente">👤 Cliente</SelectItem>
+                        <SelectItem value="consultor">📋 Consultor</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={previewStyle}
+                      onValueChange={(v) => setPreviewStyle(v as MessageStyle)}
+                    >
+                      <SelectTrigger className="h-8 w-[100px] text-[11px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="curta">Curta</SelectItem>
+                        <SelectItem value="completa">Completa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <Tabs value={previewTab} onValueChange={(v: any) => setPreviewTab(v)} className="w-full">
                   <TabsList className="w-full h-8 p-1 bg-muted/50 grid grid-cols-2">
-                    <TabsTrigger value="text" className="text-[10px] h-6">Mensagem Final</TabsTrigger>
-                    <TabsTrigger value="structure" className="text-[10px] h-6">Estrutura Usada</TabsTrigger>
+                    <TabsTrigger value="text" className="text-[10px] h-6">Preview Visual</TabsTrigger>
+                    <TabsTrigger value="structure" className="text-[10px] h-6">Como foi montada</TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="text" className="mt-3">
-                    <ScrollArea className="h-[350px]">
-                      <div className="bg-muted/50 rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap font-mono border border-border">
-                        {previewText}
-                      </div>
+                  <TabsContent value="text" className="mt-4">
+                    <ScrollArea className="h-[450px] rounded-xl border border-border/60 bg-muted/20 relative overflow-hidden">
+                      {previewChannel === "whatsapp" ? (
+                        /* WhatsApp Theme */
+                        <div className="p-4 bg-[#e5ddd5] dark:bg-slate-900/50 min-h-full bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] dark:bg-none bg-repeat">
+                          <div className="max-w-[85%] bg-white dark:bg-slate-800 rounded-lg rounded-tl-none p-3 shadow-sm border-l-4 border-l-[#25D366] relative">
+                             <div className="absolute -left-2 top-0 w-0 h-0 border-t-[8px] border-t-white dark:border-t-slate-800 border-l-[8px] border-l-transparent"></div>
+                             <div className="text-sm leading-relaxed whitespace-pre-wrap font-sans text-slate-800 dark:text-slate-200">
+                               {previewText}
+                             </div>
+                             <div className="flex justify-end mt-1">
+                               <span className="text-[10px] text-slate-400 dark:text-slate-500">14:32 ✓✓</span>
+                             </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-6 bg-white dark:bg-slate-950 min-h-full">
+                          <div className="max-w-2xl mx-auto border border-border shadow-sm rounded-lg p-6 bg-white dark:bg-slate-900">
+                             <div className="text-sm leading-relaxed whitespace-pre-wrap font-sans text-foreground">
+                               {previewText}
+                             </div>
+                          </div>
+                        </div>
+                      )}
                     </ScrollArea>
                   </TabsContent>
 
-                  <TabsContent value="structure" className="mt-3">
-                    <ScrollArea className="h-[350px]">
-                      <div className="space-y-4 p-1">
-                        <div className="space-y-1.5">
-                          <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Template Base</Label>
-                          <div className="flex items-center gap-2">
+                  <TabsContent value="structure" className="mt-4">
+                    <ScrollArea className="h-[450px]">
+                      <div className="space-y-6 p-2">
+                        <div className="space-y-2">
+                          <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-widest flex items-center gap-2">
+                            <FileText className="h-3.5 w-3.5" />
+                            Template de Origem
+                          </Label>
+                          <div className="flex items-center gap-2 p-3 rounded-lg border bg-muted/30">
                             <Badge variant={templates[`${previewMode}_${previewStyle}`] ? "secondary" : "outline"} className="text-xs">
                               {structureAnalysis.templateUsed}
                             </Badge>
-                            <span className="text-[10px] text-muted-foreground font-mono">({previewMode}_{previewStyle})</span>
+                            <span className="text-xs text-muted-foreground font-mono">({previewMode}_{previewStyle})</span>
                           </div>
                         </div>
 
-                        <div className="space-y-2">
-                          <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Blocos Ativos</Label>
-                          <div className="flex flex-wrap gap-1.5">
+                        <div className="space-y-3">
+                          <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-widest flex items-center gap-2">
+                            <ToggleLeft className="h-3.5 w-3.5" />
+                            Estrutura de Blocos ({structureAnalysis.activeBlocks.length})
+                          </Label>
+                          <div className="grid grid-cols-1 gap-2">
                             {structureAnalysis.activeBlocks.length > 0 ? (
                               structureAnalysis.activeBlocks.map(b => (
-                                <Badge key={b} variant="soft-success" className="text-[10px] gap-1">
-                                  <CheckCircle className="h-3 w-3" />
-                                  {BLOCK_LABELS[b]?.label || b}
-                                </Badge>
+                                <div key={b} className="flex items-center justify-between p-2.5 rounded-lg border bg-card/50">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                                    <span className="text-xs font-medium">{BLOCK_LABELS[b]?.label || b}</span>
+                                  </div>
+                                  <span className="text-[10px] text-muted-foreground opacity-60">Ativo</span>
+                                </div>
                               ))
                             ) : (
-                              <span className="text-xs text-muted-foreground italic">Nenhum bloco ativo para esta configuração</span>
+                              <div className="text-xs text-muted-foreground italic p-4 text-center border rounded-lg border-dashed">
+                                Nenhum bloco ativo configurado
+                              </div>
                             )}
                           </div>
                         </div>
 
-                        <div className="space-y-2">
-                          <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Variáveis Resolvidas no Preview</Label>
-                          <div className="rounded-lg border border-border bg-card overflow-hidden">
-                            <div className="max-h-[180px] overflow-y-auto">
-                              <table className="w-full text-xs border-collapse">
-                                <thead className="bg-muted/50 sticky top-0">
-                                  <tr>
-                                    <th className="text-left p-2 font-semibold border-b">Variável</th>
-                                    <th className="text-left p-2 font-semibold border-b">Valor Resolvido</th>
+                        <div className="space-y-3">
+                          <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-widest flex items-center gap-2">
+                            <Variable className="h-3.5 w-3.5" />
+                            Variáveis Resolvidas
+                          </Label>
+                          <div className="rounded-xl border border-border/80 bg-card overflow-hidden shadow-sm">
+                            <table className="w-full text-xs border-collapse">
+                              <thead className="bg-muted/50 border-b">
+                                <tr>
+                                  <th className="text-left p-3 font-semibold text-muted-foreground">Variável</th>
+                                  <th className="text-left p-3 font-semibold text-muted-foreground">Valor Resolvido</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {Object.entries(structureAnalysis.variables).map(([k, v]) => (
+                                  <tr key={k} className="hover:bg-muted/30 border-b last:border-0 transition-colors">
+                                    <td className="p-3 font-mono text-[10px] text-primary bg-primary/5">{"{{"}{k}{"}}"}</td>
+                                    <td className="p-3 text-muted-foreground/90 font-medium truncate max-w-[180px]" title={v}>{v}</td>
                                   </tr>
-                                </thead>
-                                <tbody>
-                                  {Object.entries(structureAnalysis.variables).map(([k, v]) => (
-                                    <tr key={k} className="hover:bg-muted/30 border-b last:border-0">
-                                      <td className="p-2 font-mono text-[10px] text-primary">{`{{${k}}}`}</td>
-                                      <td className="p-2 text-muted-foreground truncate max-w-[150px]" title={v}>{v}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
                         </div>
                       </div>
@@ -587,40 +712,112 @@ function ProposalMessageConfigPageInner() {
               </p>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {Object.entries(BLOCK_LABELS).map(([key, meta]) => {
-                  const blockCfg = blocks[key] || SYSTEM_DEFAULT_BLOCKS[key];
-                  return (
-                    <div
-                      key={key}
-                      className={cn(
-                        "flex items-center justify-between p-3 rounded-lg border transition-colors",
-                        blockCfg?.enabled ? "border-primary/20 bg-primary/5" : "border-border bg-card"
-                      )}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground">{meta.label}</p>
-                        <p className="text-[10px] text-muted-foreground">{meta.description}</p>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {blockCfg?.modes?.map(m => (
-                            <Badge key={m} variant="outline" className="text-[8px] h-4 px-1">
-                              {m === "cliente" ? "👤" : "📋"} {m}
-                            </Badge>
-                          ))}
-                          {blockCfg?.styles?.map(s => (
-                            <Badge key={s} variant="outline" className="text-[8px] h-4 px-1">
-                              {s}
-                            </Badge>
-                          ))}
+              <div className="space-y-3">
+                {Object.entries(BLOCK_LABELS)
+                  .sort(([keyA], [keyB]) => {
+                    const orderA = blocks[keyA]?.order ?? Object.keys(BLOCK_LABELS).indexOf(keyA);
+                    const orderB = blocks[keyB]?.order ?? Object.keys(BLOCK_LABELS).indexOf(keyB);
+                    return orderA - orderB;
+                  })
+                  .map(([key, meta], index, array) => {
+                    const blockCfg = blocks[key] || SYSTEM_DEFAULT_BLOCKS[key];
+                    const isFirst = index === 0;
+                    const isLast = index === array.length - 1;
+
+                    return (
+                      <div
+                        key={key}
+                        className={cn(
+                          "flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 shadow-sm group/block",
+                          blockCfg?.enabled ? "border-primary/30 bg-primary/[0.02] dark:bg-primary/[0.05]" : "border-border bg-card opacity-60 grayscale-[0.5]"
+                        )}
+                      >
+                        {/* Order Controls */}
+                        <div className="flex flex-col items-center gap-1 shrink-0">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6" 
+                            disabled={isFirst}
+                            onClick={() => {
+                              const prevKey = array[index - 1][0];
+                              const currentOrder = blockCfg.order ?? index;
+                              const prevOrder = blocks[prevKey]?.order ?? (index - 1);
+                              setBlocks(prev => ({
+                                ...prev,
+                                [key]: { ...blockCfg, order: prevOrder },
+                                [prevKey]: { ...(prev[prevKey] || SYSTEM_DEFAULT_BLOCKS[prevKey]), order: currentOrder }
+                              }));
+                            }}
+                          >
+                            <ArrowUp className="h-3.5 w-3.5" />
+                          </Button>
+                          <GripVertical className="h-4 w-4 text-muted-foreground/40 cursor-grab" />
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6" 
+                            disabled={isLast}
+                            onClick={() => {
+                              const nextKey = array[index + 1][0];
+                              const currentOrder = blockCfg.order ?? index;
+                              const nextOrder = blocks[nextKey]?.order ?? (index + 1);
+                              setBlocks(prev => ({
+                                ...prev,
+                                [key]: { ...blockCfg, order: nextOrder },
+                                [nextKey]: { ...(prev[nextKey] || SYSTEM_DEFAULT_BLOCKS[nextKey]), order: currentOrder }
+                              }));
+                            }}
+                          >
+                            <ArrowDown className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                             <h4 className="text-sm font-bold text-foreground">{blockCfg.title || meta.label}</h4>
+                             {(blockCfg.title || blockCfg.prefix) && (
+                               <Badge variant="outline" className="text-[8px] h-3.5 px-1 uppercase opacity-50 border-primary/30 text-primary">Customizado</Badge>
+                             )}
+                          </div>
+                          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-1">{meta.description}</p>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {blockCfg?.modes?.map(m => (
+                              <Badge key={m} variant="outline" className="text-[9px] h-4 px-1.5 bg-background/50 border-muted-foreground/20">
+                                {m === "cliente" ? "👤" : "📋"} {m}
+                              </Badge>
+                            ))}
+                            {blockCfg?.styles?.map(s => (
+                              <Badge key={s} variant="outline" className="text-[9px] h-4 px-1.5 bg-background/50 border-muted-foreground/20">
+                                {s}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 shrink-0 ml-4">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 gap-1.5 text-xs text-primary hover:bg-primary/10"
+                            onClick={() => setEditingBlock(key)}
+                          >
+                            <Settings2 className="h-3.5 w-3.5" />
+                            Configurar
+                          </Button>
+                          <Separator orientation="vertical" className="h-8" />
+                          <div className="flex flex-col items-end gap-1.5">
+                            <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">Habilitado</span>
+                            <Switch
+                              checked={blockCfg?.enabled ?? true}
+                              onCheckedChange={(val) => handleBlockToggle(key, val)}
+                              className="scale-90"
+                            />
+                          </div>
                         </div>
                       </div>
-                      <Switch
-                        checked={blockCfg?.enabled ?? true}
-                        onCheckedChange={(v) => handleBlockToggle(key, v)}
-                      />
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             </CardContent>
           </Card>
@@ -783,6 +980,68 @@ function ProposalMessageConfigPageInner() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Block Editor Dialog */}
+      <Dialog open={!!editingBlock} onOpenChange={(open) => !open && setEditingBlock(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="h-5 w-5 text-primary" />
+              Configurar Bloco: {editingBlock && (BLOCK_LABELS[editingBlock]?.label || editingBlock)}
+            </DialogTitle>
+            <DialogDescription>
+              Personalize o título, ícone e visibilidade deste bloco na mensagem automática.
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingBlock && (
+            <div className="space-y-6 py-4">
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Título do Bloco</Label>
+                <Input 
+                  value={blocks[editingBlock]?.title || ""} 
+                  onChange={(e) => setBlocks(prev => ({
+                    ...prev,
+                    [editingBlock]: { ...(prev[editingBlock] || SYSTEM_DEFAULT_BLOCKS[editingBlock]), title: e.target.value }
+                  }))}
+                  placeholder={BLOCK_LABELS[editingBlock]?.label}
+                />
+                <p className="text-[10px] text-muted-foreground italic">
+                  Este título aparecerá em destaque no WhatsApp (ex: ━━━ *{blocks[editingBlock]?.title || BLOCK_LABELS[editingBlock]?.label}* ━━━)
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Prefixo / Emoji</Label>
+                <Input 
+                  value={blocks[editingBlock]?.prefix || ""} 
+                  onChange={(e) => setBlocks(prev => ({
+                    ...prev,
+                    [editingBlock]: { ...(prev[editingBlock] || SYSTEM_DEFAULT_BLOCKS[editingBlock]), prefix: e.target.value }
+                  }))}
+                  placeholder="Ex: ☀️, ⚡, 💰"
+                />
+              </div>
+
+              <div className="p-4 rounded-lg bg-primary/5 border border-primary/10 flex items-start gap-3">
+                <Sparkles className="h-5 w-5 text-primary shrink-0" />
+                <div className="space-y-1">
+                  <h5 className="text-xs font-bold text-primary uppercase tracking-wider">Dica Enterprise</h5>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Personalizar os títulos dos blocos ajuda a criar uma identidade visual única para sua empresa no WhatsApp, aumentando a percepção de profissionalismo.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button onClick={() => setEditingBlock(null)} className="w-full sm:w-auto">
+              Confirmar Alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
