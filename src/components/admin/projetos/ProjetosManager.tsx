@@ -178,8 +178,10 @@ export function ProjetosManager() {
   const statusFiltered = useMemo(() => {
     const status = filters.status;
     const tipoSolar = filters.tipo_projeto_solar;
+    const responsavel = filters.responsavel_operacional;
     return validProjetos.filter((p) => {
       if (status && status !== "todos" && resolveProjetoStatus(p) !== status) return false;
+      if (responsavel && responsavel !== "todos" && p.responsavel_operacional !== responsavel) return false;
       if (tipoSolar && tipoSolar !== "todos") {
         const t = (p.tipo_projeto_solar || "on_grid").toString();
         if (t !== tipoSolar) return false;
@@ -201,10 +203,12 @@ export function ProjetosManager() {
         const status = filters.status;
         if (status && status !== "todos" && resolveProjetoStatus(p) !== status) return false;
         const tipoSolar = filters.tipo_projeto_solar;
+        const responsavel = filters.responsavel_operacional;
         if (tipoSolar && tipoSolar !== "todos") {
           const t = (p.tipo_projeto_solar || "on_grid").toString();
           if (t !== tipoSolar) return false;
         }
+        if (responsavel && responsavel !== "todos" && p.responsavel_operacional !== responsavel) return false;
         return true;
       }),
     })).map(c => consultorColumnToOwner(c, etapaMap)),
