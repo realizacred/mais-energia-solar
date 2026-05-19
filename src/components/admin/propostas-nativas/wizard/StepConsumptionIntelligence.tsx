@@ -478,8 +478,11 @@ function StepConsumptionIntelligenceImpl({
 
   return (
     <div className="space-y-4">
+      {/* ─── Briefing Operational & Cockpit ─── */}
+      <LeadBriefingPanel />
+
       {/* ─── Banner informativo Dados do Lead (RB-76/RB-62) */}
-      {/* Context Panel was moved to top of Wizard */}
+
 
 
       {/* ─── Header metrics bar */}
