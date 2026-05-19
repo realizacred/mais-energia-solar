@@ -126,6 +126,32 @@ export function StepDocumento({
     () => Array.isArray(pagamentoOpcoes) && pagamentoOpcoes.some((o: any) => o?.tipo === "financiamento"),
     [pagamentoOpcoes],
   );
+  
+  const isWebReady = !!result?.proposta_id && !!result?.versao_id;
+  const isBusy = generating || (rendering && !isWebReady);
+  const hasArtifact = !!outputPdfPath || !!externalPdfUrl || !!outputDocxPath;
+  const isReady = !generating && (generationStatus === "ready" || generationStatus === "ready_web" || hasArtifact || isWebReady);
+
+  const statusLabel = isReady
+    ? (rendering && !hasArtifact ? "Web pronta (PDF pendente)" : "Proposta pronta")
+    : generationStatus === "rendering_pdf" || rendering
+      ? "PDF sendo processado..."
+      : generationStatus === "ready_web" || generationStatus === "published"
+        ? "Versão publicada"
+        : isBusy
+          ? "Gerando proposta..."
+          : generationStatus === "error"
+            ? "Erro na geração"
+            : "Proposta desatualizada";
+
+  const statusTone = isReady
+    ? (rendering && !hasArtifact ? "info" : "success")
+    : (isBusy || generationStatus === "published" || generationStatus === "rendering_pdf" || rendering)
+      ? "info"
+      : generationStatus === "error"
+        ? "destructive"
+        : "warning";
+
   // Calculate areaUtilM2 and precoFinal if needed, or get from context
   const areaUtilM2 = 0; 
   const precoFinal = 0;
@@ -544,8 +570,8 @@ export function StepDocumento({
   // ─── TAB: TEMPLATE ──────────────────────────────────────
 
   const renderTemplateTab = () => {
-    // ── Generation in progress
-    if (generating || rendering) {
+    // ── Generation in progress (Full page loader only if NOT web ready)
+    if (generating || (rendering && !isWebReady)) {
       let statusMsg = generationStatus === "calculating" ? "Calculando dimensionamento..."
         : generationStatus === "publishing" ? "Publicando versão oficial no CRM..."
         : generationStatus === "published" ? "Versão publicada com sucesso!"
@@ -854,44 +880,6 @@ export function StepDocumento({
       }
     };
 
-    const isBusy = generating || rendering;
-    // ─────────────────────────────────────────────────────────────────────────
-    // SSOT de "Proposta pronta" — NÃO ALTERAR sem auditar AMBOS os contextos:
-    //   1) ProposalWizard (fluxo nativo de criação/edição) — alimenta
-    //      generationStatus no WizardContext durante geração.
-    //   2) ProjetoDetalhe → StepDocumentoBridge (fluxo de visualização/regen
-    //      dentro do projeto) — NÃO usa WizardContext, então generationStatus
-    //      permanece "idle" mesmo após gerar/regenerar com sucesso.
-    //
-    // Por isso a fonte canônica de prontidão é o ARTEFATO PERSISTIDO na
-    // versão (output_pdf_path | external_pdf_url | output_docx_path),
-    // refletido aqui via props vindas do hook de versão ativa.
-    // generationStatus === "ready" é apenas um sinal transitório auxiliar.
-    //
-    // ❌ NUNCA voltar isReady para depender SÓ de generationStatus.
-    // ❌ NUNCA esconder QR/WhatsApp/e-mail/links/downloads quando há artefato.
-    // ❌ NUNCA criar estado paralelo de "pronta" — esta é a única regra.
-    // ─────────────────────────────────────────────────────────────────────────
-    const hasArtifact = !!outputPdfPath || !!externalPdfUrl || !!outputDocxPath;
-    const isReady = !isBusy && (generationStatus === "ready" || hasArtifact);
-    const statusLabel = isReady
-      ? "Proposta pronta"
-      : generationStatus === "rendering_pdf"
-        ? "PDF sendo processado..."
-        : generationStatus === "published"
-          ? "Versão publicada"
-          : isBusy
-            ? "Gerando proposta..."
-            : generationStatus === "error"
-              ? "Erro na geração"
-              : "Proposta desatualizada";
-    const statusTone = isReady
-      ? "success"
-      : (isBusy || generationStatus === "published" || generationStatus === "rendering_pdf")
-        ? "info"
-        : generationStatus === "error"
-          ? "destructive"
-          : "warning";
     const statusClasses: Record<string, string> = {
       success: "border-success/30 bg-success/5 text-success",
       info: "border-info/30 bg-info/5 text-info",
@@ -931,9 +919,23 @@ export function StepDocumento({
                         : "Gere a proposta para liberar envio e link público"}
             </p>
             {isReady && (
-              <div className="flex items-center gap-1.5 pl-6 pt-0.5 text-[10px] text-muted-foreground">
-                <Calendar className="h-3 w-3" />
-                <span>Validade: {validade ? formatDate(validade + "T12:00:00") : "—"}</span>
+              <div className="space-y-1.5 pl-6 pt-0.5">
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <Calendar className="h-3 w-3" />
+                  <span>Validade: {validade ? formatDate(validade + "T12:00:00") : "—"}</span>
+                </div>
+                {rendering && !hasArtifact && (
+                  <div className="flex items-center gap-1.5 text-[10px] text-info font-medium animate-pulse">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <span>PDF sendo preparado em segundo plano...</span>
+                  </div>
+                )}
+                {hasArtifact && (
+                  <div className="flex items-center gap-1.5 text-[10px] text-success font-medium">
+                    <FileText className="h-3 w-3" />
+                    <span>PDF pronto para exportação</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1104,26 +1106,30 @@ export function StepDocumento({
                     <TooltipContent>Adicione uma opção de financiamento para liberar a simulação</TooltipContent>
                   </Tooltip>
                 )}
-                <div className="h-px bg-border/40 my-1" />
+                <div className="h-px bg-border/40 my-2" />
+                <Label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-1 block px-2">
+                  Exportar documento
+                </Label>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="w-full justify-start gap-2 h-8 text-xs"
+                  className={cn("w-full justify-start gap-2 h-8 text-xs", !hasArtifact && "opacity-50")}
                   onClick={handleDownloadPdf}
+                  disabled={!hasArtifact && !rendering}
                 >
-                  <Download className="h-3.5 w-3.5" />
-                  Baixar PDF
+                  <Download className={cn("h-3.5 w-3.5", rendering && !hasArtifact && "animate-pulse")} />
+                  {rendering && !hasArtifact ? "Preparando PDF..." : "Baixar PDF"}
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="w-full justify-start gap-2 h-8 text-xs"
+                  className={cn("w-full justify-start gap-2 h-8 text-xs", !outputDocxPath && "opacity-50")}
                   onClick={handleDownloadDocx}
+                  disabled={!outputDocxPath}
                 >
                   <FileDown className="h-3.5 w-3.5" />
-                  Baixar DOC
+                  Baixar DOCX (Editável)
                 </Button>
-                <div className="h-px bg-border/40 my-1" />
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -1257,7 +1263,7 @@ export function StepDocumento({
 
         {/* Right: Preview — PDF real only, no HTML fallback */}
         <div className="min-w-0 min-h-[300px] sm:min-h-[400px]">
-          {rendering && !(pdfBlobUrl || resolvedPdfPreviewUrl) ? (
+          {rendering && !isWebReady && !(pdfBlobUrl || resolvedPdfPreviewUrl) ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <div className="relative">
                 <Sun className="h-10 w-10 text-primary animate-spin" style={{ animationDuration: "2s" }} />

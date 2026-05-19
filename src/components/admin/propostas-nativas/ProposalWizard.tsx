@@ -2563,11 +2563,11 @@ function ProposalWizardContent() {
       const selectedTpl = proposalTemplates.find(t => t.id === templateSelecionado);
       const isDocxTemplate = selectedTpl?.tipo === "docx";
 
-      setGenerationStatus("published");
+      setGenerationStatus("ready_web");
       setGenerating(false); // Liberar UI imediatamente
       toast({
         title: "Proposta publicada!",
-        description: "A versão oficial foi salva. O PDF está sendo gerado em background.",
+        description: "A versão Web está pronta. O PDF está sendo preparado em segundo plano.",
       });
 
       if (isDocxTemplate && genResult.proposta_id) {
