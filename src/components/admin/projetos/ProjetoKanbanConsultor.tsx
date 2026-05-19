@@ -321,7 +321,7 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
       <div
         className="grid gap-3 pb-4 px-1"
         style={{
-          gridTemplateColumns: `repeat(${sortedColumns.length}, minmax(260px, 1fr))`,
+          gridTemplateColumns: `repeat(${sortedColumns.length}, minmax(300px, 1fr))`,
           minWidth: sortedColumns.length > 4 ? `${sortedColumns.length * 270}px` : undefined,
         }}
       >
