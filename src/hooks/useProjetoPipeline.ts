@@ -34,6 +34,15 @@ export interface ProjetoItem {
   cliente?: { nome: string; telefone: string } | null;
   consultor?: { nome: string } | null;
   etiquetas?: string[]; // etiqueta IDs
+  data_entrada_etapa?: string | null;
+  pendencias?: {
+    id: string;
+    titulo: string;
+    criticidade: 'baixa' | 'media' | 'alta' | 'critica';
+    status: string;
+    bloqueia_fluxo: boolean;
+    sla_at?: string | null;
+  }[];
 }
 
 export interface ConsultorColumn {
@@ -158,7 +167,7 @@ export function useProjetoPipeline() {
 
     let query = supabase
       .from("projetos")
-      .select("id, deal_id, codigo, projeto_num, nome, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, tipo_projeto_solar, clientes:cliente_id(nome, telefone)")
+      .select("id, deal_id, codigo, projeto_num, nome, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, tipo_projeto_solar, data_entrada_etapa, clientes:cliente_id(nome, telefone)")
       .order("created_at", { ascending: false })
       .limit(2000); // Aumentado para 2000 para suportar grandes volumes sem N+1 e com batching otimizado
 
@@ -245,7 +254,7 @@ export function useProjetoPipeline() {
         const chunk = dealIdsToFetch.slice(i, i + DEAL_CHUNK);
         let extraQuery = supabase
           .from("projetos")
-          .select("id, deal_id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, tipo_projeto_solar, clientes:cliente_id(nome, telefone)")
+          .select("id, deal_id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, tipo_projeto_solar, data_entrada_etapa, clientes:cliente_id(nome, telefone)")
           .in("deal_id", chunk)
           .order("created_at", { ascending: false });
 
