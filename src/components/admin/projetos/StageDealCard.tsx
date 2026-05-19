@@ -388,23 +388,23 @@ function StageDealCardImpl({
         {/* PENDENCIES: Real Operational Obstacles */}
         {mainPendencia && (
           <div className={cn(
-            "flex items-start gap-1.5 border rounded p-1.5",
-            mainPendencia.criticidade === 'critica' || mainPendencia.criticidade === 'alta' 
-              ? "bg-destructive/5 border-destructive/20" 
-              : "bg-warning/5 border-warning/20"
+            "flex items-start gap-1.5 rounded p-1.5",
+            mainPendencia.criticidade === 'critica'
+              ? "bg-destructive/5 border border-destructive/20"
+              : "bg-warning/5 border border-warning/20"
           )}>
             <AlertTriangle className={cn(
               "h-3 w-3 shrink-0 mt-0.5",
-              mainPendencia.criticidade === 'critica' || mainPendencia.criticidade === 'alta' 
-                ? "text-destructive" 
+              mainPendencia.criticidade === 'critica'
+                ? "text-destructive"
                 : "text-warning"
             )} />
             <div className="flex-1 min-w-0">
               <p className={cn(
                 "text-[10px] font-bold leading-tight line-clamp-1",
-                mainPendencia.criticidade === 'critica' || mainPendencia.criticidade === 'alta' 
-                  ? "text-destructive" 
-                  : "text-amber-900"
+                mainPendencia.criticidade === 'critica'
+                  ? "text-destructive"
+                  : "text-foreground"
               )}>
                 {mainPendencia.titulo}
               </p>
