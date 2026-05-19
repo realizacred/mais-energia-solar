@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { WizardProvider, useWizardContext } from "./wizard/WizardContext";
 import { WizardSidebar } from "./wizard/WizardSidebar";
 import { ProposalLiveSummary } from "./wizard/ProposalLiveSummary";
+import { useSolarCalculation } from "./wizard/hooks/useSolarCalculation";
+
 import { StepCliente } from "./wizard/StepCliente";
 import { StepLocalizacao } from "./wizard/StepLocalizacao";
 import { StepUCsEnergia } from "./wizard/StepUCsEnergia";
