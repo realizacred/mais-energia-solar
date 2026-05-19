@@ -3001,6 +3001,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
         isExpanded={expandedId === p.id}
         onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)}
         dealId={dealId}
+        dealStatus={dealStatus}
         customerId={customerId}
         onRefresh={() => refetch()}
         isOutdated={isPropostaOutdated(p)}
