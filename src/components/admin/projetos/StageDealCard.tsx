@@ -144,7 +144,7 @@ export function StageDealCard({
   const normalizedProposalStatus = deal.proposta_status?.toLowerCase() ?? "";
   const hasTrackedProposalStatus = normalizedProposalStatus.length > 0 && normalizedProposalStatus !== "excluida";
   const isPropostaRecusada = hasTrackedProposalStatus && ["recusada", "rejeitada", "perdida", "rejected"].includes(normalizedProposalStatus);
-  const isPropostaAceita = hasTrackedProposalStatus && ["aceita", "accepted", "aprovada", "ganha"].includes(normalizedProposalStatus);
+  const isPropostaAceita = hasTrackedProposalStatus && ["aceita", "accepted"].includes(normalizedProposalStatus);
   const hasEtiquetaColor = !!etiquetaCfg?.cor;
   const borderClass = isWonLost
     ? (deal.deal_status === "won" ? "kanban-card--won" : "kanban-card--lost")
