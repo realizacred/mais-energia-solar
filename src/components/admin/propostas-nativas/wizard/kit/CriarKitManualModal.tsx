@@ -470,13 +470,15 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   }, [initialItens]);
 
   const [distribuidorNome, setDistribuidorNome] = useState(initialCardData?.distribuidorNome || "");
+  const [fornecedorId, setFornecedorId] = useState<string | undefined>(initialCardData?.fornecedorId);
   const [distribuidorOpen, setDistribuidorOpen] = useState(false);
   const { data: fornecedoresList = [] } = useFornecedoresNomes();
   const fornecedoresFiltered = useMemo(() => {
     if (!distribuidorNome.trim()) return fornecedoresList.slice(0, 10);
-    const q = distribuidorNome.toLowerCase();
-    return fornecedoresList.filter(f => f.nome.toLowerCase().includes(q)).slice(0, 10);
+    const q = normalize(distribuidorNome);
+    return fornecedoresList.filter(f => normalize(f.nome).includes(q)).slice(0, 10);
   }, [fornecedoresList, distribuidorNome]);
+
   const [custo, setCusto] = useState(initialCardData?.custo || 0);
   const [nomeKit, setNomeKit] = useState(initialCardData?.nomeKit || "");
   const [codigoKit, setCodigoKit] = useState(initialCardData?.codigoKit || "");
