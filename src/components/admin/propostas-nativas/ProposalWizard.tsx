@@ -1638,11 +1638,24 @@ function ProposalWizardContent() {
   /** Apply result from atomic persist to local state */
   const applyPersistResult = useCallback((res: AtomicPersistResult) => {
     if (res.status === "error" || res.status === "blocked") return;
+    
+    // RB-SSOT: Hydrate identity immediately after success
     if (res.propostaId) setSavedPropostaId(res.propostaId);
     if (res.versaoId) setSavedVersaoId(res.versaoId);
     if (res.projetoId) setSavedProjetoId(res.projetoId);
     if (res.dealId) setSavedDealId(res.dealId);
     if (res.clienteId) setSavedClienteId(res.clienteId);
+    
+    // Inject identity into context immediately so StepDocumento can resolve links/preview
+    if (res.propostaId && res.versaoId) {
+      setResult((prev: any) => ({
+        ...prev,
+        proposta_id: res.propostaId,
+        versao_id: res.versaoId,
+        projeto_id: res.projetoId,
+      }));
+    }
+
     setHasEditsAfterRestore(false); // Reset draft flag after successful save
   }, []);
 
