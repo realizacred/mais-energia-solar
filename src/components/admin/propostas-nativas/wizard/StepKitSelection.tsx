@@ -1294,7 +1294,66 @@ function ManualKitCard({ entry, viewMode, isSelected, onSelect, onEdit, onDelete
   );
 }
 
+
+function KitComparisonModal({
+  kits,
+  isOpen,
+  onClose,
+  onSelect
+}: {
+  kits: CatalogKit[];
+  isOpen: boolean;
+  onClose: () => void;
+  onSelect: (id: string, name: string) => void;
+}) {
+  if (kits.length < 2) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold flex items-center gap-2">
+            <LayoutGrid className="h-5 w-5 text-primary" />
+            Comparativo de Kits
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="grid grid-cols-3 gap-6 pt-6">
+          <div className="space-y-6 pt-12">
+            <div className="h-10 font-bold text-xs uppercase text-muted-foreground flex items-center">Fabricante</div>
+            <div className="h-10 font-bold text-xs uppercase text-muted-foreground flex items-center">Potência</div>
+            <div className="h-10 font-bold text-xs uppercase text-muted-foreground flex items-center">Inversor</div>
+            <div className="h-10 font-bold text-xs uppercase text-muted-foreground flex items-center">Estrutura</div>
+            <div className="h-10 font-bold text-xs uppercase text-muted-foreground flex items-center">Preço Total</div>
+            <div className="h-10 font-bold text-xs uppercase text-muted-foreground flex items-center">R$ / Wp</div>
+          </div>
+
+          {kits.map(kit => (
+            <div key={kit.id} className="space-y-6 border rounded-xl p-4 bg-muted/5">
+              <div className="font-bold text-sm truncate mb-4">{kit.name}</div>
+              
+              <div className="h-10 text-sm flex items-center">{kit.fabricante || "—"}</div>
+              <div className="h-10 text-sm flex items-center font-bold text-primary">{kit.estimated_kwp?.toFixed(2)} kWp</div>
+              <div className="h-10 text-sm flex items-center">{kit.potencia_inversor} kW</div>
+              <div className="h-10 text-sm flex items-center">{kit.estrutura || "—"}</div>
+              <div className="h-10 text-sm flex items-center font-black">{formatBRL(kit.fixed_price || 0)}</div>
+              <div className="h-10 text-sm flex items-center italic text-muted-foreground">
+                {formatBRL((kit.fixed_price || 0) / ((kit.estimated_kwp || 1) * 1000))} / Wp
+              </div>
+              
+              <Button className="w-full mt-4" onClick={() => { onSelect(kit.id, kit.name); onClose(); }}>
+                Selecionar este Kit
+              </Button>
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /* ── Premissas Modal ── */
+
 
 const MONTH_LABELS: Record<string, string> = {
   jan: "Janeiro",
