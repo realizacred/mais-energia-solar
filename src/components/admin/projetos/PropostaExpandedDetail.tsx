@@ -341,7 +341,7 @@ function StatusBadge({ status, aceita_at, enviada_at, recusada_at, created_at }:
   };
 
   const badgeType = getBadgeType();
-  const isInconsistent = badgeType === "aceita" && !aceita_at && !accepted_via;
+  const isInconsistent = badgeType === "aceita" && !aceita_at;
 
   // If we have a mapped tooltip type, use it
   if (badgeType) {
