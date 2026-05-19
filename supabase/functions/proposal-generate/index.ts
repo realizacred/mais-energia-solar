@@ -1109,6 +1109,15 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
     const versaoId = rpcResult.versao_id;
     const versaoNumero = rpcResult.versao_numero;
 
+    // Record start event
+    await adminClient.from("proposal_events").insert({
+      proposta_id: propostaId,
+      tipo: "docx_started",
+      payload: { versao_id: versaoId, idempotency_key: body.idempotency_key },
+      tenant_id: tenantId,
+      user_id: userId
+    });
+
     // ── 10. GRANULAR PERSISTENCE (critical path) ────────────
     // NOTE: Do NOT promote status to "gerada" here. Status stays "rascunho"
     // until the render step (proposal-render or template-preview) succeeds
@@ -1145,7 +1154,10 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
     if (Object.keys(updateVersao).length > 0) {
       persistOps.push(
         adminClient.from("proposta_versoes")
-          .update(updateVersao)
+          .update({
+            ...updateVersao,
+            generation_status: "pending"
+          })
           .eq("id", versaoId).eq("tenant_id", tenantId),
       );
     }

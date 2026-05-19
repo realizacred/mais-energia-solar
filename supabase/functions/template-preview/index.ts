@@ -1240,14 +1240,35 @@ Deno.serve(async (req) => {
       // (id + public_slug needed for QR injection)
       const { data: versao } = await adminClient
         .from("proposta_versoes")
-        .select("id, public_slug, snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
+        .select("id, public_slug, snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero, retry_count")
         .eq("proposta_id", proposta_id)
         .order("versao_numero", { ascending: false })
         .limit(1)
         .maybeSingle();
 
       versaoData = versao;
+
+      if (versao) {
+        const isRetry = body.force === true;
+        await adminClient.from("proposta_versoes")
+          .update({ 
+            generation_status: "generating",
+            retry_count: isRetry ? (versao.retry_count || 0) + 1 : versao.retry_count,
+            last_retry_at: isRetry ? new Date().toISOString() : null
+          })
+          .eq("id", versao.id);
+
+        await adminClient.from("proposal_events").insert({
+          proposta_id,
+          tipo: "pdf_started",
+          payload: { versao_id: versao.id, template_id, is_retry: isRetry },
+          tenant_id,
+          user_id: userId
+        });
+      }
     }
+
+    const startTime = Date.now();
 
     // ── 5. BUSCAR DADOS RELACIONADOS ──────────────────────
     const [leadRes, clienteRes, projetoRes, consultorRes, tenantRes, brandSettingsRes] = await Promise.all([
@@ -1921,7 +1942,7 @@ Deno.serve(async (req) => {
         const updatePayload: Record<string, unknown> = {
           output_docx_path: docxUploadErr ? null : docxStoragePath,
           output_pdf_path: (pdfBytes && !pdfConversionError) ? pdfStoragePath : null,
-          generation_status: (pdfBytes && !pdfConversionError) ? "ready" : (docxUploadErr ? "error" : "docx_only"),
+          generation_status: (pdfBytes && !pdfConversionError) ? "ready" : (docxUploadErr ? "failed" : "partial"),
           generation_error: pdfConversionError || (docxUploadErr ? docxUploadErr.message : null),
           template_id_used: template_id,
           generated_at: new Date().toISOString(),
@@ -1935,17 +1956,30 @@ Deno.serve(async (req) => {
         if (updateErr) {
           console.error("[template-preview] Failed to update proposta_versoes:", updateErr.message);
         } else {
-          // console.log(`[template-preview] proposta_versoes ${latestVersao.id} updated with artifact paths`);
+          // Record ready event
+          const isPdf = !!(pdfBytes && !pdfConversionError);
+          await adminClient.from("proposal_events").insert({
+            proposta_id: proposta_id,
+            tipo: isPdf ? "pdf_ready" : "docx_ready",
+            payload: { 
+              versao_id: latestVersao.id,
+              template_id: template_id,
+              duration_ms: Date.now() - startTime,
+              error: pdfConversionError || docxUploadErr?.message,
+              engine: isPdf ? "gotenberg" : "fflate"
+            },
+            tenant_id: tenantId,
+            user_id: userId
+          });
 
           // ── PROMOTE STATUS: Only promote to "gerada" after artifact is persisted ──
-          const hasArtifact = !!(pdfBytes && !pdfConversionError) || (!docxUploadErr && docxStoragePath);
+          const hasArtifact = isPdf || (!docxUploadErr && docxStoragePath);
           if (hasArtifact) {
             await adminClient
               .from("propostas_nativas")
               .update({ status: "gerada" })
               .eq("id", proposta_id)
               .eq("tenant_id", tenantId);
-            // console.log(`[template-preview] propostas_nativas ${proposta_id} status promoted to "gerada"`);
           }
         }
       }
@@ -2028,6 +2062,43 @@ Deno.serve(async (req) => {
     });
   } catch (err: any) {
     console.error("[template-preview] Error:", err?.message, err?.stack);
+
+    // Record failure if we have a version
+    if (proposta_id) {
+       const { data: versao } = await adminClient
+        .from("proposta_versoes")
+        .select("id, retry_count")
+        .eq("proposta_id", proposta_id)
+        .order("versao_numero", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (versao) {
+        const nextRetry = new Date();
+        nextRetry.setMinutes(nextRetry.getMinutes() + 5); // 5 min default
+
+        await adminClient.from("proposta_versoes")
+          .update({ 
+            generation_status: "failed", 
+            generation_error: err?.message || "Erro técnico",
+            next_retry_at: nextRetry.toISOString()
+          })
+          .eq("id", versao.id);
+
+        await adminClient.from("proposal_events").insert({
+          proposta_id,
+          tipo: "pdf_failed",
+          payload: { 
+            versao_id: versao.id, 
+            error: err?.message,
+            retry_count: versao.retry_count 
+          },
+          tenant_id,
+          user_id: userId
+        });
+      }
+    }
+
     return jsonError(err?.message ?? "Erro interno", 500);
   }
 });

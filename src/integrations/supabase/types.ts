@@ -21979,8 +21979,10 @@ export type Database = {
           irradiance_source_point: Json | null
           irradiance_version_id: string | null
           is_official: boolean | null
+          last_retry_at: string | null
           link_pdf: string | null
           motivo_rejeicao: string | null
+          next_retry_at: string | null
           observacoes: string | null
           origem: string
           output_docx_path: string | null
@@ -21991,6 +21993,7 @@ export type Database = {
           proposta_id: string
           public_slug: string | null
           rejeitado_em: string | null
+          retry_count: number | null
           snapshot: Json | null
           snapshot_locked: boolean
           sobredimensionamento: number | null
@@ -22040,8 +22043,10 @@ export type Database = {
           irradiance_source_point?: Json | null
           irradiance_version_id?: string | null
           is_official?: boolean | null
+          last_retry_at?: string | null
           link_pdf?: string | null
           motivo_rejeicao?: string | null
+          next_retry_at?: string | null
           observacoes?: string | null
           origem?: string
           output_docx_path?: string | null
@@ -22052,6 +22057,7 @@ export type Database = {
           proposta_id: string
           public_slug?: string | null
           rejeitado_em?: string | null
+          retry_count?: number | null
           snapshot?: Json | null
           snapshot_locked?: boolean
           sobredimensionamento?: number | null
@@ -22101,8 +22107,10 @@ export type Database = {
           irradiance_source_point?: Json | null
           irradiance_version_id?: string | null
           is_official?: boolean | null
+          last_retry_at?: string | null
           link_pdf?: string | null
           motivo_rejeicao?: string | null
+          next_retry_at?: string | null
           observacoes?: string | null
           origem?: string
           output_docx_path?: string | null
@@ -22113,6 +22121,7 @@ export type Database = {
           proposta_id?: string
           public_slug?: string | null
           rejeitado_em?: string | null
+          retry_count?: number | null
           snapshot?: Json | null
           snapshot_locked?: boolean
           sobredimensionamento?: number | null

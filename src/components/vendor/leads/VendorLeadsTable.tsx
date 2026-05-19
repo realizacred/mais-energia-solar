@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getProposalWebUrl } from "@/services/proposal/proposalLinks";
 import { Phone, Eye, MapPin, Calendar, Trash2, ShoppingCart, UserCheck, MessageSquare, RotateCcw, ExternalLink } from "lucide-react";
 import { useReopenLead } from "@/hooks/useReopenLead";
 // ... keep existing code
@@ -213,7 +214,7 @@ export function VendorLeadsTable({
                             variant="ghost"
                             size="icon"
                             className="text-primary hover:text-primary hover:bg-primary/10"
-                            onClick={() => window.open(`/pl/${lead.proposta_token}`, '_blank')}
+                            onClick={() => window.open(getProposalWebUrl(lead.proposta_token), '_blank')}
                           >
                             <ExternalLink className="w-4 h-4" />
                           </Button>

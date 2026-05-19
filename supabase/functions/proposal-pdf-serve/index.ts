@@ -56,17 +56,48 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 2. Fetch PDF path
+    // 2. Fetch PDF path and status
     const { data: versao, error: versaoErr } = await adminClient
       .from("proposta_versoes")
-      .select("output_pdf_path, link_pdf")
+      .select("output_pdf_path, link_pdf, generation_status, generation_error")
       .eq("id", tokenData.versao_id)
       .maybeSingle();
-
+    
     if (versaoErr || !versao) {
       console.error("[proposal-pdf-serve] Versao not found:", tokenData.versao_id);
-      return new Response(JSON.stringify({ error: "Documento não encontrado" }), {
+      return new Response(JSON.stringify({ 
+        error: "Documento não encontrado",
+        status: "not_found",
+        retryable: false
+      }), {
         status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const genStatus = versao.generation_status || "pending";
+
+    // Handle states
+    if (genStatus === "failed") {
+      return new Response(JSON.stringify({ 
+        error: "Erro na geração do PDF", 
+        status: "failed",
+        message: versao.generation_error || "Ocorreu um erro técnico ao processar seu PDF.",
+        retryable: true 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (genStatus === "generating" || genStatus === "pending") {
+      return new Response(JSON.stringify({ 
+        error: "Documento sendo preparado", 
+        status: "generating",
+        message: "O sistema está processando seu documento. Por favor, aguarde alguns instantes.",
+        retryable: true 
+      }), {
+        status: 202,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -96,9 +127,14 @@ Deno.serve(async (req) => {
 
       if (!fileExists || fileExists.length === 0) {
         console.warn("[proposal-pdf-serve] PDF path exists in DB but file not found in storage:", versao.output_pdf_path);
+        
+        // If file is missing but status says ready, it's an inconsistency. 
+        // Return 202 to trigger client-side retry/wait.
         return new Response(JSON.stringify({ 
-          error: "Documento em processamento", 
-          code: "PENDING" 
+          error: "Sincronizando documento", 
+          status: "generating",
+          message: "O arquivo está sendo transferido para o servidor de entrega.",
+          retryable: true 
         }), {
           status: 202,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

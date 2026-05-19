@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getProposalWebUrl } from "@/services/proposal/proposalLinks";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
@@ -258,7 +259,7 @@ export function VendorLeadViewDialog({ lead, open, onOpenChange, vendedorNome }:
                           variant="default" 
                           size="sm"
                           className="w-full"
-                          onClick={() => window.open(`/pl/${lead.proposta_token}`, '_blank')}
+                          onClick={() => window.open(getProposalWebUrl(lead.proposta_token), '_blank')}
                         >
                           <ExternalLink className="w-4 h-4 mr-2" />
                           Abrir Proposta (Link Web)
