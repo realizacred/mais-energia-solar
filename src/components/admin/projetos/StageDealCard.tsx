@@ -16,7 +16,7 @@ import {
   Zap, FileText, MessageSquare, TrendingDown,
   Clock, Phone, StickyNote, Archive,
   UserPlus, Tag, Copy, ExternalLink,
-  Calendar, CheckCircle2,
+  Calendar, CheckCircle2, AlertTriangle, ShieldCheck, UserCog
 } from "lucide-react";
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import type { DealKanbanCard } from "@/hooks/useDealPipeline";
