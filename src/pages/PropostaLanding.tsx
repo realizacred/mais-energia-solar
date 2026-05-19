@@ -146,32 +146,48 @@ export default function PropostaLanding() {
 
       if (versaoRes.data) {
         setVersaoData(versaoRes.data);
-        setSnapshot(normalizeProposalSnapshot(versaoRes.data.snapshot as Record<string, unknown> | null));
+        const rawSnapshot = versaoRes.data.snapshot as Record<string, any> | null;
+        setSnapshot(normalizeProposalSnapshot(rawSnapshot));
 
-        // Resolução determinística do template WEB via RPC SECURITY DEFINER
-        // (anon não consegue ler proposta_templates por RLS — RB-02 exceção pública).
-        // 1) tenta template_id_used (se html válido)
-        // 2) fallback: default HTML do tenant
-        // 3) erro explícito
-        const templateId = (versaoRes.data as any).template_id_used;
-        const tenantIdForTpl = (propostaRes as any)?.data?.tenant_id ?? null;
+        // Resolução determinística do template WEB
+        // Fase 1 (Imutabilidade): Tenta primeiro o snapshot salvo na versão (RB-F1)
         let webUsable = false;
-        try {
-          const { data: tplRows } = await (supabase as any).rpc(
-            "get_proposal_template_for_landing",
-            { _template_id: templateId ?? null, _tenant_id: tenantIdForTpl }
-          );
-          const tpl = Array.isArray(tplRows) ? tplRows[0] : tplRows;
-          const tplHtml = tpl?.template_html;
-          if (tplHtml) {
-            const parsed = typeof tplHtml === "string" ? JSON.parse(tplHtml) : tplHtml;
+        const snapshotTplHtml = rawSnapshot?.web_template_snapshot;
+
+        if (snapshotTplHtml) {
+          try {
+            const parsed = typeof snapshotTplHtml === "string" ? JSON.parse(snapshotTplHtml) : snapshotTplHtml;
             if (Array.isArray(parsed) && parsed.length > 0) {
               setTemplateBlocks(parsed);
               webUsable = true;
+              console.log("[PropostaLanding] Usando template snapshot imutável.");
             }
+          } catch (e) {
+            console.error("[PropostaLanding] Falha ao processar web_template_snapshot:", e);
           }
-        } catch (e) {
-          console.error("[PropostaLanding] RPC get_proposal_template_for_landing falhou:", e);
+        }
+
+        // Fallback: Resolução via RPC (para propostas antigas ou sem snapshot)
+        if (!webUsable) {
+          const templateId = (versaoRes.data as any).template_id_used;
+          const tenantIdForTpl = (propostaRes as any)?.data?.tenant_id ?? null;
+          try {
+            const { data: tplRows } = await (supabase as any).rpc(
+              "get_proposal_template_for_landing",
+              { _template_id: templateId ?? null, _tenant_id: tenantIdForTpl }
+            );
+            const tpl = Array.isArray(tplRows) ? tplRows[0] : tplRows;
+            const tplHtml = tpl?.template_html;
+            if (tplHtml) {
+              const parsed = typeof tplHtml === "string" ? JSON.parse(tplHtml) : tplHtml;
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setTemplateBlocks(parsed);
+                webUsable = true;
+              }
+            }
+          } catch (e) {
+            console.error("[PropostaLanding] RPC get_proposal_template_for_landing falhou:", e);
+          }
         }
 
         if (!webUsable) {
