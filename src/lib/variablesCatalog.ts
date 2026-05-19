@@ -1710,6 +1710,7 @@ export const EMAIL_PROPOSAL_VARIABLES: ChannelVariable[] = [
   { key: "{{economia_mensal}}", label: "Economia mensal (R$)", example: "580,00", category: "Financeiro" },
   { key: "{{payback_meses}}", label: "Payback (meses)", example: "48", category: "Financeiro" },
   { key: "{{proposta_link}}", label: "Link da proposta", example: "https://app.exemplo.com/pl/abc123", category: "Proposta" },
+  { key: "{{pdf_link}}", label: "Link direto do PDF (mascarado)", example: "https://app.exemplo.com/p/pdf/abc123", category: "Proposta" },
   { key: "{{empresa_nome}}", label: "Nome da empresa", example: "Mais Energia Solar", category: "Empresa" },
 ];
 
