@@ -3079,49 +3079,51 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
               return (
                 <div
                   key={orc.id}
-                  className="flex items-center gap-3 rounded-lg border border-border/60 bg-card px-3 py-2 transition-all hover:border-primary/30 hover:shadow-sm"
+                  className="flex flex-col gap-2 rounded-lg border border-border/60 bg-card px-3 py-2 transition-all hover:border-primary/30 hover:shadow-sm"
                 >
-                  {/* Codes */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {orc.lead_code && (
-                      <span className="text-[10px] font-mono font-bold text-primary">
-                        {orc.lead_code}
+                  <div className="flex items-center gap-3 w-full">
+                    {/* Codes */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {orc.lead_code && (
+                        <span className="text-[10px] font-mono font-bold text-primary">
+                          {orc.lead_code}
+                        </span>
+                      )}
+                      <span className="text-[10px] font-mono text-muted-foreground">
+                        {orc.orc_code || `ORC-${orc.id.slice(0, 6)}`}
                       </span>
-                    )}
-                    <span className="text-[10px] font-mono text-muted-foreground">
-                      {orc.orc_code || `ORC-${orc.id.slice(0, 6)}`}
-                    </span>
-                  </div>
-
-                  {/* Separator */}
-                  <div className="h-4 w-px bg-border/60 shrink-0" />
-
-                  {/* Metrics row */}
-                  <div className="flex items-center gap-4 flex-1 min-w-0 text-[11px]">
-                    <div className="shrink-0">
-                      <span className="text-muted-foreground">Consumo </span>
-                      <span className="font-semibold text-foreground">{orc.media_consumo || 0} kWh</span>
                     </div>
-                    {orc.consumo_previsto > 0 && (
+
+                    {/* Separator */}
+                    <div className="h-4 w-px bg-border/60 shrink-0" />
+
+                    {/* Metrics row */}
+                    <div className="flex items-center gap-4 flex-1 min-w-0 text-[11px]">
                       <div className="shrink-0">
-                        <span className="text-muted-foreground">Geração Prev. </span>
-                        <span className="font-semibold text-success">{orc.consumo_previsto} kWh</span>
+                        <span className="text-muted-foreground">Consumo </span>
+                        <span className="font-semibold text-foreground">{orc.media_consumo || 0} kWh</span>
                       </div>
-                    )}
-                    <div className="shrink-0">
-                      <span className="text-muted-foreground">Telhado </span>
-                      <span className="font-semibold text-foreground truncate">{orc.tipo_telhado || "—"}</span>
+                      {orc.consumo_previsto > 0 && (
+                        <div className="shrink-0">
+                          <span className="text-muted-foreground">Geração Prev. </span>
+                          <span className="font-semibold text-success">{orc.consumo_previsto} kWh</span>
+                        </div>
+                      )}
+                      <div className="shrink-0">
+                        <span className="text-muted-foreground">Telhado </span>
+                        <span className="font-semibold text-foreground truncate">{orc.tipo_telhado || "—"}</span>
+                      </div>
+                      <div className="shrink-0">
+                        <span className="text-muted-foreground">Fase </span>
+                        <span className="font-semibold text-foreground truncate">{orc.rede_atendimento || "—"}</span>
+                      </div>
+                      {orc.cidade && (
+                        <span className="text-[10px] text-muted-foreground truncate">
+                          {orc.cidade}, {orc.estado}
+                        </span>
+                      )}
                     </div>
-                    <div className="shrink-0">
-                      <span className="text-muted-foreground">Fase </span>
-                      <span className="font-semibold text-foreground truncate">{orc.rede_atendimento || "—"}</span>
-                    </div>
-                    {orc.cidade && (
-                      <span className="text-[10px] text-muted-foreground truncate">
-                        {orc.cidade}, {orc.estado}
-                      </span>
-                    )}
-                  </div>
+
 
                   {/* Proposal indicator + action */}
                   <div className="flex items-center gap-1.5 shrink-0">
