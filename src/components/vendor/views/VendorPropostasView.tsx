@@ -492,14 +492,15 @@ function PropostaRowActions({ proposta }: { proposta: PropostaConsultor }) {
   };
 
   const handleCopyPdf = async () => {
-    if (!proposta.output_pdf_path) {
-      toast({ title: "PDF ainda não gerado", variant: "destructive" });
-      return;
-    }
     setBusy("copy");
     try {
-      const url = await getProposalPdfSignedUrl(proposta.output_pdf_path);
-      if (!url) throw new Error("Falha ao gerar link");
+      let token = proposta.public_token;
+      if (!token && proposta.versao_id) {
+        token = await getOrCreateProposalToken(proposta.id, proposta.versao_id, "tracked");
+      }
+      if (!token) throw new Error("Link PDF indisponível");
+      
+      const url = getMaskedPdfUrl(token);
       await navigator.clipboard.writeText(url);
       toast({ title: "Link do PDF copiado! 📋" });
     } catch (e: any) {
