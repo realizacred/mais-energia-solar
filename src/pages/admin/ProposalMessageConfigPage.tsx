@@ -190,7 +190,7 @@ function ProposalMessageConfigPageInner() {
       modulo_modelo: MOCK_CONTEXT.moduloModelo || "—",
       inversor_modelo: MOCK_CONTEXT.inversorModelo || "—",
       consumo_mensal: MOCK_CONTEXT.consumoMensal != null ? MOCK_CONTEXT.consumoMensal.toLocaleString('pt-BR') : "—",
-      geracao_mensal: MOCK_CONTEXT.geracaoMensal ? MOCK_CONTEXT.geracao_mensal.toLocaleString('pt-BR') : "—",
+      geracao_mensal: MOCK_CONTEXT.geracaoMensal ? MOCK_CONTEXT.geracaoMensal.toLocaleString('pt-BR') : "—",
       economia_mensal: MOCK_CONTEXT.economiaMensal ? MOCK_CONTEXT.economiaMensal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : "—",
       valor_total: MOCK_CONTEXT.valorTotal ? MOCK_CONTEXT.valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : "—",
       link_proposta: MOCK_CONTEXT.linkProposta || "",
