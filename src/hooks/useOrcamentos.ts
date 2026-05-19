@@ -79,7 +79,7 @@ export function useOrcamentos({ autoFetch = true, leadId }: UseOrcamentosOptions
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (orcamentoId: string) => orcamentoService.delete(orcamentoId),
+    mutationFn: (params: { orcamentoId: string; motivo?: string }) => orcamentoService.delete(params.orcamentoId, params.motivo),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY, leadId] });
       toast({
