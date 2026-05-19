@@ -271,13 +271,55 @@ function useMergedTimeline(
         created_at: log.created_at,
       });
     }
+    
+    // ─── Synthetic Enterprise Entries ───
+    
+    // 1. Negociação Ganha (Comercial)
+    if (dealStatus === "won") {
+      entries.push({
+        id: "synthetic-deal-won",
+        source: "event",
+        label: "Negociação marcada como GANHA",
+        icon: <Trophy className="h-3 w-3" />,
+        dotClass: "border-success/40 bg-success/10 text-success",
+        badgeClass: "bg-success/10 text-success",
+        userName: "COMERCIAL",
+        created_at: new Date().toISOString(), // Idealmente seria a data real do status_change do deal
+      });
+    }
+
+    // 2. Status de Aceite Formal
+    if (acceptedAt) {
+      entries.push({
+        id: "synthetic-accepted",
+        source: "event",
+        label: "PROPOSTA ACEITA FORMALMENTE",
+        icon: <CheckCircle className="h-3 w-3" />,
+        dotClass: "border-success/60 bg-success/20 text-success font-bold",
+        badgeClass: "bg-success/20 text-success",
+        userName: "CLIENTE",
+        created_at: acceptedAt,
+      });
+    } else if (dealStatus === "won") {
+      entries.push({
+        id: "synthetic-waiting-acceptance",
+        source: "event",
+        label: "Aguardando aceite formal do cliente",
+        icon: <Clock className="h-3 w-3" />,
+        dotClass: "border-warning/40 bg-warning/10 text-warning",
+        badgeClass: "bg-warning/10 text-warning",
+        userName: "AUDITORIA",
+        created_at: new Date().toISOString(),
+      });
+    }
 
     // Sort by date descending
     entries.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return entries;
-  }, [auditLogs, events, propostaCreatedAt]);
+  }, [auditLogs, events, propostaCreatedAt, dealStatus, acceptedAt]);
 }
+
 
 // ─── Status Badge (SSOT from proposalStatusConfig) ───
 import { getProposalStatusConfig } from "@/lib/proposalStatusConfig";
