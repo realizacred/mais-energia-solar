@@ -124,7 +124,7 @@ function StageDealCardImpl({
     (e: React.DragEvent) => latest.current.onDragStart?.(e, deal.deal_id),
     [deal.deal_id],
   );
-  const handleProposalClick = useCallback(() => latest.current.onProposalClick?.(), []);
+  // handleProposalClick intencionalmente omitido: prop existe mas não é consumida no JSX hoje.
   const handleArchive = useCallback(() => latest.current.onArchive?.(deal), [deal]);
   const handleTransfer = useCallback(() => latest.current.onTransfer?.(deal), [deal]);
   const handleTag = useCallback(() => latest.current.onTag?.(deal), [deal]);
