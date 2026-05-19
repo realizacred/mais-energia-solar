@@ -32,7 +32,10 @@ export interface DealDetail {
   motivo_perda_obs: string | null;
   deal_num: number | null;
   status_projeto: string;
+  won_at: string | null;
+  won_by: string | null;
 }
+
 
 export interface StageHistory {
   id: string;
