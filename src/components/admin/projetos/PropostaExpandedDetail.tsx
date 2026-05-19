@@ -311,7 +311,7 @@ function useMergedTimeline(
         dotClass: "border-warning/40 bg-warning/10 text-warning",
         badgeClass: "bg-warning/10 text-warning",
         userName: "AUDITORIA",
-        created_at: new Date().toISOString(),
+        created_at: propostaUpdatedAt || new Date().toISOString(),
       });
     }
 
