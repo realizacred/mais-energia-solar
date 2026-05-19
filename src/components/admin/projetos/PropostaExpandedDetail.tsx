@@ -323,7 +323,7 @@ function useMergedTimeline(
 // ─── Status Badge (SSOT from proposalStatusConfig) ───
 import { getProposalStatusConfig } from "@/lib/proposalStatusConfig";
 
-function StatusBadge({ status, aceita_at, accepted_via, enviada_at, recusada_at, created_at }: { status: string; aceita_at?: string | null; accepted_via?: string | null; enviada_at?: string | null; recusada_at?: string | null; created_at?: string | null }) {
+function StatusBadge({ status, aceita_at, enviada_at, recusada_at, created_at }: { status: string; aceita_at?: string | null; enviada_at?: string | null; recusada_at?: string | null; created_at?: string | null }) {
   const s = getProposalStatusConfig(status);
   
   // Map internal status to badge type
