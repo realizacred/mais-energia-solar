@@ -439,7 +439,7 @@ export function useProjetoPipeline() {
           .from("projeto_pendencias")
           .select("id, projeto_id, titulo, criticidade, status, bloqueia_fluxo, sla_at")
           .in("projeto_id", chunk)
-          .neq("status", "resolvido");
+          .neq("status", "resolvida");
         
         (pends || []).forEach((p: any) => {
           const arr = pendenciasMap.get(p.projeto_id) || [];
