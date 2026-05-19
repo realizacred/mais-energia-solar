@@ -716,7 +716,7 @@ export function ProjetosManager() {
                 valor_total: data.valor || 0,
                 observacoes: data.descricao || null,
                 status: "criado" as any,
-                tipoProjetoSolar: data.tipo_projeto_solar as any || "on_grid",
+                tipoProjetoSolar: data.tipoProjetoSolar || "on_grid",
               } as any)
               .select("id")
               .single();
