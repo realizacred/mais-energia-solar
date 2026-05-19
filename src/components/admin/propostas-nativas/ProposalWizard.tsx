@@ -43,7 +43,38 @@ const STEPS = [
   { key: "documento", label: "Documento", icon: FileText },
 ];
 
+function SummaryPill() {
+  const { 
+    potenciaSugeridaKwp, 
+    geracaoMensalEstimada, 
+    precoFinal,
+    offset 
+  } = useSolarCalculation();
+  
+  return (
+    <div className="flex gap-4 items-center">
+      <div className="flex flex-col shrink-0">
+        <span className="text-[8px] uppercase font-bold text-muted-foreground">Potência</span>
+        <span className="text-[10px] font-black">{potenciaSugeridaKwp.toFixed(2)} kWp</span>
+      </div>
+      <div className="flex flex-col shrink-0 border-l pl-4">
+        <span className="text-[8px] uppercase font-bold text-muted-foreground">Geração</span>
+        <span className="text-[10px] font-black">{Math.round(geracaoMensalEstimada)} kWh</span>
+      </div>
+      <div className="flex flex-col shrink-0 border-l pl-4">
+        <span className="text-[8px] uppercase font-bold text-muted-foreground">Offset</span>
+        <span className="text-[10px] font-black">{offset.toFixed(0)}%</span>
+      </div>
+      <div className="flex flex-col shrink-0 border-l pl-4">
+        <span className="text-[8px] uppercase font-bold text-muted-foreground">Investimento</span>
+        <span className="text-[10px] font-black">R$ {Math.round(precoFinal/1000)}k</span>
+      </div>
+    </div>
+  );
+}
+
 function WizardContent() {
+
   const [currentStep, setCurrentStep] = useState(0);
   const { selectedLead, handleUCsChange, ucs, comercial, setComercial } = useWizardContext();
   const leadFase = selectedLead?.rede_atendimento;
