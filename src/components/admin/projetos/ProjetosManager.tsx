@@ -34,6 +34,7 @@ import { ProjetoPipelineTemplates } from "./ProjetoPipelineTemplates";
 import { CentralPendencias } from "./CentralPendencias";
 import { OperationalQueue } from "./OperationalQueue";
 import { BottleneckCenter } from "./BottleneckCenter";
+import { OperationalCockpitKpis } from "./OperationalCockpitKpis";
 import { calculateOperationalScore } from "@/lib/operational-score";
 import { differenceInDays, differenceInHours } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -254,30 +255,42 @@ export function ProjetosManager() {
       criticalToday: 0,
       awaitingClient: 0,
       awaitingUtility: 0,
+      revenueLocked: 0,
+      activeProjects: 0,
     };
 
     adaptedDeals.forEach(deal => {
+      // Projetos ativos = qualquer deal não fechado (open)
+      if (deal.deal_status === "open") stats.activeProjects++;
+
       const isBlocked = (deal.notas?.toLowerCase().includes("bloqueado")) || deal.pendencias?.some(p => p.bloqueia_fluxo);
-      if (isBlocked) stats.blocked++;
+      if (isBlocked) {
+        stats.blocked++;
+        stats.revenueLocked += deal.deal_value || 0;
+      }
 
       const slaDays = deal.sla_days || 0;
       const daysInStage = differenceInDays(now, new Date(deal.last_stage_change));
-      const timeStopped = differenceInHours(now, new Date(deal.ultima_mudanca_operacional_at || deal.last_stage_change));
-      
-      
+
       if (slaDays > 0) {
         if (daysInStage > slaDays * 1.5) {
           stats.criticalToday++;
           stats.overdueSLA++;
+          if (!isBlocked) stats.revenueLocked += deal.deal_value || 0;
         } else if (daysInStage >= slaDays) {
           stats.overdueSLA++;
+          if (!isBlocked) stats.revenueLocked += deal.deal_value || 0;
         } else if (daysInStage >= slaDays * 0.8) {
           stats.attention++;
         }
       } else {
         const hours = differenceInHours(now, new Date(deal.last_stage_change));
-        if (hours >= 168) stats.criticalToday++;
-        else if (hours >= 72) stats.attention++;
+        if (hours >= 168) {
+          stats.criticalToday++;
+          if (!isBlocked) stats.revenueLocked += deal.deal_value || 0;
+        } else if (hours >= 72) {
+          stats.attention++;
+        }
       }
 
       if (!deal.owner_id) stats.noOwner++;
@@ -833,95 +846,43 @@ export function ProjetosManager() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Mini KPI chips */}
-          <div className="flex items-center gap-2 flex-wrap overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
+          {operationalKPIs.criticalToday > 0 && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs cursor-help transition-all",
-                  operationalKPIs.blocked > 0 ? "border-destructive/30 bg-destructive/5 text-destructive animate-pulse" : "opacity-60"
-                )}>
-                  <LockIcon className="h-3.5 w-3.5" />
-                  <span className="font-bold">{operationalKPIs.blocked}</span>
-                  <span className="hidden lg:inline font-medium opacity-80 ml-0.5">Bloqueados</span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>Projetos com fluxo impedido (técnico ou comercial)</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs cursor-help transition-all",
-                  operationalKPIs.overdueSLA > 0 ? "border-orange-500/30 bg-orange-50/50 text-orange-600" : "opacity-60"
-                )}>
-                  <Clock className="h-3.5 w-3.5" />
-                  <span className="font-bold">{operationalKPIs.overdueSLA}</span>
-                  <span className="hidden lg:inline font-medium opacity-80 ml-0.5">SLA Vencido</span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>Projetos que ultrapassaram o tempo planejado na etapa</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs cursor-help transition-all",
-                  operationalKPIs.awaitingClient > 0 ? "border-blue-500/30 bg-blue-50/50 text-blue-600" : "opacity-60"
-                )}>
-                  <Users className="h-3.5 w-3.5" />
-                  <span className="font-bold">{operationalKPIs.awaitingClient}</span>
-                  <span className="hidden lg:inline font-medium opacity-80 ml-0.5">Aguardando Cliente</span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>Projetos em etapas de documentação ou aceite do cliente</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs cursor-help transition-all",
-                  operationalKPIs.awaitingUtility > 0 ? "border-purple-500/30 bg-purple-50/50 text-purple-600" : "opacity-60"
-                )}>
-                  <Zap className="h-3.5 w-3.5" />
-                  <span className="font-bold">{operationalKPIs.awaitingUtility}</span>
-                  <span className="hidden lg:inline font-medium opacity-80 ml-0.5">Concessionária</span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>Projetos em vistoria ou aprovação técnica na concessionária</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs cursor-help transition-all",
-                  operationalKPIs.criticalToday > 0 ? "border-destructive bg-destructive/10 text-destructive shadow-[0_0_10px_rgba(239,68,68,0.2)] animate-pulse" : "hidden"
-                )}>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-destructive bg-destructive/10 text-destructive text-xs font-bold cursor-help animate-pulse">
                   <ShieldAlert className="h-3.5 w-3.5" />
-                  <span className="font-bold">{operationalKPIs.criticalToday}</span>
-                  <span className="hidden lg:inline font-medium ml-0.5 uppercase">Críticos</span>
+                  <span className="tabular-nums">{operationalKPIs.criticalToday}</span>
+                  <span className="uppercase tracking-wide">Críticos agora</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent>Atenção imediata: SLA muito excedido</TooltipContent>
             </Tooltip>
-          </div>
+          )}
         </div>
 
-        <TabsContent value="kanban" className="space-y-4 mt-0">
-          <div className="flex-1 min-w-0 space-y-6">
-            {/* Operational Cockpit (Phase 2D) */}
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 mb-2">
-              <div className="xl:col-span-8">
-                <BottleneckCenter projetos={projetos} etapas={etapas} />
-              </div>
-              <div className="xl:col-span-4">
-                <OperationalQueue 
-                  projetos={projetos} 
-                  etapas={etapas} 
-                  onViewProjeto={(p) => setSelectedProjetoId(p.deal_id || p.id)} 
-                />
-              </div>
-            </div>
+        <TabsContent value="kanban" className="space-y-5 mt-0">
+          {/* ── Cockpit Operacional Executivo ── */}
+          <OperationalCockpitKpis
+            kpis={{
+              blocked: operationalKPIs.blocked,
+              overdueSLA: operationalKPIs.overdueSLA,
+              criticalToday: operationalKPIs.criticalToday,
+              awaitingUtility: operationalKPIs.awaitingUtility,
+              revenueLocked: operationalKPIs.revenueLocked,
+              activeProjects: operationalKPIs.activeProjects,
+            }}
+          />
+
+          {/* ── Fila Inteligente full-width ── */}
+          <OperationalQueue
+            projetos={projetos}
+            etapas={etapas}
+            onViewProjeto={(p) => setSelectedProjetoId(p.deal_id || p.id)}
+          />
+
+          {/* ── Gargalos Operacionais ── */}
+          <BottleneckCenter projetos={projetos} etapas={etapas} />
+
 
             <div className="rounded-xl border border-border/60 bg-card overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
               {/* Summary bar — top */}
@@ -1138,8 +1099,9 @@ export function ProjetosManager() {
                 </div>
               )}
             </div>
-          </div>
         </TabsContent>
+
+
         <TabsContent value="pendencias" className="mt-0">
           <CentralPendencias 
             projetos={projetos} 
