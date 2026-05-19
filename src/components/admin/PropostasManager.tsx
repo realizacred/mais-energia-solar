@@ -121,10 +121,11 @@ export function PropostasManager() {
   // Stats
   const stats = useMemo(() => ({
     total: propostas.length,
-    enviadas: propostas.filter((p) => ["enviada", "generated"].includes(p.status)).length,
-    aceitas: propostas.filter((p) => p.status === "aceita").length,
+    enviadas: propostas.filter((p) => ["sent", "enviada", "generated"].includes(p.status)).length,
+    aceitas: propostas.filter((p) => ["accepted", "aceita"].includes(p.status)).length,
     valorTotal: propostas
-      .filter((p) => p.status === "aceita")
+      .filter((p) => ["accepted", "aceita"].includes(p.status))
+
       .reduce((acc, p) => acc + (p.preco_total || 0), 0),
   }), [propostas]);
 
