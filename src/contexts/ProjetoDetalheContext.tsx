@@ -34,6 +34,20 @@ export interface DealDetail {
   status_projeto: string;
   won_at: string | null;
   won_by: string | null;
+  proxima_acao: string | null;
+  responsavel_operacional: string | null;
+  prazo_acao: string | null;
+  dependencia_tipo: string | null;
+  ultima_mudanca_operacional_at: string | null;
+}
+
+export interface ProjetoOperacaoEvento {
+  id: string;
+  projeto_id: string;
+  tipo: string;
+  payload: any;
+  created_at: string;
+  created_by: string | null;
 }
 
 
@@ -91,6 +105,7 @@ export interface ProjetoDetalheContextValue {
   /** Descrição do projeto (projetos.observacoes). */
   projetoDescricao: string | null;
   history: StageHistory[];
+  operacoesHistory: ProjetoOperacaoEvento[];
   portalToken: string | null;
   stages: StageInfo[];
   loading: boolean;
@@ -484,6 +499,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
     onBack,
     initialPipelineId,
     initialPipelineName,
+    operacoesHistory: fullData?.operacoesHistory ?? [],
     deal,
     projetoId,
     projetoNome,
