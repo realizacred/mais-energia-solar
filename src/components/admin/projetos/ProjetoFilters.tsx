@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, X, Filter, List, Layers, Tag, Users, Pencil, Plus, ArrowUpDown, Check, SlidersHorizontal, GripVertical, Zap } from "lucide-react";
+import { Search, X, Filter, List, Layers, Tag, Users, Pencil, Plus, ArrowUpDown, Check, SlidersHorizontal, GripVertical, Zap, UserCog } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import type { ProjetoFunil, ProjetoEtiqueta } from "@/hooks/useProjetoPipeline";
 import { cn } from "@/lib/utils";
-import { TIPO_PROJETO_SOLAR_OPTIONS } from "@/lib/tipo_projeto_solar";
+import { TIPO_PROJETO_SOLAR_OPTIONS } from "@/lib/tipoProjetoSolar";
 import { useUserFunnelOrder } from "@/hooks/useUserFunnelOrder";
 import {
   DndContext,
