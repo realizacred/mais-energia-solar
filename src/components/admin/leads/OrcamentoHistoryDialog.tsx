@@ -275,11 +275,24 @@ export function OrcamentoHistoryDialog({
                                 Converter
                               </Button>
                             )}
-                            {isConverted && (
+                            {isConverted ? (
                               <Badge variant="outline" className="text-primary border-primary/30">
                                 Convertido
                               </Badge>
+                            ) : (
+                              onArchiveOrcamento && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                  onClick={() => onArchiveOrcamento(orcamento)}
+                                >
+                                  <Archive className="h-4 w-4 mr-1" />
+                                  Arquivar
+                                </Button>
+                              )
                             )}
+
                           </div>
                         </div>
                       </div>
