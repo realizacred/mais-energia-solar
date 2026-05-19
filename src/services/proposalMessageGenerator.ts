@@ -421,6 +421,7 @@ export function generateProposalMessage(
     economia_mensal: ctx.economiaMensal ? formatBRL(ctx.economiaMensal) : "—",
     valor_total: ctx.valorTotal ? formatBRL(ctx.valorTotal) : "—",
     link_proposta: ctx.linkProposta || "",
+    link_pdf: ctx.linkPdf || "",
     status: ctx.propostaStatus || "—",
     consultor_nome: ctx.consultorNome || "",
     empresa_nome: ctx.empresaNome || "",
