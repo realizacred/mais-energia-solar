@@ -1549,8 +1549,13 @@ function ProposalWizardContent() {
         const restoredPdfPath = (versao as any)?.output_pdf_path ?? null;
         const restoredDocxPath = (versao as any)?.output_docx_path ?? null;
         const restoredLinkPdf = (versao as any)?.link_pdf ?? null;
+        const restoredGenStatus = (versao as any)?.generation_status ?? null;
 
-        if (restoredPdfPath) {
+        if (restoredGenStatus === "rendering_pdf" || restoredGenStatus === "processing") {
+          // If we left the page during generation, pick it back up
+          setRendering(true);
+          setGenerationStatus("rendering_pdf");
+        } else if (restoredPdfPath) {
           setOutputPdfPath(restoredPdfPath);
           setOutputDocxPath(restoredDocxPath);
           setExternalPdfUrl(null);
@@ -1574,6 +1579,9 @@ function ProposalWizardContent() {
           setOutputDocxPath(null);
           setExternalPdfUrl(restoredLinkPdf);
           setGenerationStatus("ready");
+        } else if (restoredGenStatus === "error") {
+          setGenerationStatus("error");
+          setGenerationError((versao as any)?.generation_error || "Erro na geração anterior");
         }
 
 
@@ -2542,8 +2550,15 @@ function ProposalWizardContent() {
       });
 
       if (isDocxTemplate && genResult.proposta_id) {
+        setSavedVersaoId(genResult.versao_id); // Ensure polling logic uses the new version ID
         setRendering(true);
         setGenerationStatus("rendering_pdf");
+        
+        // Mark version as generating in DB so we can pick it up if user leaves
+        await supabase
+          .from("proposta_versoes")
+          .update({ generation_status: "rendering_pdf" } as any)
+          .eq("id", genResult.versao_id);
         
         // Trigger Edge Function in background without awaiting its completion for the UI
         (async () => {
@@ -2573,18 +2588,40 @@ function ProposalWizardContent() {
           }
         })();
       } else if (!isDocxTemplate) {
+        setSavedVersaoId(genResult.versao_id); // Ensure polling logic uses the new version ID
         // HTML templates are fast, but let's follow the same pattern for consistency
         setRendering(true);
         setGenerationStatus("rendering_pdf");
+
+        // Mark version as generating in DB so we can pick it up if user leaves
+        await supabase
+          .from("proposta_versoes")
+          .update({ generation_status: "rendering_pdf" } as any)
+          .eq("id", genResult.versao_id);
         (async () => {
           try {
             const renderResult = await renderProposal(genResult.versao_id);
             setHtmlPreview(renderResult.html);
             setGenerationStatus("ready");
             setRendering(false);
+            
+            // Explicitly mark as completed in DB for HTML templates too
+            await supabase
+              .from("proposta_versoes")
+              .update({ generation_status: "ready" } as any)
+              .eq("id", genResult.versao_id);
           } catch (e: any) {
             setGenerationStatus("error");
             setGenerationError(e.message || "Erro ao renderizar HTML");
+            
+            // Mark as error in DB
+            await supabase
+              .from("proposta_versoes")
+              .update({ 
+                generation_status: "error",
+                generation_error: e.message || "Erro ao renderizar HTML"
+              } as any)
+              .eq("id", genResult.versao_id);
           }
         })();
       }
