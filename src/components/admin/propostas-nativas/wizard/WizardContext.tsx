@@ -95,7 +95,12 @@ interface WizardContextType {
   generationStatus: GenerationStatus;
   setGenerationStatus: React.Dispatch<React.SetStateAction<GenerationStatus>>;
 
+  // Step 1 - Comercial
+  comercial: ComercialData;
+  setComercial: React.Dispatch<React.SetStateAction<ComercialData>>;
+
   // Edit Accepted Proposal
+
   editAceitaDialogOpen: boolean;
   setEditAceitaDialogOpen: (open: boolean) => void;
   editAceitaMotivo: string;
