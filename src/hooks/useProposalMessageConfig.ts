@@ -47,18 +47,78 @@ export interface ProposalMessageConfigData {
 // ─── System Defaults ────────────────────────────────
 
 export const SYSTEM_DEFAULT_BLOCKS: Record<string, BlockConfig> = {
-  saudacao: { enabled: true, modes: ["cliente", "consultor"], styles: ["curta", "completa"] },
-  resumo_tecnico: { enabled: true, modes: ["cliente", "consultor"], styles: ["completa"] },
-  consumo_geracao: { enabled: true, modes: ["cliente", "consultor"], styles: ["completa"] },
-  garantias: { enabled: true, modes: ["cliente"], styles: ["completa"] },
-  investimento: { enabled: true, modes: ["cliente", "consultor"], styles: ["curta", "completa"] },
-  pagamento: { enabled: true, modes: ["cliente", "consultor"], styles: ["completa"] },
-  itens_inclusos: { enabled: true, modes: ["cliente"], styles: ["completa"] },
-  servicos: { enabled: true, modes: ["cliente"], styles: ["completa"] },
-  oferta_especial: { enabled: false, modes: ["cliente"], styles: ["curta", "completa"] },
-  link_proposta: { enabled: true, modes: ["cliente", "consultor"], styles: ["curta", "completa"] },
-  validade: { enabled: true, modes: ["cliente"], styles: ["completa"] },
-  assinatura: { enabled: true, modes: ["cliente"], styles: ["curta", "completa"] },
+  saudacao: { 
+    enabled: true, 
+    modes: ["cliente", "consultor"], 
+    styles: ["curta", "completa"],
+    template: "Olá, {{cliente_nome}}! 👋"
+  },
+  resumo_tecnico: { 
+    enabled: true, 
+    modes: ["cliente", "consultor"], 
+    styles: ["completa"],
+    template: "⚡ Potência: {{potencia_kwp}} kWp\n🔋 {{modulos_qtd}} módulos ({{modulo_modelo}})\n🔌 Inversor: {{inversor_modelo}}\n🏠 Telhado: {{tipo_telhado}}"
+  },
+  consumo_geracao: { 
+    enabled: true, 
+    modes: ["cliente", "consultor"], 
+    styles: ["completa"],
+    template: "📊 Consumo mensal: {{consumo_mensal}} kWh\n☀️ Geração estimada: {{geracao_mensal}} kWh/mês\n💵 Economia mensal estimada: {{economia_mensal}}\n⏱️ Retorno do investimento: {{payback_info}}"
+  },
+  garantias: { 
+    enabled: true, 
+    modes: ["cliente"], 
+    styles: ["completa"],
+    template: "✅ *Garantias:*\n• Módulos: {{modulo_garantia}}\n• Inversor: {{inversor_garantia}}\n• Instalação: {{instalacao_garantia}}"
+  },
+  investimento: { 
+    enabled: true, 
+    modes: ["cliente", "consultor"], 
+    styles: ["curta", "completa"],
+    template: "💰 Valor total: {{valor_total}}"
+  },
+  pagamento: { 
+    enabled: true, 
+    modes: ["cliente", "consultor"], 
+    styles: ["completa"],
+    template: "💳 *Formas de Pagamento:*\n{{pagamento_detalhes}}"
+  },
+  itens_inclusos: { 
+    enabled: true, 
+    modes: ["cliente"], 
+    styles: ["completa"],
+    template: "📦 *Itens inclusos:*\n{{lista_itens}}"
+  },
+  servicos: { 
+    enabled: true, 
+    modes: ["cliente"], 
+    styles: ["completa"],
+    template: "🛠️ *Serviços inclusos:*\n{{lista_servicos}}"
+  },
+  oferta_especial: { 
+    enabled: false, 
+    modes: ["cliente"], 
+    styles: ["curta", "completa"],
+    template: "🎁 {{oferta_texto}}"
+  },
+  link_proposta: { 
+    enabled: true, 
+    modes: ["cliente", "consultor"], 
+    styles: ["curta", "completa"],
+    template: "🔗 Ver proposta web: {{link_proposta}}\n📄 Baixar em PDF: {{link_pdf}}"
+  },
+  validade: { 
+    enabled: true, 
+    modes: ["cliente"], 
+    styles: ["completa"],
+    template: "⏰ Proposta válida por {{validade_dias}} dias."
+  },
+  assinatura: { 
+    enabled: true, 
+    modes: ["cliente"], 
+    styles: ["curta", "completa"],
+    template: "{{consultor_nome}}\n{{empresa_nome}}"
+  },
 };
 
 export const SYSTEM_DEFAULT_CONFIG: ProposalMessageDefaults = {
