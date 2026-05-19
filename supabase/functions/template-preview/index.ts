@@ -1921,7 +1921,7 @@ Deno.serve(async (req) => {
         const updatePayload: Record<string, unknown> = {
           output_docx_path: docxUploadErr ? null : docxStoragePath,
           output_pdf_path: (pdfBytes && !pdfConversionError) ? pdfStoragePath : null,
-          generation_status: (pdfBytes && !pdfConversionError) ? "ready" : (docxUploadErr ? "error" : "docx_only"),
+          generation_status: (pdfBytes && !pdfConversionError) ? "ready" : (docxUploadErr ? "failed" : "partial"),
           generation_error: pdfConversionError || (docxUploadErr ? docxUploadErr.message : null),
           template_id_used: template_id,
           generated_at: new Date().toISOString(),
@@ -1935,7 +1935,19 @@ Deno.serve(async (req) => {
         if (updateErr) {
           console.error("[template-preview] Failed to update proposta_versoes:", updateErr.message);
         } else {
-          // console.log(`[template-preview] proposta_versoes ${latestVersao.id} updated with artifact paths`);
+          // Record ready event
+          await adminClient.from("proposal_events").insert({
+            proposta_id: proposta_id,
+            tipo: pdfBytes && !pdfConversionError ? "pdf_ready" : "docx_ready",
+            payload: { 
+              versao_id: latestVersao.id,
+              template_id: template_id,
+              duration_ms: Date.now() - new Date(forensicReport.timestamp).getTime(),
+              error: pdfConversionError || docxUploadErr?.message
+            },
+            tenant_id: tenantId,
+            user_id: userId
+          });
 
           // ── PROMOTE STATUS: Only promote to "gerada" after artifact is persisted ──
           const hasArtifact = !!(pdfBytes && !pdfConversionError) || (!docxUploadErr && docxStoragePath);
@@ -1945,7 +1957,6 @@ Deno.serve(async (req) => {
               .update({ status: "gerada" })
               .eq("id", proposta_id)
               .eq("tenant_id", tenantId);
-            // console.log(`[template-preview] propostas_nativas ${proposta_id} status promoted to "gerada"`);
           }
         }
       }
