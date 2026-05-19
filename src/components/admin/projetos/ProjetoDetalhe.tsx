@@ -135,6 +135,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 
 const TABS = [
   { id: "gerenciamento" as TabId, label: "Gerenciamento", icon: Settings, color: "text-secondary" },
+  { id: "execucao" as TabId, label: "Execução", icon: Zap, color: "text-primary", roles: ["admin", "gerente", "gestor", "tecnico", "engenheiro"] },
   { id: "comunicacao" as TabId, label: "Comunicação", icon: MessageSquare, color: "text-success", roles: ["admin", "gerente", "gestor", "consultor", "vendas"] },
   { id: "propostas" as TabId, label: "Propostas", icon: FileText, color: "text-primary", roles: ["admin", "gerente", "gestor", "consultor", "vendas"] },
   { id: "credito" as TabId, label: "Crédito", icon: CreditCard, color: "text-primary", roles: ["admin", "gerente", "gestor", "consultor", "vendas"] },
