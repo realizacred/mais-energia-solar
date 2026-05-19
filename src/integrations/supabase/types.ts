@@ -18697,6 +18697,51 @@ export type Database = {
           },
         ]
       }
+      projeto_operacoes_eventos: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          payload: Json | null
+          projeto_id: string | null
+          tenant_id: string | null
+          tipo: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          payload?: Json | null
+          projeto_id?: string | null
+          tenant_id?: string | null
+          tipo: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          payload?: Json | null
+          projeto_id?: string | null
+          tenant_id?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_operacoes_eventos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_operacoes_eventos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_pendencias: {
         Row: {
           bloqueia_fluxo: boolean
@@ -18870,6 +18915,7 @@ export type Database = {
           data_previsao_instalacao: string | null
           data_venda: string | null
           deal_id: string | null
+          dependencia_tipo: string | null
           etapa_id: string | null
           external_id: string | null
           external_source: string | null
@@ -18894,16 +18940,20 @@ export type Database = {
           observacoes: string | null
           origem: string | null
           potencia_kwp: number | null
+          prazo_acao: string | null
           prazo_estimado_dias: number | null
           prazo_vistoria_dias: number | null
           projeto_num: number
           proposta_id: string | null
+          proxima_acao: string | null
+          responsavel_operacional: string | null
           rua_instalacao: string | null
           status: Database["public"]["Enums"]["projeto_status"]
           tenant_id: string
           tipo_instalacao: string | null
           tipo_projeto_solar: string
           uf_instalacao: string | null
+          ultima_mudanca_operacional_at: string | null
           updated_at: string
           valor_entrada: number | null
           valor_equipamentos: number | null
@@ -18929,6 +18979,7 @@ export type Database = {
           data_previsao_instalacao?: string | null
           data_venda?: string | null
           deal_id?: string | null
+          dependencia_tipo?: string | null
           etapa_id?: string | null
           external_id?: string | null
           external_source?: string | null
@@ -18953,16 +19004,20 @@ export type Database = {
           observacoes?: string | null
           origem?: string | null
           potencia_kwp?: number | null
+          prazo_acao?: string | null
           prazo_estimado_dias?: number | null
           prazo_vistoria_dias?: number | null
           projeto_num?: number
           proposta_id?: string | null
+          proxima_acao?: string | null
+          responsavel_operacional?: string | null
           rua_instalacao?: string | null
           status?: Database["public"]["Enums"]["projeto_status"]
           tenant_id?: string
           tipo_instalacao?: string | null
           tipo_projeto_solar?: string
           uf_instalacao?: string | null
+          ultima_mudanca_operacional_at?: string | null
           updated_at?: string
           valor_entrada?: number | null
           valor_equipamentos?: number | null
@@ -18988,6 +19043,7 @@ export type Database = {
           data_previsao_instalacao?: string | null
           data_venda?: string | null
           deal_id?: string | null
+          dependencia_tipo?: string | null
           etapa_id?: string | null
           external_id?: string | null
           external_source?: string | null
@@ -19012,16 +19068,20 @@ export type Database = {
           observacoes?: string | null
           origem?: string | null
           potencia_kwp?: number | null
+          prazo_acao?: string | null
           prazo_estimado_dias?: number | null
           prazo_vistoria_dias?: number | null
           projeto_num?: number
           proposta_id?: string | null
+          proxima_acao?: string | null
+          responsavel_operacional?: string | null
           rua_instalacao?: string | null
           status?: Database["public"]["Enums"]["projeto_status"]
           tenant_id?: string
           tipo_instalacao?: string | null
           tipo_projeto_solar?: string
           uf_instalacao?: string | null
+          ultima_mudanca_operacional_at?: string | null
           updated_at?: string
           valor_entrada?: number | null
           valor_equipamentos?: number | null
