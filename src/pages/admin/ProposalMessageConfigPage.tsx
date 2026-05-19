@@ -431,14 +431,28 @@ function ProposalMessageConfigPageInner() {
 
         {/* ═══ BLOCKS TAB ═══ */}
         <TabsContent value="blocks" className="space-y-4">
-          <Card className="border-l-4 border-l-primary">
+          <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/10 mb-2">
+            <div className="mt-0.5">
+              <ToggleLeft className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-primary">Configuração Estrutural (Blocos)</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Estes blocos definem a <strong>estrutura automática</strong> da mensagem. 
+                Se você <strong>não</strong> customizou um template na aba anterior, o sistema montará a mensagem ativando ou desativando os itens abaixo. 
+                Isso garante um padrão visual consistente mesmo sem escrever templates manuais.
+              </p>
+            </div>
+          </div>
+
+          <Card className="border-l-4 border-l-primary shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <ToggleLeft className="h-4 w-4 text-primary" />
-                Blocos Configuráveis
+                Gerenciar Visibilidade dos Blocos
               </CardTitle>
               <p className="text-xs text-muted-foreground mt-1">
-                Habilite ou desabilite seções que aparecem na mensagem gerada
+                Habilite ou desabilite seções que aparecem na mensagem automática (gerada por blocos)
               </p>
             </CardHeader>
             <CardContent>
