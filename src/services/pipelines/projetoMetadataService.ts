@@ -17,6 +17,7 @@ export interface ProjetoEtapa {
   categoria: "aberto" | "ganho" | "perdido" | "excluido";
   tenant_id: string;
   sla_days?: number;
+  is_terminal?: boolean;
 }
 
 export interface ProjetoEtiqueta {
@@ -30,7 +31,7 @@ export const projetoMetadataService = {
   async fetchMetadata(userId?: string) {
     const [funisRes, etapasRes, etiquetasRes, consultoresRes, profileRes] = await Promise.all([
       supabase.from("projeto_funis").select("id, nome, ordem, ativo, tenant_id").order("ordem"),
-      supabase.from("projeto_etapas").select("id, funil_id, nome, cor, ordem, categoria, tenant_id, sla_days").order("ordem"),
+      supabase.from("projeto_etapas").select("id, funil_id, nome, cor, ordem, categoria, tenant_id, sla_days, is_terminal").order("ordem"),
       supabase.from("projeto_etiquetas").select("id, nome, cor, tenant_id"),
       supabase.from("consultores").select("id, nome, ativo").order("nome"),
       userId ? supabase.from("profiles").select("settings").eq("user_id", userId).maybeSingle() : Promise.resolve({ data: null, error: null }),

@@ -42,9 +42,12 @@ const TERMINAL_PROJECT_STATUS = new Set([
 ]);
 
 export interface TerminalCheckInput {
+  // SSOT canônico (preenchido pelo banco — Fase 2)
+  is_terminal?: boolean | null;
+  etapa?: { nome?: string | null; categoria?: string | null; is_terminal?: boolean | null } | null;
+  // Fallbacks legados (mantidos para projeções sem is_terminal)
   stage_name?: string | null;
   etapa_nome?: string | null;
-  etapa?: { nome?: string | null; categoria?: string | null } | null;
   categoria?: string | null;
   status?: string | null;
 }
@@ -54,14 +57,21 @@ export function isProjetoTerminalForOperationalQueue(
 ): boolean {
   if (!projeto) return false;
 
+  // 1) SSOT canônico — banco já sabe se a etapa é terminal
+  if (projeto.is_terminal === true) return true;
+  if (projeto.etapa?.is_terminal === true) return true;
+
+  // 2) Fallback legado: nome da etapa (para projetos/projeções sem is_terminal hidratado)
   const stageName = norm(projeto.stage_name ?? projeto.etapa_nome ?? projeto.etapa?.nome);
   if (stageName && TERMINAL_STAGE_PATTERNS.some((p) => stageName.includes(p))) {
     return true;
   }
 
+  // 3) Fallback legado: categoria da etapa
   const categoria = norm(projeto.categoria ?? projeto.etapa?.categoria);
   if (categoria && TERMINAL_CATEGORIES.has(categoria)) return true;
 
+  // 4) Fallback legado: status do projeto
   const status = norm(projeto.status);
   if (status && TERMINAL_PROJECT_STATUS.has(status)) return true;
 

@@ -18202,6 +18202,7 @@ export type Database = {
           data_venda: string | null
           etapa_operacional: string | null
           is_delayed: boolean | null
+          is_terminal: boolean
           last_updated_at: string | null
           potencia_kwp: number | null
           project_id: string
@@ -18217,6 +18218,7 @@ export type Database = {
           data_venda?: string | null
           etapa_operacional?: string | null
           is_delayed?: boolean | null
+          is_terminal?: boolean
           last_updated_at?: string | null
           potencia_kwp?: number | null
           project_id: string
@@ -18232,6 +18234,7 @@ export type Database = {
           data_venda?: string | null
           etapa_operacional?: string | null
           is_delayed?: boolean | null
+          is_terminal?: boolean
           last_updated_at?: string | null
           potencia_kwp?: number | null
           project_id?: string
@@ -18345,6 +18348,7 @@ export type Database = {
           created_at: string
           funil_id: string
           id: string
+          is_terminal: boolean
           nome: string
           ordem: number
           sla_days: number | null
@@ -18358,6 +18362,7 @@ export type Database = {
           created_at?: string
           funil_id: string
           id?: string
+          is_terminal?: boolean
           nome: string
           ordem?: number
           sla_days?: number | null
@@ -18371,6 +18376,7 @@ export type Database = {
           created_at?: string
           funil_id?: string
           id?: string
+          is_terminal?: boolean
           nome?: string
           ordem?: number
           sla_days?: number | null
