@@ -180,7 +180,14 @@ export function StageDealCard({
     return `${days}d`;
   }
 
-  const isBlocked = stagnation === "critical" || (deal.notas?.toLowerCase().includes("bloqueado"));
+  const mainPendencia = deal.pendencias?.sort((a, b) => {
+    const priority = { critica: 4, alta: 3, media: 2, baixa: 1 };
+    return (priority[b.criticidade] || 0) - (priority[a.criticidade] || 0);
+  })[0];
+
+  const isBlocked = stagnation === "critical" || (deal.notas?.toLowerCase().includes("bloqueado")) || deal.pendencias?.some(p => p.bloqueia_fluxo);
+  const isOverdueSLA = deal.pendencias?.some(p => p.sla_at && new Date(p.sla_at) < new Date());
+
   
   const cardContent = (
     <div
