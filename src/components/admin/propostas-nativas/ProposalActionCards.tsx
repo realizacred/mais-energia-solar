@@ -161,6 +161,7 @@ export function ProposalActionCards({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-2">
             <ActionLink icon={Link2} label="Copiar link com rastreio" onClick={() => onCopyLink(true)} disabled={(!html && !linkPdf) || !actions.canSend} />
             <ActionLink icon={Link2} label="Copiar link sem rastreio" onClick={() => onCopyLink(false)} disabled={(!html && !linkPdf) || !actions.canSend} />
+            <ActionLink icon={FileText} label="Copiar link do PDF (mascarado)" onClick={onCopyPdfLink} disabled={!html && !linkPdf} iconColor="text-success" />
             {linkPdf && !html ? (
               <ActionLink icon={Download} label="Download de PDF (original)" onClick={() => window.open(linkPdf, "_blank")} />
             ) : (
