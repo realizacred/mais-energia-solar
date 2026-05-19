@@ -74,7 +74,7 @@ export interface GenerateOptions {
 // ─── Template Definitions ───────────────────────────
 // Default templates — overridden per tenant via proposal_message_config
 
-const TEMPLATES: Record<`${MessageMode}_${MessageStyle}`, string> = {
+export const DEFAULT_TEMPLATES: Record<`${MessageMode}_${MessageStyle}`, string> = {
   cliente_curta: [
     "Olá, {{cliente_nome}}! 👋",
     "",
@@ -409,7 +409,7 @@ export function generateProposalMessage(
 ): string {
   const { customTemplate, blocksConfig } = options || {};
   const templateKey = `${mode}_${style}` as const;
-  const template = customTemplate || TEMPLATES[templateKey];
+  const template = customTemplate || DEFAULT_TEMPLATES[templateKey];
 
   // Build variable map
   const vars: Record<string, string> = {
@@ -424,7 +424,9 @@ export function generateProposalMessage(
     economia_mensal: ctx.economiaMensal ? formatBRL(ctx.economiaMensal) : "—",
     valor_total: ctx.valorTotal ? formatBRL(ctx.valorTotal) : "—",
     link_proposta: ctx.linkProposta || "",
+    proposta_link: ctx.linkProposta || "",
     link_pdf: ctx.linkPdf || "",
+    pdf_link: ctx.linkPdf || "",
     status: ctx.propostaStatus || "—",
     consultor_nome: ctx.consultorNome || "",
     empresa_nome: ctx.empresaNome || "",

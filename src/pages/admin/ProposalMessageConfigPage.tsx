@@ -64,6 +64,7 @@ import {
 } from "@/hooks/useProposalMessageConfig";
 import {
   generateProposalMessage,
+  DEFAULT_TEMPLATES,
   type MessageMode,
   type MessageStyle,
   type ProposalMessageContext,
@@ -225,7 +226,7 @@ function ProposalMessageConfigPageInner() {
 
   // Identifica variáveis usadas e seu status
   const usedVariablesAnalysis = useMemo(() => {
-    const currentText = templates[activeTemplateKey] || previewText;
+    const currentText = templates[activeTemplateKey] || DEFAULT_TEMPLATES[activeTemplateKey as keyof typeof DEFAULT_TEMPLATES] || "";
     const matches = currentText.match(/\{\{([^}]+)\}\}/g) || [];
     const uniqueKeys = [...new Set(matches.map(m => m.replace(/\{\{|\}\}/g, '')))];
 
@@ -488,7 +489,7 @@ function ProposalMessageConfigPageInner() {
 
                   <div className="relative group">
                     <Textarea
-                      value={templates[activeTemplateKey] || previewText}
+                      value={templates[activeTemplateKey] || DEFAULT_TEMPLATES[activeTemplateKey as keyof typeof DEFAULT_TEMPLATES]}
                       onChange={(e) => {
                         if (!templates[activeTemplateKey]) return; // Readonly if not custom
                         setTemplates(prev => ({ ...prev, [activeTemplateKey]: e.target.value }));
@@ -507,7 +508,10 @@ function ProposalMessageConfigPageInner() {
                           variant="secondary" 
                           size="sm" 
                           className="shadow-xl border border-primary/20 pointer-events-auto"
-                          onClick={() => setTemplates(prev => ({ ...prev, [activeTemplateKey]: previewText }))}
+                          onClick={() => setTemplates(prev => ({ 
+                            ...prev, 
+                            [activeTemplateKey]: DEFAULT_TEMPLATES[activeTemplateKey as keyof typeof DEFAULT_TEMPLATES] 
+                          }))}
                         >
                           <Pencil className="h-3.5 w-3.5 mr-2 text-primary" />
                           Editar manualmente
@@ -519,7 +523,7 @@ function ProposalMessageConfigPageInner() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                        <FileText className="h-3 w-3" />
-                       {(templates[activeTemplateKey] || previewText).length} caracteres
+                       {(templates[activeTemplateKey] || DEFAULT_TEMPLATES[activeTemplateKey as keyof typeof DEFAULT_TEMPLATES] || "").length} caracteres
                     </div>
                     
                     {templates[activeTemplateKey] && (
