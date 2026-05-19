@@ -11,6 +11,7 @@ import { StepServicos } from "./wizard/StepServicos";
 import { StepPagamento } from "./wizard/StepPagamento";
 import { StepDocumento } from "./wizard/StepDocumento";
 import { StepComercial } from "./wizard/StepComercial";
+import { Button } from "@/components/ui/button";
 import { 
   User, 
   MapPin, 
@@ -25,6 +26,7 @@ import {
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+
 
 const STEPS = [
   { key: "cliente", label: "Cliente", icon: User },
