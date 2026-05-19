@@ -517,114 +517,171 @@ function ProposalMessageConfigPageInner() {
                 <div className="flex items-start gap-2 rounded-md border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800/60 p-2.5">
                   <ShieldAlert className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                   <div className="text-[11px] leading-snug text-amber-900 dark:text-amber-200">
-                    <strong>Pré-visualização com dados de exemplo.</strong> Os valores
-                    abaixo (cliente "João Silva", R$ 42.500, PROP-2026-0042…) são fictícios
-                    e servem só para ver o layout do template. A mensagem real é gerada na
-                    proposta com dados verdadeiros do cliente.
+                    <strong>Pré-visualização em tempo real.</strong> Estes valores são fictícios
+                    para exemplificar o layout. O texto que você vê no <strong>Editor</strong> (esquerda)
+                    é exatamente o que será usado.
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Select
-                    value={previewMode}
-                    onValueChange={(v) => setPreviewMode(v as MessageMode)}
-                  >
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cliente">👤 Cliente</SelectItem>
-                      <SelectItem value="consultor">📋 Consultor</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    value={previewStyle}
-                    onValueChange={(v) => setPreviewStyle(v as MessageStyle)}
-                  >
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="curta">Curta</SelectItem>
-                      <SelectItem value="completa">Completa</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Badge variant="outline" className="text-[9px] gap-1 ml-auto">
-                    <Eye className="h-3 w-3" />
-                    Dados de exemplo
-                  </Badge>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 p-1 bg-muted rounded-lg border border-border/50">
+                    <Button 
+                      variant={previewChannel === "whatsapp" ? "secondary" : "ghost"} 
+                      size="sm" 
+                      className="h-7 text-[10px] px-2 gap-1.5"
+                      onClick={() => setPreviewChannel("whatsapp")}
+                    >
+                      <Smartphone className="h-3 w-3" /> WhatsApp
+                    </Button>
+                    <Button 
+                      variant={previewChannel === "email" ? "secondary" : "ghost"} 
+                      size="sm" 
+                      className="h-7 text-[10px] px-2 gap-1.5"
+                      onClick={() => setPreviewChannel("email")}
+                    >
+                      <MailIcon className="h-3 w-3" /> E-mail
+                    </Button>
+                    <Button 
+                      variant={previewChannel === "plain" ? "secondary" : "ghost"} 
+                      size="sm" 
+                      className="h-7 text-[10px] px-2 gap-1.5"
+                      onClick={() => setPreviewChannel("plain")}
+                    >
+                      <FileText className="h-3 w-3" /> Texto puro
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={previewMode}
+                      onValueChange={(v) => setPreviewMode(v as MessageMode)}
+                    >
+                      <SelectTrigger className="h-8 w-[110px] text-[11px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cliente">👤 Cliente</SelectItem>
+                        <SelectItem value="consultor">📋 Consultor</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={previewStyle}
+                      onValueChange={(v) => setPreviewStyle(v as MessageStyle)}
+                    >
+                      <SelectTrigger className="h-8 w-[100px] text-[11px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="curta">Curta</SelectItem>
+                        <SelectItem value="completa">Completa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <Tabs value={previewTab} onValueChange={(v: any) => setPreviewTab(v)} className="w-full">
                   <TabsList className="w-full h-8 p-1 bg-muted/50 grid grid-cols-2">
-                    <TabsTrigger value="text" className="text-[10px] h-6">Mensagem Final</TabsTrigger>
-                    <TabsTrigger value="structure" className="text-[10px] h-6">Estrutura Usada</TabsTrigger>
+                    <TabsTrigger value="text" className="text-[10px] h-6">Preview Visual</TabsTrigger>
+                    <TabsTrigger value="structure" className="text-[10px] h-6">Como foi montada</TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="text" className="mt-3">
-                    <ScrollArea className="h-[350px]">
-                      <div className="bg-muted/50 rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap font-mono border border-border">
-                        {previewText}
-                      </div>
+                  <TabsContent value="text" className="mt-4">
+                    <ScrollArea className="h-[450px] rounded-xl border border-border/60 bg-muted/20 relative overflow-hidden">
+                      {previewChannel === "whatsapp" ? (
+                        /* WhatsApp Theme */
+                        <div className="p-4 bg-[#e5ddd5] dark:bg-slate-900/50 min-h-full bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] dark:bg-none bg-repeat">
+                          <div className="max-w-[85%] bg-white dark:bg-slate-800 rounded-lg rounded-tl-none p-3 shadow-sm border-l-4 border-l-[#25D366] relative">
+                             <div className="absolute -left-2 top-0 w-0 h-0 border-t-[8px] border-t-white dark:border-t-slate-800 border-l-[8px] border-l-transparent"></div>
+                             <div className="text-sm leading-relaxed whitespace-pre-wrap font-sans text-slate-800 dark:text-slate-200">
+                               {previewText}
+                             </div>
+                             <div className="flex justify-end mt-1">
+                               <span className="text-[10px] text-slate-400 dark:text-slate-500">14:32 ✓✓</span>
+                             </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-6 bg-white dark:bg-slate-950 min-h-full">
+                          <div className="max-w-2xl mx-auto border border-border shadow-sm rounded-lg p-6 bg-white dark:bg-slate-900">
+                             <div className="text-sm leading-relaxed whitespace-pre-wrap font-sans text-foreground">
+                               {previewText}
+                             </div>
+                          </div>
+                        </div>
+                      )}
                     </ScrollArea>
                   </TabsContent>
 
-                  <TabsContent value="structure" className="mt-3">
-                    <ScrollArea className="h-[350px]">
-                      <div className="space-y-4 p-1">
-                        <div className="space-y-1.5">
-                          <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Template Base</Label>
-                          <div className="flex items-center gap-2">
+                  <TabsContent value="structure" className="mt-4">
+                    <ScrollArea className="h-[450px]">
+                      <div className="space-y-6 p-2">
+                        <div className="space-y-2">
+                          <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-widest flex items-center gap-2">
+                            <FileText className="h-3.5 w-3.5" />
+                            Template de Origem
+                          </Label>
+                          <div className="flex items-center gap-2 p-3 rounded-lg border bg-muted/30">
                             <Badge variant={templates[`${previewMode}_${previewStyle}`] ? "secondary" : "outline"} className="text-xs">
                               {structureAnalysis.templateUsed}
                             </Badge>
-                            <span className="text-[10px] text-muted-foreground font-mono">({previewMode}_{previewStyle})</span>
+                            <span className="text-xs text-muted-foreground font-mono">({previewMode}_{previewStyle})</span>
                           </div>
                         </div>
 
-                        <div className="space-y-2">
-                          <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Blocos Ativos</Label>
-                          <div className="flex flex-wrap gap-1.5">
+                        <div className="space-y-3">
+                          <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-widest flex items-center gap-2">
+                            <ToggleLeft className="h-3.5 w-3.5" />
+                            Estrutura de Blocos ({structureAnalysis.activeBlocks.length})
+                          </Label>
+                          <div className="grid grid-cols-1 gap-2">
                             {structureAnalysis.activeBlocks.length > 0 ? (
                               structureAnalysis.activeBlocks.map(b => (
-                                <Badge key={b} variant="soft-success" className="text-[10px] gap-1">
-                                  <CheckCircle className="h-3 w-3" />
-                                  {BLOCK_LABELS[b]?.label || b}
-                                </Badge>
+                                <div key={b} className="flex items-center justify-between p-2.5 rounded-lg border bg-card/50">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                                    <span className="text-xs font-medium">{BLOCK_LABELS[b]?.label || b}</span>
+                                  </div>
+                                  <span className="text-[10px] text-muted-foreground opacity-60">Ativo</span>
+                                </div>
                               ))
                             ) : (
-                              <span className="text-xs text-muted-foreground italic">Nenhum bloco ativo para esta configuração</span>
+                              <div className="text-xs text-muted-foreground italic p-4 text-center border rounded-lg border-dashed">
+                                Nenhum bloco ativo configurado
+                              </div>
                             )}
                           </div>
                         </div>
 
-                        <div className="space-y-2">
-                          <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Variáveis Resolvidas no Preview</Label>
-                          <div className="rounded-lg border border-border bg-card overflow-hidden">
-                            <div className="max-h-[180px] overflow-y-auto">
-                              <table className="w-full text-xs border-collapse">
-                                <thead className="bg-muted/50 sticky top-0">
-                                  <tr>
-                                    <th className="text-left p-2 font-semibold border-b">Variável</th>
-                                    <th className="text-left p-2 font-semibold border-b">Valor Resolvido</th>
+                        <div className="space-y-3">
+                          <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-widest flex items-center gap-2">
+                            <Variable className="h-3.5 w-3.5" />
+                            Variáveis Resolvidas
+                          </Label>
+                          <div className="rounded-xl border border-border/80 bg-card overflow-hidden shadow-sm">
+                            <table className="w-full text-xs border-collapse">
+                              <thead className="bg-muted/50 border-b">
+                                <tr>
+                                  <th className="text-left p-3 font-semibold text-muted-foreground">Variável</th>
+                                  <th className="text-left p-3 font-semibold text-muted-foreground">Valor Resolvido</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {Object.entries(structureAnalysis.variables).map(([k, v]) => (
+                                  <tr key={k} className="hover:bg-muted/30 border-b last:border-0 transition-colors">
+                                    <td className="p-3 font-mono text-[10px] text-primary bg-primary/5">{"{{"}{k}{"}}"}</td>
+                                    <td className="p-3 text-muted-foreground/90 font-medium truncate max-w-[180px]" title={v}>{v}</td>
                                   </tr>
-                                </thead>
-                                <tbody>
-                                  {Object.entries(structureAnalysis.variables).map(([k, v]) => (
-                                    <tr key={k} className="hover:bg-muted/30 border-b last:border-0">
-                                      <td className="p-2 font-mono text-[10px] text-primary">{`{{${k}}}`}</td>
-                                      <td className="p-2 text-muted-foreground truncate max-w-[150px]" title={v}>{v}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
                         </div>
                       </div>
                     </ScrollArea>
                   </TabsContent>
                 </Tabs>
+              </CardContent>
+            </Card>
               </CardContent>
             </Card>
           </div>
