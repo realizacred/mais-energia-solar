@@ -640,63 +640,6 @@ function StepConsumptionIntelligenceImpl({
           <p className="text-[10px] font-bold text-primary uppercase tracking-tighter">Apoio ao Dimensionamento</p>
           <p className="text-[11px] text-muted-foreground leading-tight">
             Use as abas laterais para detalhar o consumo real do cliente ou ajustar parâmetros de perda por sombreamento.
-          </p>
-        </div>
-      </div>
-    </div>
-      </div>
-
-      {/* ─── RIGHT SIDEBAR (Col 1) */}
-      <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-4 h-fit">
-        <Card className="border-secondary/20 shadow-sm overflow-hidden bg-secondary/[0.02]">
-          <CardHeader className="bg-secondary/5 py-2 px-3 border-b border-secondary/10">
-            <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-secondary flex items-center gap-2">
-              <Target className="h-3 w-3" />
-              Metas Técnicas
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 space-y-3">
-            <div className="space-y-1">
-              <p className="text-[9px] text-muted-foreground uppercase font-bold">Potência Sugerida</p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-lg font-black text-foreground tracking-tighter">
-                  {potenciaKwp.toFixed(2)}
-                </span>
-                <span className="text-[10px] font-bold text-muted-foreground">kWp</span>
-              </div>
-            </div>
-
-            <div className="space-y-1 pt-2 border-t border-border/40">
-              <p className="text-[9px] text-muted-foreground uppercase font-bold">Geração Est. (Tradicional)</p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-base font-bold text-foreground tracking-tighter">
-                  {formatNumberBR(Math.round(potenciaKwp * (getTopoConfig("tradicional").fator_geracao || 0)))}
-                </span>
-                <span className="text-[10px] font-bold text-muted-foreground">kWh/mês</span>
-              </div>
-            </div>
-
-            {mediaConsumoLead && (
-              <div className="pt-2 border-t border-border/40">
-                <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Déficit p/ Lead</p>
-                <div className={cn(
-                  "p-2 rounded bg-background border border-border/40 text-[10px] font-bold flex justify-between",
-                  (mediaConsumoLead - (potenciaKwp * getTopoConfig("tradicional").fator_geracao)) > 10 ? "text-destructive" : "text-success"
-                )}>
-                  <span>{formatNumberBR(Math.round(mediaConsumoLead - (potenciaKwp * getTopoConfig("tradicional").fator_geracao)))}</span>
-                  <span>kWh/mês</span>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        
-        <div className="p-3 rounded-xl border border-primary/10 bg-primary/[0.02] space-y-2">
-          <p className="text-[10px] font-bold text-primary uppercase tracking-tighter">Apoio ao Dimensionamento</p>
-          <p className="text-[11px] text-muted-foreground leading-tight">
-            Use as abas laterais para detalhar o consumo real do cliente ou ajustar parâmetros de perda por sombreamento.
-          </p>
-        </div>
       </div>
     </div>
       {/* ─── Modals */}
