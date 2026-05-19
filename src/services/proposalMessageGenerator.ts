@@ -74,7 +74,7 @@ export interface GenerateOptions {
 // ─── Template Definitions ───────────────────────────
 // Default templates — overridden per tenant via proposal_message_config
 
-const TEMPLATES: Record<`${MessageMode}_${MessageStyle}`, string> = {
+export const DEFAULT_TEMPLATES: Record<`${MessageMode}_${MessageStyle}`, string> = {
   cliente_curta: [
     "Olá, {{cliente_nome}}! 👋",
     "",
