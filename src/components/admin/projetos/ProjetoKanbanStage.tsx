@@ -816,13 +816,13 @@ function ResizableKanbanColumn({
       {/* ── New Project Button ── */}
       <div className="px-2.5 py-1.5">
         <Button
-          variant="outline"
+          variant="ghost"
           onClick={() => onNewProject?.({
             pipelineId: stage.pipeline_id,
             stageId: stage.id,
             stageName: stage.name,
           })}
-          className="w-full h-7 rounded-lg border-dashed border-primary/40 text-[10px] font-semibold text-primary hover:bg-primary/5 hover:border-primary transition-all duration-200"
+          className="w-full h-7 rounded-md text-[10px] font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
         >
           <Plus className="h-3 w-3 mr-1" />
           Novo projeto
