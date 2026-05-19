@@ -283,22 +283,23 @@ function StageDealCardImpl({
           <div className="flex flex-col items-end gap-1">
             {(deal as any).operational_score > 0 && (
               <Badge variant="outline" className={cn(
-                "h-5 text-[10px] font-black tabular-nums border-none shadow-sm",
-                (deal as any).operational_score > 150 ? "bg-destructive text-white" : 
-                (deal as any).operational_score > 100 ? "bg-orange-500 text-white" : "bg-primary text-white"
+                "h-5 text-[10px] font-bold tabular-nums border",
+                (deal as any).operational_score > 150 ? "border-destructive/40 text-destructive bg-destructive/5" :
+                (deal as any).operational_score > 100 ? "border-warning/40 text-warning bg-warning/5" :
+                "border-border text-muted-foreground bg-muted/30"
               )}>
                 {(deal as any).operational_score}
               </Badge>
             )}
             {isBlocked ? (
-              <Badge variant="destructive" className="shrink-0 text-[9px] h-[18px] px-1.5 font-bold gap-1">
+              <Badge variant="outline" className="shrink-0 text-[9px] h-[18px] px-1.5 font-semibold gap-1 border-destructive/40 text-destructive bg-destructive/5">
                 <LockIcon className="h-2.5 w-2.5" />
-                BLOQUEADO
+                Bloqueado
               </Badge>
             ) : isPropostaAceita ? (
-              <Badge className="shrink-0 text-[9px] h-[18px] px-1.5 font-bold bg-success text-white border-none gap-1">
+              <Badge variant="outline" className="shrink-0 text-[9px] h-[18px] px-1.5 font-semibold gap-1 border-success/40 text-success bg-success/5">
                 <ShieldCheck className="h-2.5 w-2.5" />
-                ACEITA
+                Aceita
               </Badge>
             ) : null}
           </div>
