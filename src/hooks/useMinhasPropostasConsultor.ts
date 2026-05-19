@@ -128,7 +128,7 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
           .select("id", { count: "exact", head: true })
           .eq("consultor_id", consultorId)
           .is("deleted_at", null)
-          .eq("status", "enviada"),
+          .in("status", ["sent", "enviada"]),
 
         supabase
           .from("propostas_nativas")
