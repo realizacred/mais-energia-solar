@@ -28,9 +28,12 @@ export interface LeadSelection {
   observacoes?: string | null;
   /** Observações do orçamento vinculado (se houver) */
   orc_observacoes?: string | null;
+  /** Necessidade ou comentário principal do cliente */
+  necessidade_cliente?: string | null;
   /** Origem dos dados (lead ou orçamento) */
   source_type?: "lead" | "orcamento";
 }
+
 
 export interface ClienteData {
   nome: string;
