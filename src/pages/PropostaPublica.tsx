@@ -321,12 +321,9 @@ export default function PropostaPublica() {
           return;
         }
 
-        // Sem template WEB utilizável: abrir PDF oficial se existir.
+        // Sem template WEB utilizável: abrir PDF mascarado via proxy se existir.
         if (!renderRes.data?.html && pdfPath) {
-          const { data: signedData } = await supabase.storage
-            .from("proposta-documentos")
-            .createSignedUrl(pdfPath, 3600);
-          if (signedData?.signedUrl) setPdfUrl(signedData.signedUrl);
+          setPdfUrl(getMaskedPdfUrl(token!));
         }
       }
 
