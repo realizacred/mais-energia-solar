@@ -16,7 +16,8 @@ import {
   Zap, FileText, MessageSquare, TrendingDown,
   Clock, Phone, StickyNote, Archive,
   UserPlus, Tag, Copy, ExternalLink,
-  Calendar, CheckCircle2,
+  Calendar, CheckCircle2, AlertTriangle, ShieldCheck, UserCog,
+  MapPin, Lock as LockIcon, DollarSign
 } from "lucide-react";
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import type { DealKanbanCard } from "@/hooks/useDealPipeline";
@@ -179,225 +180,135 @@ export function StageDealCard({
     return `${days}d`;
   }
 
+  const isBlocked = stagnation === "critical" || (deal.notas?.toLowerCase().includes("bloqueado"));
+  
   const cardContent = (
     <div
       draggable
       onDragStart={e => onDragStart(e, deal.deal_id)}
       onClick={onClick}
       className={cn(
-        "kanban-card group",
+        "kanban-card group transition-all duration-200",
         borderClass,
-        isDragging && "kanban-card--dragging",
+        isDragging && "kanban-card--dragging shadow-xl scale-[1.02]",
+        isBlocked && "border-l-4 border-l-destructive bg-destructive/5"
       )}
     >
       {/* Left color bar */}
       <div className="kanban-card__top-bar" style={topBarStyle} />
 
-      <div className="relative px-2.5 pt-1.5 pb-1.5 space-y-1 flex-1 min-w-0">
-        {/* Accepted check icon */}
-        {isPropostaAceita && (
-          <div className="absolute top-2 right-2.5">
-            <CheckCircle2 className="h-3.5 w-3.5 text-success" />
-          </div>
-        )}
-
-        {/* HEADER: Avatar + Name */}
-        <div className="flex items-center gap-2">
-          <Avatar className="h-7 w-7 border border-border/40 shrink-0">
-            <AvatarFallback className={cn("text-[9px] font-bold", getAvatarColor(deal.customer_name || deal.deal_title || "?"))}>
-              {getInitials(deal.customer_name || deal.deal_title || "?")}
-            </AvatarFallback>
-          </Avatar>
+      <div className="relative px-3 pt-2 pb-2 space-y-2 flex-1 min-w-0">
+        {/* HEADER: Code + Client Name + Block Indicator */}
+        <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className={cn(
-              "text-xs font-semibold leading-tight line-clamp-1",
-              isInactive ? "text-muted-foreground" : "text-foreground"
-            )}>
-              {deal.customer_name || "Sem nome"}
-            </p>
+            <div className="flex items-center gap-1.5 mb-0.5">
+              {deal.deal_num && (
+                <span className="text-[9px] font-mono font-bold text-primary bg-primary/10 px-1 rounded">
+                  #{deal.deal_num}
+                </span>
+              )}
+              <p className={cn(
+                "text-xs font-bold leading-tight line-clamp-1",
+                isInactive ? "text-muted-foreground" : "text-foreground"
+              )}>
+                {deal.customer_name || "Sem nome"}
+              </p>
+            </div>
             {visibleFields.has("cidade") && (deal.customer_city || deal.customer_state) && (
-              <p className="text-[10px] text-muted-foreground truncate leading-snug">
+              <p className="text-[10px] text-muted-foreground truncate leading-snug flex items-center gap-1">
+                <MapPin className="h-2 w-2" />
                 {[deal.customer_city, deal.customer_state].filter(Boolean).join(", ")}
               </p>
             )}
+            <p className="text-[9px] text-primary/70 font-semibold uppercase mt-0.5 tracking-tight line-clamp-1">
+              {deal.stage_name}
+            </p>
           </div>
-          {visibleFields.has("potencia_kwp") && hasKwp && (
-            <Badge variant="outline" className="shrink-0 text-[9px] h-[18px] px-1 font-semibold bg-success/10 text-success border-success/20 gap-0.5">
-              <Zap className="h-2.5 w-2.5" />
-              {deal.deal_kwp.toFixed(1).replace(".", ",")}
+          
+          {isBlocked ? (
+            <Badge variant="destructive" className="shrink-0 text-[9px] h-[18px] px-1.5 font-bold animate-pulse gap-1">
+              <LockIcon className="h-2.5 w-2.5" />
+              BLOQUEADO
             </Badge>
-          )}
+          ) : isPropostaAceita ? (
+            <Badge className="shrink-0 text-[9px] h-[18px] px-1.5 font-bold bg-success text-white border-none gap-1">
+              <ShieldCheck className="h-2.5 w-2.5" />
+              ACEITA
+            </Badge>
+          ) : null}
         </div>
 
-        {/* METRICS — value + time + status */}
-        {visibleFields.has("valor_projeto") && (
-          <div className="flex items-center gap-1 text-[10px] px-0.5">
-            <span className="font-bold tabular-nums text-foreground text-xs">
-              {hasValue ? formatBRL(deal.deal_value) : "R$ —"}
-            </span>
-            <span className="text-muted-foreground/30">·</span>
-            <span className={cn(
-              "tabular-nums font-medium flex items-center gap-0.5",
+        {/* OPERATIONAL INFO: SLA / Time in Stage + Technician */}
+        <div className="flex items-center justify-between bg-muted/30 rounded-md p-1.5 border border-border/40">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Tempo na etapa</span>
+            <div className={cn(
+              "flex items-center gap-1 text-[11px] font-bold tabular-nums",
               stagnation === "critical" ? "text-destructive" :
               stagnation === "warning" ? "text-warning" :
-              "text-muted-foreground"
+              "text-foreground"
             )}>
-              <Clock className="h-2.5 w-2.5" />
+              <Clock className="h-3 w-3" />
               {formatTimeInStage(deal.last_stage_change)}
-            </span>
-            {propostaInfo && (
-              <>
-                <span className="text-muted-foreground/30">·</span>
-                <PropostaBadge 
-                  type={(() => {
-                    const normalized = deal.proposta_status?.toLowerCase() ?? "";
-                    if (["aceita", "accepted"].includes(normalized)) return "aceita";
-                    if (["enviada", "sent", "visualizada", "vista"].includes(normalized)) return "enviada";
-                    if (["gerada", "generated"].includes(normalized)) return "gerada";
-                    if (["rascunho", "draft"].includes(normalized)) return "rascunho";
-                    return "gerada"; // fallback
-                  })() as any}
-                  inconsistent={deal.proposta_status === 'accepted' && !deal.proposta_aceita_at}
-                />
-                {deal.proposta_has_unpublished_changes && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[10px] text-white animate-pulse">
-                          !
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="text-[10px] p-2 max-w-[150px]">
-                        Alterações não publicadas (R$ {deal.proposta_draft_total?.toLocaleString('pt-BR')})
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </>
-            )}
-            {deal.deal_num != null && (
-              <span className="text-[9px] font-mono text-muted-foreground/50 ml-auto shrink-0">
-                #{deal.deal_num}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* ETIQUETAS */}
-        {allEtiquetaCfgs.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1">
-            {allEtiquetaCfgs.map((et, i) => (
-              <TooltipProvider key={i} delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span
-                      className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[9px] font-bold text-white shadow-sm"
-                      style={{ backgroundColor: et.cor }}
-                    >
-                      {et.icon && <span className="text-[10px]">{et.icon}</span>}
-                      {et.short || et.label}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">{et.label}</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ))}
-          </div>
-        )}
-
-        {/* DOC PROGRESS */}
-        {docTotal > 0 && docDone > 0 && (
-          <div className="flex items-center gap-2">
-            <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-              <div
-                className={cn(
-                  "h-full rounded-full transition-all duration-300",
-                  docDone === docTotal ? "bg-success" : docDone > 0 ? "bg-info" : "bg-muted-foreground/20"
-                )}
-                style={{ width: `${(docDone / docTotal) * 100}%` }}
-              />
             </div>
-            <span className={cn("text-[10px] tabular-nums font-medium shrink-0", docDone === docTotal ? "text-success" : "text-muted-foreground")}>
-              {docDone}/{docTotal}
-            </span>
+          </div>
+
+          <div className="flex flex-col items-end gap-0.5">
+            <span className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Responsável</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-medium text-foreground truncate max-w-[80px]">{deal.owner_name}</span>
+              <Avatar className="h-5 w-5 border border-border/60">
+                <AvatarFallback className={cn("text-[7px] font-bold", getAvatarColor(deal.owner_name))}>
+                  {getInitials(deal.owner_name)}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          </div>
+        </div>
+
+        {/* PENDENCY / NOTE: Principal obstacle or next step */}
+        {deal.notas?.trim() && (
+          <div className="flex items-start gap-1.5 bg-warning/5 border border-warning/20 rounded p-1.5">
+            <StickyNote className="h-3 w-3 text-warning shrink-0 mt-0.5" />
+            <p className="text-[10px] text-amber-900/80 leading-tight line-clamp-2 italic">
+              {deal.notas}
+            </p>
           </div>
         )}
 
-        {/* FOOTER: Actions + Owner */}
-        <div className="flex items-center justify-between pt-1 border-t border-border/20">
-          <div className="flex items-center gap-0">
-            <TooltipProvider delayDuration={200}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className="action-icon-btn action-icon-btn--whatsapp"
-                    onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) setWhatsappDialogOpen(true); }}
-                    disabled={!deal.customer_phone}
-                  >
-                    <MessageSquare className="h-3 w-3" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent className="text-xs">WhatsApp</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className="action-icon-btn action-icon-btn--phone"
-                    onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) window.open(`tel:${deal.customer_phone}`); }}
-                    disabled={!deal.customer_phone}
-                  >
-                    <Phone className="h-3 w-3" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent className="text-xs">Ligar</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className="action-icon-btn action-icon-btn--proposal"
-                    onClick={(e) => { e.stopPropagation(); onProposalClick ? onProposalClick() : onClick(); }}
-                  >
-                    <FileText className="h-3 w-3" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent className="text-xs">Propostas</TooltipContent>
-              </Tooltip>
-              {deal.notas?.trim() && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="action-icon-btn action-icon-btn--note">
-                      <StickyNote className="h-3 w-3" />
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent className="text-xs max-w-[250px]">
-                    <p className="whitespace-pre-wrap">{deal.notas}</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </TooltipProvider>
+        {/* METRICS & ETIQUETAS (Commercial Data - Secondary) */}
+        <div className="flex items-center justify-between pt-1 border-t border-border/20 mt-1">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 text-[10px] font-mono">
+              <Zap className="h-2.5 w-2.5 text-success" />
+              <span className="font-bold">{hasKwp ? deal.deal_kwp.toFixed(1).replace(".", ",") : "—"}</span>
+              <span className="text-muted-foreground text-[8px]">kWp</span>
+            </div>
+            <div className="flex items-center gap-1 text-[10px] font-mono">
+              <DollarSign className="h-2.5 w-2.5 text-warning" />
+              <span className="font-bold">{hasValue ? formatBRL(deal.deal_value) : "—"}</span>
+            </div>
           </div>
 
-          {/* Owner + expected close */}
           <div className="flex items-center gap-1">
-            {deal.expected_close_date && (
-              <span className={cn(
-                "flex items-center gap-0.5 text-[9px]",
-                isOverdue ? "text-destructive font-semibold" : "text-muted-foreground"
-              )}>
-                <Clock className="h-2.5 w-2.5" />
-                {formatDate(deal.expected_close_date)}
+            {allEtiquetaCfgs.slice(0, 2).map((et, i) => (
+              <span
+                key={i}
+                className="h-3.5 px-1.5 rounded-full text-[8px] font-bold text-white shadow-sm flex items-center justify-center"
+                style={{ backgroundColor: et.cor }}
+              >
+                {et.short || et.label.substring(0, 3)}
               </span>
+            ))}
+            {allEtiquetaCfgs.length > 2 && (
+              <span className="text-[8px] font-bold text-muted-foreground">+{allEtiquetaCfgs.length - 2}</span>
             )}
-            <Avatar className="h-4.5 w-4.5 border border-border/40">
-              <AvatarFallback className={cn("text-[6px] font-bold", getAvatarColor(deal.owner_name))}>
-                {getInitials(deal.owner_name)}
-              </AvatarFallback>
-            </Avatar>
           </div>
         </div>
       </div>
     </div>
   );
+
 
   return (
     <>

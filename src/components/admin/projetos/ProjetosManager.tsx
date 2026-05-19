@@ -292,7 +292,7 @@ export function ProjetosManager() {
     (urlFilters.view as any) ||
     (storedPrefs?.viewMode as any) ||
     (dbPrefs?.view as any) ||
-    "kanban-consultor";
+    "kanban-etapa";
 
   const [viewMode, setViewModeRaw] = useState<"kanban-etapa" | "kanban-consultor" | "lista">(initialView);
 

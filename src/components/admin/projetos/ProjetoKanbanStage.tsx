@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useKanbanAutomations, useKanbanStagePermissions } from "@/hooks/useProjetoKanbanStage";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Zap, Plus, Settings2, Clock, Eye, Lock, Palette, ChevronDown, DollarSign, Filter, Search, Check, MoreVertical, ArrowUpDown, Type, Calendar } from "lucide-react";
+import { Zap, Plus, Settings2, Clock, Eye, Lock as LockIcon, Palette, ChevronDown, DollarSign, Filter, Search, Check, MoreVertical, ArrowUpDown, Type, Calendar } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { DealKanbanCard, PipelineStage } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
@@ -390,7 +390,12 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
             const totalKwp = stageDeals.reduce((s, d) => s + (d.deal_kwp || 0), 0);
             const stageAutomations = automationsByStage.get(stage.id) || [];
             const hasActiveAutomation = stageAutomations.length > 0;
-            const overdueCount = stageDeals.filter(d => differenceInHours(new Date(), new Date(d.last_stage_change)) >= 72).length;
+            
+            const stageOverdueDeals = stageDeals.filter(d => {
+              const hours = differenceInHours(new Date(), new Date(d.last_stage_change));
+              return hours >= 72; // Proxy for overdue in mobile
+            });
+            const overdueCount = stageOverdueDeals.length;
 
             if (mobileSearch && stageDeals.length === 0) return null;
 
@@ -400,27 +405,29 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                   <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border/60 bg-card hover:bg-muted/30 transition-colors h-auto">
                     <div className="flex items-center gap-2 min-w-0">
                       <h3 className="text-sm font-bold text-foreground truncate">{stage.name}</h3>
-                      <Badge variant="outline" className="text-[10px] h-5 font-semibold rounded-lg">
+                      <Badge variant="outline" className={cn(
+                        "text-[10px] h-5 font-semibold rounded-lg",
+                        overdueCount > 0 ? "border-destructive/30 text-destructive bg-destructive/5" : ""
+                      )}>
                         {stageDeals.length}
                       </Badge>
                       {overdueCount > 0 && (
-                        <Badge variant="destructive" className="text-[9px] h-4 px-1.5 font-bold rounded-full">
-                          {overdueCount} ⚠
-                        </Badge>
+                        <span className="text-[10px] text-destructive font-bold animate-pulse flex items-center gap-1">
+                          <Clock className="h-2.5 w-2.5" />
+                          {overdueCount} atrasado(s)
+                        </span>
                       )}
                       {hasActiveAutomation && <Zap className="h-3 w-3 text-primary animate-pulse shrink-0" />}
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="text-right">
                         <span className="text-[11px] font-mono font-semibold text-foreground">{formatBRL(totalValue)}</span>
-                        {totalKwp > 0 && (
-                          <span className="text-[10px] font-mono text-muted-foreground ml-2">{formatKwp(totalKwp)}</span>
-                        )}
                       </div>
                       <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform [[data-state=open]>&]:rotate-180" />
                     </div>
                   </Button>
                 </CollapsibleTrigger>
+
                 <CollapsibleContent>
                   <div className="space-y-2 pt-2 pb-1">
                     {stageDeals.length === 0 ? (
@@ -615,12 +622,17 @@ function ResizableKanbanColumn({
         onMouseDown={onMouseDown}
       />
 
-      <div className="px-3 pt-3 pb-2 border-b-2" style={{ borderColor: stageColor || "hsl(var(--primary) / 0.2)" }}>
+      <div className="px-3 pt-3 pb-2 border-b-2 bg-muted/20" style={{ borderColor: stageColor || "hsl(var(--primary) / 0.2)" }}>
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-2 min-w-0">
-            <h3 className="text-[11px] font-bold text-secondary leading-tight truncate uppercase tracking-wider">
+            <h3 className="text-[11px] font-black text-foreground leading-tight truncate uppercase tracking-widest">
               {stage.name}
             </h3>
+            {overdueCount > 0 && (
+              <Badge variant="destructive" className="h-4 px-1 text-[8px] font-black animate-pulse">
+                {overdueCount} ATRASADO(S)
+              </Badge>
+            )}
             {hasActiveAutomation && (
               <Tooltip>
                 <TooltipTrigger>
@@ -634,7 +646,7 @@ function ResizableKanbanColumn({
             {hasRestriction && (
               <Tooltip>
                 <TooltipTrigger>
-                  <Lock className="h-3 w-3 text-warning shrink-0" />
+                  <LockIcon className="h-3 w-3 text-warning shrink-0" />
                 </TooltipTrigger>
                 <TooltipContent className="text-xs">
                   {permission === "apenas_responsavel" ? "Apenas o consultor pode mover" : "Restrito por papel"}
@@ -731,25 +743,20 @@ function ResizableKanbanColumn({
         </div>
 
         {/* ── Metrics row ── */}
-        <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground">
-          <span className="flex items-center gap-0.5 font-bold text-[11px] font-mono text-success">
-            <DollarSign className="h-3 w-3" />
-            {formatBRL(totalValue)}
-          </span>
-          {totalKwp > 0 && (
-            <span className="flex items-center gap-0.5 font-mono font-bold text-info text-[11px]">
-              <Zap className="h-3 w-3" />
-              {formatKwp(totalKwp)}
-            </span>
-          )}
-          <Badge variant="secondary" className="text-[9px] h-4 px-1.5 font-bold ml-auto rounded-full bg-primary/10 text-primary border-0">
-            {count}
+        <div className="flex items-center gap-2.5 text-[9px] text-muted-foreground/60">
+          <Badge variant="secondary" className="text-[10px] h-4.5 px-2 font-black rounded-lg bg-foreground/5 text-foreground border-0">
+            {count} projetos
           </Badge>
-          {overdueCount > 0 && (
-            <Badge variant="destructive" className="text-[9px] h-4 px-1.5 font-bold rounded-full">
-              {overdueCount} ⚠
-            </Badge>
-          )}
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="flex items-center gap-0.5 font-mono">
+              {formatBRL(totalValue)}
+            </span>
+            {totalKwp > 0 && (
+              <span className="flex items-center gap-0.5 font-mono">
+                {formatKwp(totalKwp)}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

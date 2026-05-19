@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, X, Filter, List, Layers, Tag, Users, Pencil, Plus, ArrowUpDown, Check, SlidersHorizontal, GripVertical } from "lucide-react";
+import { Search, X, Filter, List, Layers, Tag, Users, Pencil, Plus, ArrowUpDown, Check, SlidersHorizontal, GripVertical, Zap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -194,6 +194,20 @@ export function ProjetoFilters({
           <Button
             variant="ghost"
             size="sm"
+            onClick={() => onViewModeChange("kanban-etapa")}
+            className={cn(
+              "gap-1.5 text-sm font-semibold border-b-2 rounded-none px-2 h-9",
+              viewMode === "kanban-etapa"
+                ? "border-foreground text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Zap className="h-4 w-4" />
+            Operacional
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => onViewModeChange("kanban-consultor")}
             className={cn(
               "gap-1.5 text-sm font-semibold border-b-2 rounded-none px-2 h-9",
@@ -203,22 +217,9 @@ export function ProjetoFilters({
             )}
           >
             <Users className="h-4 w-4" />
-            Consultores
+            Por Vendedor
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onViewModeChange("kanban-etapa")}
-            className={cn(
-              "gap-1.5 text-sm font-semibold border-b-2 rounded-none px-2 h-9",
-              viewMode === "kanban-etapa"
-                ? "border-foreground text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Filter className="h-4 w-4" />
-            Funil
-          </Button>
+
           <Button
             variant="ghost"
             size="sm"
