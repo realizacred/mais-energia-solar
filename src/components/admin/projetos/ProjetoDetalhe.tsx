@@ -2947,6 +2947,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
             setLinkedOrcs(orcs.map((o: any) => ({
               ...o,
               lead_code: leadCodeMap.get(o.lead_id) || null,
+              lead_observacoes: leadObsMap.get(o.lead_id) || null,
               status_nome: o.status_id ? statusMap.get(o.status_id) || "—" : "—",
             })));
           }
