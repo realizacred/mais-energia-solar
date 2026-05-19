@@ -21,7 +21,9 @@ export const orcamentoService = {
           telefone_normalized
         )
       `)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false });
+
 
     if (leadId) {
       query = query.eq("lead_id", leadId);
