@@ -854,7 +854,8 @@ export function StepDocumento({
       }
     };
 
-    const isBusy = generating || rendering;
+    const isWebReady = !!result?.proposta_id && !!result?.versao_id;
+    const isBusy = generating || (rendering && !isWebReady);
     // ─────────────────────────────────────────────────────────────────────────
     // SSOT de "Proposta pronta" — NÃO ALTERAR sem auditar AMBOS os contextos:
     //   1) ProposalWizard (fluxo nativo de criação/edição) — alimenta
@@ -873,21 +874,23 @@ export function StepDocumento({
     // ❌ NUNCA criar estado paralelo de "pronta" — esta é a única regra.
     // ─────────────────────────────────────────────────────────────────────────
     const hasArtifact = !!outputPdfPath || !!externalPdfUrl || !!outputDocxPath;
-    const isReady = !isBusy && (generationStatus === "ready" || hasArtifact);
+    const isReady = !generating && (generationStatus === "ready" || generationStatus === "ready_web" || hasArtifact || isWebReady);
+    
     const statusLabel = isReady
-      ? "Proposta pronta"
-      : generationStatus === "rendering_pdf"
+      ? (rendering && !hasArtifact ? "Web pronta (PDF pendente)" : "Proposta pronta")
+      : generationStatus === "rendering_pdf" || rendering
         ? "PDF sendo processado..."
-        : generationStatus === "published"
+        : generationStatus === "ready_web" || generationStatus === "published"
           ? "Versão publicada"
           : isBusy
             ? "Gerando proposta..."
             : generationStatus === "error"
               ? "Erro na geração"
               : "Proposta desatualizada";
+
     const statusTone = isReady
-      ? "success"
-      : (isBusy || generationStatus === "published" || generationStatus === "rendering_pdf")
+      ? (rendering && !hasArtifact ? "info" : "success")
+      : (isBusy || generationStatus === "published" || generationStatus === "rendering_pdf" || rendering)
         ? "info"
         : generationStatus === "error"
           ? "destructive"
