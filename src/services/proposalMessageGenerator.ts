@@ -429,6 +429,8 @@ export function generateProposalMessage(
     titulo_sistema_solar: blocksConfig?.resumo_tecnico?.title || "Sistema Solar",
     titulo_consumo_geracao: blocksConfig?.consumo_geracao?.title || "Consumo e Geração",
     titulo_investimento: blocksConfig?.investimento?.title || "Investimento",
+    titulo_dimensionamento: blocksConfig?.resumo_tecnico?.title || "Dimensionamento",
+    titulo_financeiro: blocksConfig?.investimento?.title || "Financeiro",
   };
 
   // Resolve blocks
