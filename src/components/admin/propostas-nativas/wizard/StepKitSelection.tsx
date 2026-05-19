@@ -788,7 +788,7 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
                 </div>
               ) : (
                 <div className={viewMode === "grid"
-                  ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
+                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3"
                   : "space-y-2"
                 }>
                   {filteredCatalogKits.map(kit => {
