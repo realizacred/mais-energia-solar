@@ -189,10 +189,16 @@ function ProposalMessageConfigPageInner() {
       economia_mensal: MOCK_CONTEXT.economiaMensal ? MOCK_CONTEXT.economiaMensal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : "—",
       valor_total: MOCK_CONTEXT.valorTotal ? MOCK_CONTEXT.valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : "—",
       link_proposta: MOCK_CONTEXT.linkProposta || "",
+      proposta_link: MOCK_CONTEXT.linkProposta || "",
       link_pdf: MOCK_CONTEXT.linkPdf || "",
+      pdf_link: MOCK_CONTEXT.linkPdf || "",
       status: MOCK_CONTEXT.propostaStatus || "—",
       consultor_nome: MOCK_CONTEXT.consultorNome || "",
       empresa_nome: MOCK_CONTEXT.empresaNome || "",
+      // Títulos Enterprise
+      titulo_sistema_solar: blocks?.resumo_tecnico?.title || "Sistema Solar",
+      titulo_consumo_geracao: blocks?.consumo_geracao?.title || "Consumo e Geração",
+      titulo_investimento: blocks?.investimento?.title || "Investimento",
     };
 
     const activeBlocks = Object.entries(blocks)
@@ -216,6 +222,43 @@ function ProposalMessageConfigPageInner() {
     const customTemplate = templates[`${previewMode}_${previewStyle}`] || undefined;
     return generateProposalMessage(MOCK_CONTEXT, previewMode, previewStyle, { customTemplate, blocksConfig: blocks });
   }, [previewMode, previewStyle, templates, blocks, defaults]);
+
+  // Identifica variáveis usadas e seu status
+  const usedVariablesAnalysis = useMemo(() => {
+    const currentText = templates[activeTemplateKey] || previewText;
+    const matches = currentText.match(/\{\{([^}]+)\}\}/g) || [];
+    const uniqueKeys = [...new Set(matches.map(m => m.replace(/\{\{|\}\}/g, '')))];
+
+    const variables = uniqueKeys.map(key => {
+      const catalogInfo = PLACEHOLDER_CATALOG.find(p => p.key === key);
+      const resolvedValue = structureAnalysis.variables[key];
+      
+      let status: 'resolved' | 'no_value' | 'invalid' = 'resolved';
+      if (!catalogInfo) {
+        status = 'invalid';
+      } else if (!resolvedValue || resolvedValue === '—' || resolvedValue === '') {
+        status = 'no_value';
+      }
+
+      return {
+        key,
+        label: catalogInfo?.label || 'Variável desconhecida',
+        description: catalogInfo?.example || 'Exemplo indisponível',
+        resolvedValue: resolvedValue || '—',
+        status,
+        category: catalogInfo?.category || 'Desconhecida'
+      };
+    });
+
+    const hasInvalid = variables.some(v => v.status === 'invalid');
+    const hasMissing = variables.some(v => v.status === 'no_value');
+
+    return {
+      variables,
+      hasInvalid,
+      hasMissing
+    };
+  }, [previewText, templates, activeTemplateKey, structureAnalysis.variables]);
 
   // Handlers
   const handleSave = useCallback(async () => {
