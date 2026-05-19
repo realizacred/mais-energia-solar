@@ -118,17 +118,26 @@ export function LeadBriefingPanel() {
           {/* Observação / Necessidade - Mais discreta */}
           {(observacao || necessidade) && (
             <div className="mt-2 pt-2 border-t border-primary/5">
-              <div className="flex items-start gap-1.5">
-                <div className="mt-0.5 h-4 w-4 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
-                  <MessageSquare className="h-2.5 w-2.5 text-warning" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[9px] font-bold text-warning/80 uppercase tracking-tight mb-0">Observação do Cliente</p>
-                  <p className="text-[11px] text-foreground/80 leading-tight italic line-clamp-1">
-                    "{observacao || necessidade}"
-                  </p>
-                </div>
-              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-start gap-1.5 cursor-help">
+                      <div className="mt-0.5 h-4 w-4 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
+                        <MessageSquare className="h-2.5 w-2.5 text-warning" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-bold text-warning/80 uppercase tracking-tight mb-0">Observação do Cliente</p>
+                        <p className="text-[11px] text-foreground/80 leading-tight italic line-clamp-1">
+                          "{observacao || necessidade}"
+                        </p>
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-xs italic">"{observacao || necessidade}"</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           )}
         </CardContent>
