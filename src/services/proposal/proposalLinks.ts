@@ -4,7 +4,7 @@
  * Regras (AGENTS.md):
  *  - QR Code / link público compartilhado → SEMPRE landing de alta conversão (/pl/:token).
  *  - PDF rastreável → mesma rota /pl/:token (o tracking acontece via token, não via /proposta).
- *  - PDF direto → signed URL do storage (sem token, sem tracking).
+ *  - PDF direto → rota mascarada (/p/pdf/:token).
  *  - Simulação financeira → /pl/:token?view=simulacao (somente se houver financiamento ativo).
  *
  * ⚠️ NUNCA apontar QR/link público para /proposta/:token (PropostaPublica.tsx).
@@ -12,6 +12,7 @@
  * compatibilidade de tokens históricos. Não é a experiência canônica.
  *
  * Nenhum componente deve montar URLs com string solta — usar SEMPRE estes helpers.
+ * NUNCA vazar signedUrl do Supabase para o cliente final.
  */
 
 import { supabase } from "@/integrations/supabase/client";
@@ -34,7 +35,11 @@ export function getTrackedPdfUrl(token: string): string {
   return getProposalWebUrl(token);
 }
 
-/** Signed URL direta para o PDF no Storage. Sem tracking, sem token. */
+/** 
+ * Signed URL direta para o PDF no Storage. 
+ * @deprecated Use getMaskedPdfUrl(token) para clientes finais.
+ * Útil apenas para consumo interno (servidor ou admin direto se necessário).
+ */
 export async function getProposalPdfSignedUrl(
   outputPdfPath: string,
 ): Promise<string | null> {
@@ -45,7 +50,10 @@ export async function getProposalPdfSignedUrl(
   return data.signedUrl;
 }
 
-/** PDF direto: prioriza signed URL fresh; aceita externalPdfUrl como fallback. */
+/** 
+ * PDF direto SSOT.
+ * @deprecated Use getMaskedPdfUrl(token) para fluxos de cliente.
+ */
 export async function getDirectPdfUrl(
   outputPdfPath: string | null,
   externalPdfUrl?: string | null,

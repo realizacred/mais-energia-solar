@@ -46,8 +46,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import { getOrCreateProposalToken } from "@/services/proposal/proposalDetail.service";
 import {
   getProposalWebUrl,
-  getTrackedPdfUrl,
-  getDirectPdfUrl,
+  getMaskedPdfUrl,
   getSimulationUrl,
 } from "@/services/proposal/proposalLinks";
 
@@ -369,37 +368,27 @@ export function StepDocumento({
     }
     const propostaId = result?.proposta_id as string | undefined;
     const versaoId = result?.versao_id as string | undefined;
-    const directPdfUrl = outputPdfPath
-      ? null
-      : (externalPdfUrl || pdfBlobUrl || null);
 
-    if (withTracker && (!propostaId || !versaoId)) {
-      toast({ title: "Gere a proposta primeiro para copiar o link rastreável", variant: "destructive" });
-      return;
-    }
-
-    if (!withTracker && !outputPdfPath && !directPdfUrl) {
-      toast({ title: "Gere a proposta primeiro para copiar o link do PDF", variant: "destructive" });
+    if (!propostaId || !versaoId) {
+      toast({ title: "Gere a proposta primeiro para copiar os links", variant: "destructive" });
       return;
     }
 
     try {
       let url: string | null = null;
+      const token = await getOrCreateProposalToken(propostaId, versaoId, "tracked");
 
       if (withTracker) {
-        const token = await getOrCreateProposalToken(propostaId!, versaoId!, "tracked");
-        url = getTrackedPdfUrl(token);
+        // Link Web canônico (/pl/:token)
+        url = getProposalWebUrl(token);
         setResolvedPublicUrl(url);
       } else {
-        url = await getDirectPdfUrl(outputPdfPath, directPdfUrl);
-        if (!url) {
-          toast({ title: "Erro ao gerar link do PDF", variant: "destructive" });
-          return;
-        }
+        // Link PDF mascarado (/p/pdf/:token)
+        url = getMaskedPdfUrl(token);
       }
 
       if (!url) {
-        toast({ title: "Link do PDF indisponível", variant: "destructive" });
+        toast({ title: "Link indisponível", variant: "destructive" });
         return;
       }
 
@@ -1067,7 +1056,7 @@ export function StepDocumento({
                       disabled={!result?.proposta_id || !result?.versao_id}
                     >
                       {copiedTracker ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
-                      Copiar link com rastreio
+                       Copiar link da proposta
                     </Button>
                   </TooltipTrigger>
                   {(!result?.proposta_id || !result?.versao_id) && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
@@ -1079,10 +1068,10 @@ export function StepDocumento({
                       size="sm"
                       className="w-full justify-start gap-2 h-8 text-xs"
                       onClick={() => handleCopyLink(false)}
-                      disabled={!outputPdfPath && !externalPdfUrl && !pdfBlobUrl}
+                      disabled={!result?.proposta_id || !result?.versao_id}
                     >
                       {copiedDirect ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
-                      Copiar link direto
+                      Copiar link do PDF
                     </Button>
                   </TooltipTrigger>
                   {!outputPdfPath && !externalPdfUrl && !pdfBlobUrl && <TooltipContent>Gere a proposta primeiro</TooltipContent>}

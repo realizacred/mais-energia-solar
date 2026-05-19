@@ -404,7 +404,7 @@ export function VendorOrcamentosTable({
                                 <ExternalLink className="w-4.5 h-4.5" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Ver Proposta</TooltipContent>
+                            <TooltipContent>Ver Proposta (Link Web)</TooltipContent>
                           </Tooltip>
                         ) : (
                           <Tooltip>

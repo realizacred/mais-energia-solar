@@ -218,7 +218,7 @@ export function VendorLeadsTable({
                             <ExternalLink className="w-4 h-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Ver Proposta</TooltipContent>
+                        <TooltipContent>Ver Proposta (Link Web)</TooltipContent>
                       </Tooltip>
                     ) : (
                       <Tooltip>

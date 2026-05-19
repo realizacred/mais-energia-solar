@@ -205,7 +205,10 @@ function resolveBlocks(ctx: ProposalMessageContext): Record<string, string> {
 
   // Link
   if (ctx.linkProposta) {
-    blocks.bloco_link = `🔗 Acesse sua proposta: ${ctx.linkProposta}`;
+    blocks.bloco_link = `🔗 Ver proposta web: ${ctx.linkProposta}`;
+    if (ctx.linkPdf) {
+      blocks.bloco_link += `\n📄 Baixar em PDF: ${ctx.linkPdf}`;
+    }
   } else {
     blocks.bloco_link = "";
   }

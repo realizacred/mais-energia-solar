@@ -175,9 +175,27 @@ export default function PropostaLanding() {
         }
 
         if (!webUsable) {
-          setError("Modelo web não configurado. Defina um template WEB padrão na área de Modelos de Proposta.");
-          setLoading(false);
-          return;
+          // Fallback visual SSOT: se não houver template WEB, mostramos apenas o PDF incorporado
+          // Isso evita "tela de erro" e mantém a percepção de valor.
+          setTemplateBlocks([{
+            id: "fallback-pdf",
+            type: "custom_html",
+            content: `
+              <div class="flex flex-col items-center justify-center py-12 px-4 space-y-6">
+                <div class="max-w-4xl w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+                  <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                    <span class="text-sm font-semibold text-slate-700">Visualização da Proposta</span>
+                    <a href="/p/pdf/${token}" target="_blank" class="text-xs text-primary hover:underline font-medium">Abrir PDF em tela cheia</a>
+                  </div>
+                  <iframe src="/p/pdf/${token}" class="w-full h-[800px] border-0"></iframe>
+                </div>
+                <div class="text-center">
+                  <p class="text-sm text-slate-500">Dica: Use o botão abaixo para aceitar ou recusar esta proposta.</p>
+                </div>
+              </div>
+            `
+          } as any]);
+          webUsable = true;
         }
       }
 
