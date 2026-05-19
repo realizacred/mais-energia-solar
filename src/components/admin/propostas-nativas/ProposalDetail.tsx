@@ -161,6 +161,7 @@ export function ProposalDetail() {
         rendering={actions.render.isPending}
         onGenerateFile={() => setGenerateDialogOpen(true)}
         onCopyLink={(withTracking) => actions.copyLink.mutate(withTracking)}
+        onCopyPdfLink={() => actions.copyPdfLink.mutate()}
         onDownloadPdf={() => { if (html) actions.downloadPdf.mutate(html); else if (vm.linkPdf) window.open(vm.linkPdf, "_blank"); }}
         linkPdf={vm.linkPdf}
         onRender={() => actions.render.mutate()}
