@@ -52,7 +52,7 @@ interface ProposalActionCardsProps {
 
 export function ProposalActionCards({
   navigateToEdit, isFinalized, cloning, lastEditDate,
-  html, rendering, onGenerateFile, onCopyLink, onDownloadPdf, onRender,
+  html, rendering, onGenerateFile, onCopyLink, onCopyPdfLink, onDownloadPdf, onRender,
   publicUrl, downloadingPdf, validoAte, onEditValidade, lastGeneratedAt,
   currentStatus, sending, onSendWhatsapp, onSendEmail, onScrollToTracking,
   formattedDate, templateVars, linkPdf,
