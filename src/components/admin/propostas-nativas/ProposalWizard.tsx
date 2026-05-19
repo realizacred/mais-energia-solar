@@ -2132,6 +2132,9 @@ function ProposalWizardContent() {
           cep: lead.cep || undefined,
           endereco: lead.rua || undefined,
           municipio_ibge_codigo: lead.municipio_ibge_codigo || undefined,
+          observacoes: lead.observacoes,
+          source_type: "lead",
+
         });
         if (lead.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(lead.municipio_ibge_codigo);
 
