@@ -23,6 +23,8 @@ export interface BlockConfig {
   visual_style?: "default" | "minimal" | "modern";
   /** Execution order */
   order?: number;
+  /** Custom template for this block section */
+  template?: string;
 }
 
 export interface ProposalMessageDefaults {
