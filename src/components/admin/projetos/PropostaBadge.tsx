@@ -54,10 +54,16 @@ const STYLES: Record<string, string> = {
 };
 
 
-export function PropostaBadge({ type, className }: PropostaBadgeProps) {
+import { AlertTriangle } from "lucide-react";
+
+export function PropostaBadge({ type, className, inconsistent }: PropostaBadgeProps) {
   const label = LABELS[type];
-  const tooltip = TOOLTIPS[type];
-  const style = STYLES[type];
+  const tooltip = type === "aceita" && inconsistent 
+    ? "Status indica aceito mas falta evidência formal (data/token). Auditoria necessária." 
+    : TOOLTIPS[type];
+  const style = type === "aceita" && inconsistent 
+    ? "bg-destructive/10 text-destructive border-destructive/30 animate-pulse" 
+    : STYLES[type];
 
   return (
     <TooltipProvider>
@@ -66,18 +72,20 @@ export function PropostaBadge({ type, className }: PropostaBadgeProps) {
           <Badge 
             variant="outline" 
             className={cn(
-              "text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap cursor-default",
+              "text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap cursor-default gap-1",
               style,
               className
             )}
           >
+            {type === "aceita" && inconsistent && <AlertTriangle className="h-2.5 w-2.5" />}
             {label}
           </Badge>
         </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-xs">
+        <TooltipContent side="bottom" className="text-xs max-w-[200px]">
           {tooltip}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
 }
+
