@@ -354,7 +354,8 @@ export function useDealPipeline() {
             id: principal.id, 
             status: principal.status,
             draft_total: principal.draft_total,
-            has_unpublished_changes: principal.has_unpublished_changes
+            has_unpublished_changes: principal.has_unpublished_changes,
+            aceita_at: principal.aceita_at
           });
           return;
         }
