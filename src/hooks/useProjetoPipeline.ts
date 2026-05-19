@@ -179,6 +179,9 @@ export function useProjetoPipeline() {
     if (f.consultorId !== "todos") {
       query = query.eq("consultor_id", f.consultorId);
     }
+    if (f.responsavel_operacional && f.responsavel_operacional !== "todos") {
+      query = query.eq("responsavel_operacional", f.responsavel_operacional);
+    }
     // NOTE: f.status ("aberto" | "ganho" | "perdido") é filtro SEMÂNTICO
     // aplicado client-side via etapa.categoria (ver ProjetosManager.statusFiltered).
     // NÃO mapeia para o enum projeto_status (criado/em_instalacao/concluido/etc).
