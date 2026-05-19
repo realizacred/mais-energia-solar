@@ -25,7 +25,10 @@ interface OrcamentoHistoryDialogProps {
   onWhatsApp?: (telefone: string, nome: string, leadId: string) => void;
   /** Callback para converter um orçamento específico em venda */
   onConvertOrcamento?: (orcamento: OrcamentoDisplayItem) => void;
+  /** Callback para arquivar um orçamento individual */
+  onArchiveOrcamento?: (orcamento: OrcamentoDisplayItem) => void;
 }
+
 
 export function OrcamentoHistoryDialog({
   group,
