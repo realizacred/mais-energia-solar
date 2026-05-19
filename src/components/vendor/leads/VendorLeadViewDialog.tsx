@@ -261,7 +261,7 @@ export function VendorLeadViewDialog({ lead, open, onOpenChange, vendedorNome }:
                           onClick={() => window.open(`/pl/${lead.proposta_token}`, '_blank')}
                         >
                           <ExternalLink className="w-4 h-4 mr-2" />
-                          Abrir Proposta Pública
+                          Abrir Proposta (Link Web)
                         </Button>
                       </div>
                     ) : (
