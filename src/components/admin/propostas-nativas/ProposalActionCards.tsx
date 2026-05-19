@@ -28,6 +28,7 @@ interface ProposalActionCardsProps {
   rendering: boolean;
   onGenerateFile: () => void;
   onCopyLink: (withTracking: boolean) => void;
+  onCopyPdfLink: () => void;
   onDownloadPdf: () => void;
   onRender: () => void;
   publicUrl: string | null;
@@ -51,7 +52,7 @@ interface ProposalActionCardsProps {
 
 export function ProposalActionCards({
   navigateToEdit, isFinalized, cloning, lastEditDate,
-  html, rendering, onGenerateFile, onCopyLink, onDownloadPdf, onRender,
+  html, rendering, onGenerateFile, onCopyLink, onCopyPdfLink, onDownloadPdf, onRender,
   publicUrl, downloadingPdf, validoAte, onEditValidade, lastGeneratedAt,
   currentStatus, sending, onSendWhatsapp, onSendEmail, onScrollToTracking,
   formattedDate, templateVars, linkPdf,
@@ -160,6 +161,7 @@ export function ProposalActionCards({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-2">
             <ActionLink icon={Link2} label="Copiar link com rastreio" onClick={() => onCopyLink(true)} disabled={(!html && !linkPdf) || !actions.canSend} />
             <ActionLink icon={Link2} label="Copiar link sem rastreio" onClick={() => onCopyLink(false)} disabled={(!html && !linkPdf) || !actions.canSend} />
+            <ActionLink icon={FileText} label="Copiar link do PDF (mascarado)" onClick={onCopyPdfLink} disabled={!html && !linkPdf} iconColor="text-success" />
             {linkPdf && !html ? (
               <ActionLink icon={Download} label="Download de PDF (original)" onClick={() => window.open(linkPdf, "_blank")} />
             ) : (

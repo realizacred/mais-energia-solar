@@ -34,6 +34,7 @@ export interface ProposalMessageContext {
   paybackMeses: number | null;
   valorTotal: number | null;
   linkProposta: string | null;
+  linkPdf: string | null;
   tipoTelhado: string | null;
   distribuidora: string | null;
   consultorNome: string | null;
@@ -420,6 +421,7 @@ export function generateProposalMessage(
     economia_mensal: ctx.economiaMensal ? formatBRL(ctx.economiaMensal) : "—",
     valor_total: ctx.valorTotal ? formatBRL(ctx.valorTotal) : "—",
     link_proposta: ctx.linkProposta || "",
+    link_pdf: ctx.linkPdf || "",
     status: ctx.propostaStatus || "—",
     consultor_nome: ctx.consultorNome || "",
     empresa_nome: ctx.empresaNome || "",
@@ -516,6 +518,7 @@ export function extractMessageContext(
   // Link - Unificação Fase 1 (AGENTS.md): SEMPRE landing de alta conversão (/pl/:token)
   const publicSlug = versao.public_slug;
   const linkProposta = publicSlug ? `${getPublicUrl()}/pl/${publicSlug}` : null;
+  const linkPdf = publicSlug ? `${getPublicUrl()}/p/pdf/${publicSlug}` : null;
 
   const result: ProposalMessageContext & { _snapshot?: any } = {
     clienteNome: proposta.cliente_nome || snap.clienteNome || snap.cliente_nome || null,
@@ -530,6 +533,7 @@ export function extractMessageContext(
     paybackMeses: versao.payback_meses || snap.paybackMeses || snap.payback_meses || null,
     valorTotal: versao.valor_total || snap.valorTotal || snap.valor_total || null,
     linkProposta,
+    linkPdf,
     tipoTelhado: snap.locTipoTelhado || snap.loc_tipo_telhado || snap.tipo_telhado || null,
     distribuidora: snap.locDistribuidoraNome || snap.loc_distribuidora_nome || snap.distribuidora || null,
     consultorNome: snap.consultorNome || snap.consultor_nome || null,

@@ -37,6 +37,7 @@ const AtivarConta = lazy(() => import("./pages/AtivarConta"));
 const PropostaPublica = lazy(() => import("./pages/PropostaPublica"));
 const PropostaLanding = lazy(() => import("./pages/PropostaLanding"));
 const KitsLanding = lazy(() => import("./pages/KitsLanding"));
+const PropostaPdfRedirect = lazy(() => import("./pages/PropostaPdfRedirect"));
 const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const UCPublica = lazy(() => import("./pages/UCPublica"));
@@ -115,6 +116,7 @@ const App = () => (
               <Route path="/aguardando-aprovacao" element={<PublicLeadShell><PendingApproval /></PublicLeadShell>} />
               <Route path="/proposta/:token" element={<PublicLeadShell><PublicErrorBoundary><PropostaPublica /></PublicErrorBoundary></PublicLeadShell>} />
               <Route path="/pl/:token" element={<PublicLeadShell><PublicErrorBoundary><PropostaLanding /></PublicErrorBoundary></PublicLeadShell>} />
+              <Route path="/p/pdf/:token" element={<PropostaPdfRedirect />} />
               <Route path="/kits/:token" element={<PublicLeadShell><KitsLanding /></PublicLeadShell>} />
               <Route path="/oauth/google/callback" element={<PublicLeadShell><OAuthGoogleCallback /></PublicLeadShell>} />
               <Route path="/oauth/google-contacts/callback" element={<PublicLeadShell><GoogleContactsCallbackPage /></PublicLeadShell>} />

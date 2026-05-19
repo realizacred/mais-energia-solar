@@ -12,7 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { formatBRL } from "@/lib/formatters";
 import { renderProposal, sendProposal } from "@/services/proposalApi";
 import { invalidatePropostaCaches } from "@/lib/invalidatePropostaCaches";
-import { getProposalWebUrl } from "@/services/proposal/proposalLinks";
+import { getProposalWebUrl, getMaskedPdfUrl } from "@/services/proposal/proposalLinks";
 import {
   transitionProposalStatus,
   generateOs as svcGenerateOs,
@@ -189,6 +189,29 @@ export function useProposalActions({ versaoId, propostaRaw, vm }: UseProposalAct
     },
   });
 
+  // ─── Copy PDF Link (Masked) ─────────────────────────────
+
+  const copyPdfLinkMutation = useMutation({
+    mutationFn: async () => {
+      if (!propostaRaw?.id || !versaoId) throw new Error("Proposta não carregada");
+      // PDF masking sempre usa token rastreável para garantir que resolvemos o path correto
+      const token = await getOrCreateProposalToken(propostaRaw.id, versaoId, "tracked");
+      const url = getMaskedPdfUrl(token);
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        window.prompt("Copie o link do PDF abaixo:", url);
+      }
+      return url;
+    },
+    onSuccess: () => {
+      toast({ title: "Link do PDF (mascarado) copiado! 📄" });
+    },
+    onError: (err: Error) => {
+      toast({ title: `Erro ao gerar link do PDF: ${err.message}`, variant: "destructive" });
+    },
+  });
+
   // ─── Update Validade ────────────────────────────────────
 
   const validadeMutation = useMutation({
@@ -240,6 +263,7 @@ export function useProposalActions({ versaoId, propostaRaw, vm }: UseProposalAct
     render: renderMutation,
     generateOs: osMutation,
     copyLink: copyLinkMutation,
+    copyPdfLink: copyPdfLinkMutation,
     updateValidade: validadeMutation,
     downloadPdf: downloadPdfMutation,
   };

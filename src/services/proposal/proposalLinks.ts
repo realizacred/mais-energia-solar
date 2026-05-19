@@ -24,6 +24,11 @@ export function getProposalWebUrl(token: string): string {
   return `${getPublicUrl()}/pl/${token}`;
 }
 
+/** Link do PDF mascarado (Proxy/SSOT). Esconde a URL do storage. */
+export function getMaskedPdfUrl(token: string): string {
+  return `${getPublicUrl()}/p/pdf/${token}`;
+}
+
 /** Link rastreável: mesma landing, abre tracking via token. */
 export function getTrackedPdfUrl(token: string): string {
   return getProposalWebUrl(token);
