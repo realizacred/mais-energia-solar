@@ -145,6 +145,7 @@ function ProposalMessageConfigPageInner() {
   const [previewMode, setPreviewMode] = useState<MessageMode>("cliente");
   const [previewStyle, setPreviewStyle] = useState<MessageStyle>("completa");
   const [copiedPlaceholder, setCopiedPlaceholder] = useState<string | null>(null);
+  const [previewTab, setPreviewTab] = useState<"text" | "structure">("text");
 
   // Initialize from config (sem setState durante render)
   useEffect(() => {
@@ -155,6 +156,46 @@ function ProposalMessageConfigPageInner() {
       setInitialized(true);
     }
   }, [config, initialized]);
+
+  // Analisa como a mensagem foi montada
+  const structureAnalysis = useMemo(() => {
+    const templateKey = `${previewMode}_${previewStyle}`;
+    const customTemplate = templates[templateKey];
+    
+    // Resolve blocks for MOCK_CONTEXT
+    const vars: Record<string, string> = {
+      cliente_nome: MOCK_CONTEXT.clienteNome || "Cliente",
+      potencia_kwp: MOCK_CONTEXT.potenciaKwp ? MOCK_CONTEXT.potenciaKwp.toLocaleString('pt-BR') : "—",
+      modulos_qtd: MOCK_CONTEXT.modulosQtd != null ? MOCK_CONTEXT.modulosQtd.toString() : "—",
+      modulo_potencia: MOCK_CONTEXT.moduloPotenciaW ? `${MOCK_CONTEXT.moduloPotenciaW}W` : "—",
+      modulo_modelo: MOCK_CONTEXT.moduloModelo || "—",
+      inversor_modelo: MOCK_CONTEXT.inversorModelo || "—",
+      consumo_mensal: MOCK_CONTEXT.consumoMensal != null ? MOCK_CONTEXT.consumoMensal.toLocaleString('pt-BR') : "—",
+      geracao_mensal: MOCK_CONTEXT.geracaoMensal ? MOCK_CONTEXT.geracaoMensal.toLocaleString('pt-BR') : "—",
+      economia_mensal: MOCK_CONTEXT.economiaMensal ? MOCK_CONTEXT.economiaMensal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : "—",
+      valor_total: MOCK_CONTEXT.valorTotal ? MOCK_CONTEXT.valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : "—",
+      link_proposta: MOCK_CONTEXT.linkProposta || "",
+      link_pdf: MOCK_CONTEXT.linkPdf || "",
+      status: MOCK_CONTEXT.propostaStatus || "—",
+      consultor_nome: MOCK_CONTEXT.consultorNome || "",
+      empresa_nome: MOCK_CONTEXT.empresaNome || "",
+    };
+
+    const activeBlocks = Object.entries(blocks)
+      .filter(([key, cfg]) => {
+        if (!cfg.enabled) return false;
+        if (cfg.modes && cfg.modes.length > 0 && !cfg.modes.includes(previewMode)) return false;
+        if (cfg.styles && cfg.styles.length > 0 && !cfg.styles.includes(previewStyle)) return false;
+        return true;
+      })
+      .map(([key]) => key);
+
+    return {
+      templateUsed: customTemplate ? "Customizado" : "Padrão do Sistema",
+      activeBlocks,
+      variables: vars,
+    };
+  }, [previewMode, previewStyle, templates, blocks]);
 
   // Preview — depende de templates + blocks + defaults para reagir a edições e toggles
   const previewText = useMemo(() => {
@@ -332,11 +373,36 @@ function ProposalMessageConfigPageInner() {
                 <div className="space-y-2 pt-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Conteúdo do template</Label>
-                    {templates[activeTemplateKey] ? (
-                      <Badge className="text-[10px] bg-amber-500 hover:bg-amber-600">Customizado</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-[10px] bg-muted/50">Padrão do Sistema</Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <Select 
+                        onValueChange={(val) => {
+                          const current = templates[activeTemplateKey] || "";
+                          setTemplates(prev => ({ ...prev, [activeTemplateKey]: current + val }));
+                        }}
+                      >
+                        <SelectTrigger className="h-7 text-[10px] w-auto gap-1 border-primary/30 text-primary hover:bg-primary/5">
+                          <Variable className="h-3 w-3" />
+                          <span>Inserir Variável</span>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <ScrollArea className="h-[200px]">
+                            {PLACEHOLDER_CATALOG.map(v => (
+                              <SelectItem key={v.key} value={`{{${v.key}}}`} title={v.example}>
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="text-[11px] font-mono">{`{{${v.key}}}`}</span>
+                                  <span className="text-[9px] text-muted-foreground">{v.label}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </ScrollArea>
+                        </SelectContent>
+                      </Select>
+                      {templates[activeTemplateKey] ? (
+                        <Badge className="text-[10px] bg-amber-500 hover:bg-amber-600">Customizado</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] bg-muted/50">Padrão do Sistema</Badge>
+                      )}
+                    </div>
                   </div>
                   <Textarea
                     value={templates[activeTemplateKey] || ""}
@@ -419,11 +485,76 @@ function ProposalMessageConfigPageInner() {
                   </Badge>
                 </div>
 
-                <ScrollArea className="h-[350px]">
-                  <div className="bg-muted/50 rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap font-mono border border-border">
-                    {previewText}
-                  </div>
-                </ScrollArea>
+                <Tabs value={previewTab} onValueChange={(v: any) => setPreviewTab(v)} className="w-full">
+                  <TabsList className="w-full h-8 p-1 bg-muted/50 grid grid-cols-2">
+                    <TabsTrigger value="text" className="text-[10px] h-6">Mensagem Final</TabsTrigger>
+                    <TabsTrigger value="structure" className="text-[10px] h-6">Estrutura Usada</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="text" className="mt-3">
+                    <ScrollArea className="h-[350px]">
+                      <div className="bg-muted/50 rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap font-mono border border-border">
+                        {previewText}
+                      </div>
+                    </ScrollArea>
+                  </TabsContent>
+
+                  <TabsContent value="structure" className="mt-3">
+                    <ScrollArea className="h-[350px]">
+                      <div className="space-y-4 p-1">
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Template Base</Label>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={templates[`${previewMode}_${previewStyle}`] ? "secondary" : "outline"} className="text-xs">
+                              {structureAnalysis.templateUsed}
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground font-mono">({previewMode}_{previewStyle})</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Blocos Ativos</Label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {structureAnalysis.activeBlocks.length > 0 ? (
+                              structureAnalysis.activeBlocks.map(b => (
+                                <Badge key={b} variant="soft-success" className="text-[10px] gap-1">
+                                  <CheckCircle className="h-3 w-3" />
+                                  {BLOCK_LABELS[b]?.label || b}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-xs text-muted-foreground italic">Nenhum bloco ativo para esta configuração</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Variáveis Resolvidas no Preview</Label>
+                          <div className="rounded-lg border border-border bg-card overflow-hidden">
+                            <div className="max-h-[180px] overflow-y-auto">
+                              <table className="w-full text-xs border-collapse">
+                                <thead className="bg-muted/50 sticky top-0">
+                                  <tr>
+                                    <th className="text-left p-2 font-semibold border-b">Variável</th>
+                                    <th className="text-left p-2 font-semibold border-b">Valor Resolvido</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {Object.entries(structureAnalysis.variables).map(([k, v]) => (
+                                    <tr key={k} className="hover:bg-muted/30 border-b last:border-0">
+                                      <td className="p-2 font-mono text-[10px] text-primary">{`{{${k}}}`}</td>
+                                      <td className="p-2 text-muted-foreground truncate max-w-[150px]" title={v}>{v}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </ScrollArea>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           </div>
