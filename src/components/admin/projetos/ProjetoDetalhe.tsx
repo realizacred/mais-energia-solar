@@ -3175,16 +3175,34 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
                   {(orc.observacoes || orc.lead_observacoes) && (
                     <div className="flex flex-col gap-1 border-t border-border/40 pt-1.5 px-1">
                       {orc.lead_observacoes && (
-                        <div className="flex items-start gap-1.5 text-[10px] text-muted-foreground italic">
-                          <UserCircle className="h-3 w-3 shrink-0 mt-0.5" />
-                          <span className="line-clamp-1">{orc.lead_observacoes}</span>
-                        </div>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-start gap-1.5 text-[10px] text-muted-foreground italic cursor-help">
+                                <UserCircle className="h-3 w-3 shrink-0 mt-0.5" />
+                                <span className="line-clamp-1">{orc.lead_observacoes}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="max-w-[300px] text-[10px]">
+                              {orc.lead_observacoes}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       )}
                       {orc.observacoes && (
-                        <div className="flex items-start gap-1.5 text-[10px] text-primary/80 font-medium">
-                          <StickyNote className="h-3 w-3 shrink-0 mt-0.5" />
-                          <span className="line-clamp-1">{orc.observacoes}</span>
-                        </div>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-start gap-1.5 text-[10px] text-primary/80 font-medium cursor-help">
+                                <StickyNote className="h-3 w-3 shrink-0 mt-0.5" />
+                                <span className="line-clamp-1">{orc.observacoes}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="max-w-[300px] text-[10px]">
+                              {orc.observacoes}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       )}
                     </div>
                   )}
