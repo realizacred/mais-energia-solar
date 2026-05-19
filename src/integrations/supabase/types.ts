@@ -254,6 +254,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "recibos_emitidos_pagamento_id_fkey"
+            columns: ["pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "pagamentos"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "recibos_emitidos_parcela_id_fkey"
             columns: ["parcela_id"]
             isOneToOne: false
@@ -2878,6 +2885,13 @@ export type Database = {
             columns: ["pagamento_id"]
             isOneToOne: false
             referencedRelation: "_deprecated_pagamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cheques_pagamento_id_fkey"
+            columns: ["pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "pagamentos"
             referencedColumns: ["id"]
           },
           {
@@ -15940,6 +15954,13 @@ export type Database = {
             columns: ["pagamento_id"]
             isOneToOne: false
             referencedRelation: "_deprecated_pagamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parcelas_pagamento_id_fkey"
+            columns: ["pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "pagamentos"
             referencedColumns: ["id"]
           },
           {
@@ -31530,6 +31551,97 @@ export type Database = {
           },
           {
             foreignKeyName: "monitor_plants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pagamentos: {
+        Row: {
+          banco_origem: string | null
+          comprovante_url: string | null
+          created_at: string | null
+          data_pagamento: string | null
+          estornado: boolean | null
+          estornado_em: string | null
+          estornado_por: string | null
+          forma_pagamento: string | null
+          gateway_utilizado: string | null
+          id: string | null
+          motivo_estorno: string | null
+          numero_autorizacao: string | null
+          numero_cheque: string | null
+          numero_parcelas_cartao: number | null
+          observacoes: string | null
+          observacoes_internas: string | null
+          parcela_id: string | null
+          recebimento_id: string | null
+          tenant_id: string | null
+          valor_pago: number | null
+        }
+        Insert: {
+          banco_origem?: string | null
+          comprovante_url?: string | null
+          created_at?: string | null
+          data_pagamento?: string | null
+          estornado?: boolean | null
+          estornado_em?: string | null
+          estornado_por?: string | null
+          forma_pagamento?: string | null
+          gateway_utilizado?: string | null
+          id?: string | null
+          motivo_estorno?: string | null
+          numero_autorizacao?: string | null
+          numero_cheque?: string | null
+          numero_parcelas_cartao?: number | null
+          observacoes?: string | null
+          observacoes_internas?: string | null
+          parcela_id?: string | null
+          recebimento_id?: string | null
+          tenant_id?: string | null
+          valor_pago?: number | null
+        }
+        Update: {
+          banco_origem?: string | null
+          comprovante_url?: string | null
+          created_at?: string | null
+          data_pagamento?: string | null
+          estornado?: boolean | null
+          estornado_em?: string | null
+          estornado_por?: string | null
+          forma_pagamento?: string | null
+          gateway_utilizado?: string | null
+          id?: string | null
+          motivo_estorno?: string | null
+          numero_autorizacao?: string | null
+          numero_cheque?: string | null
+          numero_parcelas_cartao?: number | null
+          observacoes?: string | null
+          observacoes_internas?: string | null
+          parcela_id?: string | null
+          recebimento_id?: string | null
+          tenant_id?: string | null
+          valor_pago?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_parcela_id_fkey"
+            columns: ["parcela_id"]
+            isOneToOne: false
+            referencedRelation: "parcelas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_recebimento_id_fkey"
+            columns: ["recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "recebimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
