@@ -243,11 +243,10 @@ function StageDealCardImpl({
         "kanban-card group transition-all duration-200",
         borderClass,
         isDragging && "kanban-card--dragging shadow-xl scale-[1.02]",
-        // Escalonamento de criticidade — vermelho só para CRÍTICO real:
-        isBlocked && "border-l-2 border-l-destructive bg-destructive/[0.03]",
-        isCritical && "border-l-2 border-l-destructive",
-        isDelayed && "border-l-2 border-l-warning",
-        isAttention && "border-l-2 border-l-muted-foreground/30"
+        // Escalonamento de criticidade — vermelho APENAS para bloqueio/crítico real.
+        // Atenção/atraso já são comunicados pela top-bar colorida + cor do tempo.
+        isBlocked && "border-l-2 border-l-destructive",
+        isCritical && !isBlocked && "border-l-2 border-l-destructive/70"
       )}
     >
       {/* Left color bar */}
