@@ -282,7 +282,7 @@ export function useConcessionaria(projetoId: string) {
           .from("propostas_nativas")
           .select("id", { count: "exact", head: true })
           .eq("deal_id", projetoId)
-          .eq("status", "aceita"),
+          .in("status", ["accepted", "aceita"]),
         supabase
           .from("os_instalacao")
           .select("id", { count: "exact", head: true })
