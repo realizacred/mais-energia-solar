@@ -550,10 +550,10 @@ function StepLocalizacaoImpl({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-[1fr_1fr] gap-2.5">
-      {/* ═══ LEFT COLUMN ═══ */}
-      <div className="min-w-0 order-2 lg:order-1">
-        <Card className="border-border/40">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+      {/* ═══ LEFT COLUMN (Address & Configs) ═══ */}
+      <div className="min-w-0 order-2 lg:order-1 lg:col-span-5 space-y-3">
+        <Card className="border-border/40 shadow-sm">
           <CardHeader className="pb-0.5 pt-2 px-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-[11px] font-semibold flex items-center gap-1.5 text-foreground">
@@ -840,25 +840,28 @@ function StepLocalizacaoImpl({
       </div>
 
       {/* ═══ RIGHT COLUMN — Map ═══ */}
-      <div className="order-1 lg:order-2 lg:sticky lg:top-2 lg:self-start">
-        <Card className="border-border/40">
-          <CardHeader className="pb-0.5 pt-2 px-3">
+      <div className="order-1 lg:order-2 lg:col-span-7 h-full lg:sticky lg:top-2 self-stretch">
+        <Card className="border-border/40 overflow-hidden h-full shadow-md flex flex-col">
+          <CardHeader className="pb-1.5 pt-3 px-4 bg-muted/5">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-[11px] font-semibold flex items-center gap-1.5 text-foreground">
-                <MapPin className="h-3 w-3 text-secondary" />
-                Mapa
+              <CardTitle className="text-xs font-bold flex items-center gap-2 text-foreground">
+                <MapPin className="h-4 w-4 text-secondary" />
+                Configurador de Localização
               </CardTitle>
               {geoLat && geoLon && (
-                <span className="text-[9px] font-mono text-primary font-semibold bg-primary/10 px-1.5 py-0.5 rounded">
-                  {geoLat.toFixed(4)}, {geoLon.toFixed(4)}
+                <span className="text-[10px] font-mono text-primary font-bold bg-primary/10 px-2 py-0.5 rounded-full">
+                  {geoLat.toFixed(5)}, {geoLon.toFixed(5)}
                 </span>
               )}
             </div>
           </CardHeader>
-          <CardContent className="px-0 pb-1.5">
+          <CardContent className="p-0 flex-1 relative min-h-[500px]">
             <Suspense fallback={
-              <div className="h-[220px] lg:h-[360px] xl:h-[420px] flex items-center justify-center bg-muted/20">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <div className="absolute inset-0 flex items-center justify-center bg-muted/20">
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary/40" />
+                  <span className="text-xs font-medium text-muted-foreground tracking-widest uppercase">Carregando Mapa Premium</span>
+                </div>
               </div>
             }>
               <GoogleMapView

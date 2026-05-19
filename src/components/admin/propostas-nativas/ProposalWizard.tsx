@@ -84,7 +84,7 @@ function WizardContent() {
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-5xl mx-auto p-4 md:p-8 lg:p-12 pb-24">
+        <div className="max-w-[1400px] mx-auto p-4 md:p-6 lg:p-8 pb-24">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStep}
@@ -99,7 +99,7 @@ function WizardContent() {
 
           {/* Navigation - Footer fixed or at end of content */}
           <div className="fixed bottom-0 right-0 left-0 lg:left-72 bg-background/80 backdrop-blur-md border-t border-border/40 p-4 z-50">
-            <div className="max-w-5xl mx-auto flex justify-between items-center px-4 md:px-8">
+            <div className="max-w-[1400px] mx-auto flex justify-between items-center px-4 md:px-8">
               <Button 
                 variant="ghost"
                 size="sm"

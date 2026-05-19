@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
@@ -132,95 +134,140 @@ export function StepUCsEnergia({ onNext, onBack }: StepUCsProps) {
       {/* ── Briefing Operational & Cockpit ── */}
       <LeadBriefingPanel />
 
-      {/* ── Header Metrics Bar ── */}
-
-      <div className="flex items-center justify-end gap-6 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1.5">
-          <Zap className="h-3.5 w-3.5 text-primary" />
-          <span className="font-medium text-foreground">Consumo Médio Total</span>
-          <span className="font-bold text-foreground">{formatNumberBR(consumoTotal)} kWh</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Zap className="h-3.5 w-3.5 text-primary" />
-          <span className="font-medium text-foreground">Potência Ideal</span>
-          <span className="font-mono">T: {potenciaKwp?.toFixed(2) || "0,00"}</span>
-          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => {}}>
-            <Edit2 className="h-3 w-3 text-primary" />
-          </Button>
-        </div>
-      </div>
-
-      {/* ── Sub-tabs ── */}
-      <div className="flex gap-2">
-        <Button
-          variant={activeTab === "ucs" ? "default" : "outline"}
-          size="sm"
-          className="gap-1.5 h-9"
-          onClick={() => setActiveTab("ucs")}
-        >
-          <Zap className="h-3.5 w-3.5" /> Unidades Consumidoras
-        </Button>
-        <Button
-          variant={activeTab === "predim" ? "default" : "outline"}
-          size="sm"
-          className="gap-1.5 h-9"
-          onClick={() => setActiveTab("predim")}
-        >
-          <Settings className="h-3.5 w-3.5" /> Pré-Dimensionamento
-        </Button>
-      </div>
-
-      {activeTab === "ucs" && (
-        <div className="space-y-3">
-          <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1">
-            {/* ── UC Cards ── */}
-            {ucs.map((uc, i) => (
-              <div key={uc.id} className="shrink-0">
-                <UCCard
-                  uc={uc}
-                  index={i}
-                  concessionarias={concessionarias}
-                  loadingConc={loadingConc}
-                  onUpdate={(field, value) => updateUC(i, field, value)}
-                  onRemove={() => removeUC(i)}
-                  onOpenConfig={() => setConfigModalUC(i)}
-                  onOpenMesAMes={(tipo) => setMesAMesUC({ ucIndex: i, tipo })}
-                  canRemove={ucs.length > 1}
-                  totalUCs={ucs.length}
-                  onOpenRateio={() => setRateioModalOpen(true)}
-                  leadFase={uc.is_geradora ? leadFase : undefined}
-                />
-
-              </div>
-            ))}
-
-            {/* ── Add UC Area ── */}
-            <button
-              onClick={addUC}
-              className="shrink-0 w-[220px] min-h-[400px] flex flex-col items-center justify-center gap-3 border-2 border-dashed border-primary/30 rounded-xl text-primary/60 hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* ── Main UC Area (Col 9) ── */}
+        <div className="lg:col-span-9 space-y-4">
+          {/* ── Sub-tabs ── */}
+          <div className="flex gap-2">
+            <Button
+              variant={activeTab === "ucs" ? "default" : "outline"}
+              size="sm"
+              className="gap-1.5 h-9"
+              onClick={() => setActiveTab("ucs")}
             >
-              <img src={solarBuildingImg} alt="" className="h-12 w-12 object-contain opacity-60" />
-              <Plus className="h-6 w-6" />
-              <span className="text-sm font-medium">+ Nova Unidade</span>
-            </button>
+              <Zap className="h-3.5 w-3.5" /> Unidades Consumidoras
+            </Button>
+            <Button
+              variant={activeTab === "predim" ? "default" : "outline"}
+              size="sm"
+              className="gap-1.5 h-9"
+              onClick={() => setActiveTab("predim")}
+            >
+              <Settings className="h-3.5 w-3.5" /> Pré-Dimensionamento
+            </Button>
           </div>
 
-          {/* ── Configurações adicionais ── */}
-          <button
-            onClick={() => setConfigModalUC(0)}
-            className="flex items-center gap-1.5 text-xs text-primary hover:underline"
-          >
-            <Settings className="h-3.5 w-3.5" />
-            Configurações adicionais
-          </button>
-        </div>
-      )}
+          {activeTab === "ucs" && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-2">
+                {/* ── UC Cards ── */}
+                {ucs.map((uc, i) => (
+                  <UCCard
+                    key={uc.id}
+                    uc={uc}
+                    index={i}
+                    concessionarias={concessionarias}
+                    loadingConc={loadingConc}
+                    onUpdate={(field, value) => updateUC(i, field, value)}
+                    onRemove={() => removeUC(i)}
+                    onOpenConfig={() => setConfigModalUC(i)}
+                    onOpenMesAMes={(tipo) => setMesAMesUC({ ucIndex: i, tipo })}
+                    canRemove={ucs.length > 1}
+                    totalUCs={ucs.length}
+                    onOpenRateio={() => setRateioModalOpen(true)}
+                    leadFase={uc.is_geradora ? leadFase : undefined}
+                  />
+                ))}
 
-      {activeTab === "predim" && (
-        <div className="p-6 text-center text-muted-foreground text-sm">
-          Pré-Dimensionamento será configurado nas etapas seguintes do wizard.
+                {/* ── Add UC Card ── */}
+                <button
+                  onClick={addUC}
+                  className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-primary/20 rounded-xl min-h-[280px] text-primary/60 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer group"
+                >
+                  <div className="p-3 rounded-full bg-primary/5 group-hover:bg-primary/10 transition-colors">
+                    <Plus className="h-8 w-8" />
+                  </div>
+                  <span className="text-sm font-bold uppercase tracking-widest">Nova Unidade</span>
+                </button>
+              </div>
+
+              {/* ── Configurações adicionais ── */}
+              <button
+                onClick={() => setConfigModalUC(0)}
+                className="flex items-center gap-1.5 text-xs text-primary font-bold uppercase tracking-tighter hover:underline"
+              >
+                <Settings className="h-3.5 w-3.5" />
+                Configurações técnicas avançadas
+              </button>
+            </div>
+          )}
+
+          {activeTab === "predim" && (
+            <div className="p-12 border-2 border-dashed rounded-xl flex flex-col items-center gap-3 text-muted-foreground">
+              <Settings className="h-8 w-8 opacity-20" />
+              <p className="text-sm font-medium">Pré-Dimensionamento será configurado nas etapas seguintes.</p>
+            </div>
+          )}
         </div>
-      )}
+
+        {/* ── Sidebar Metrics (Col 3) ── */}
+        <div className="lg:col-span-3 space-y-4 lg:sticky lg:top-4">
+          <Card className="border-primary/20 shadow-sm overflow-hidden">
+            <CardHeader className="bg-primary/[0.03] py-3 px-4 border-b border-primary/10">
+              <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-primary flex items-center gap-2">
+                <Zap className="h-3 w-3" />
+                Resumo de Consumo
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4">
+              <div className="space-y-1">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold">Consumo Médio Mensal</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-black text-foreground tracking-tighter">
+                    {formatNumberBR(consumoTotal)}
+                  </span>
+                  <span className="text-xs font-bold text-muted-foreground">kWh</span>
+                </div>
+              </div>
+
+              <div className="space-y-1 pt-2 border-t border-border/40">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold">Potência Sugerida</p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl font-bold text-primary tracking-tighter">
+                      {potenciaKwp?.toFixed(2) || "0,00"}
+                    </span>
+                    <span className="text-xs font-bold text-primary/70">kWp</span>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/5 rounded-full" onClick={() => {}}>
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <div className="p-3 rounded-lg bg-muted/30 border border-border/40 space-y-2">
+                  <div className="flex justify-between items-center text-[10px] uppercase font-bold text-muted-foreground">
+                    <span>Qtd. Unidades</span>
+                    <span className="text-foreground">{ucs.length} UC(s)</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[10px] uppercase font-bold text-muted-foreground">
+                    <span>Distribuidora</span>
+                    <span className="text-foreground truncate max-w-[100px]">{concessionarias.find(c => c.id === ucs[0]?.distribuidora_id)?.sigla || "—"}</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Alert className="bg-secondary/5 border-secondary/20 py-3 px-4">
+            <Info className="h-4 w-4 text-secondary" />
+            <AlertDescription className="text-[10px] text-secondary/80 leading-relaxed font-medium">
+              Configure as unidades para que o sistema calcule a potência ideal necessária para o cliente.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
 
       {/* ── Config Modal ── */}
       {configModalUC !== null && (
@@ -279,7 +326,7 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
   const [editingName, setEditingName] = useState(false);
   const [tempName, setTempName] = useState(uc.nome);
   return (
-    <div className="border rounded-xl bg-card p-4 min-w-[320px] w-full space-y-4 relative">
+    <div className="border rounded-xl bg-card p-4 min-w-[320px] w-full min-h-[350px] space-y-4 relative shadow-sm hover:shadow-md transition-shadow">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
