@@ -233,6 +233,8 @@ export function ProjetosManager() {
 
       const slaDays = deal.sla_days || 0;
       const daysInStage = differenceInDays(now, new Date(deal.last_stage_change));
+      const timeStopped = differenceInHours(now, new Date(deal.ultima_mudanca_operacional_at || deal.last_stage_change));
+      
       
       if (slaDays > 0) {
         if (daysInStage > slaDays * 1.5) {
