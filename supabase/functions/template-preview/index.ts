@@ -1957,21 +1957,23 @@ Deno.serve(async (req) => {
           console.error("[template-preview] Failed to update proposta_versoes:", updateErr.message);
         } else {
           // Record ready event
+          const isPdf = !!(pdfBytes && !pdfConversionError);
           await adminClient.from("proposal_events").insert({
             proposta_id: proposta_id,
-            tipo: pdfBytes && !pdfConversionError ? "pdf_ready" : "docx_ready",
+            tipo: isPdf ? "pdf_ready" : "docx_ready",
             payload: { 
               versao_id: latestVersao.id,
               template_id: template_id,
               duration_ms: Date.now() - startTime,
-              error: pdfConversionError || docxUploadErr?.message
+              error: pdfConversionError || docxUploadErr?.message,
+              engine: isPdf ? "gotenberg" : "fflate"
             },
             tenant_id: tenantId,
             user_id: userId
           });
 
           // ── PROMOTE STATUS: Only promote to "gerada" after artifact is persisted ──
-          const hasArtifact = !!(pdfBytes && !pdfConversionError) || (!docxUploadErr && docxStoragePath);
+          const hasArtifact = isPdf || (!docxUploadErr && docxStoragePath);
           if (hasArtifact) {
             await adminClient
               .from("propostas_nativas")
