@@ -2,12 +2,13 @@ import React, { createContext, useContext, useState, useCallback, useMemo, useEf
 import {
   type LeadSelection, type ClienteData, type UCData,
   type PremissasData, type KitItemRow, type ServicoItem, type VendaData,
-  type PagamentoOpcao, type LayoutArranjo, type PreDimensionamentoData,
-  EMPTY_CLIENTE, DEFAULT_PREMISSAS, DEFAULT_PRE_DIMENSIONAMENTO, createEmptyUC,
+  type PagamentoOpcao, type LayoutArranjo, type PreDimensionamentoData, type ComercialData,
+  EMPTY_CLIENTE, EMPTY_COMERCIAL, DEFAULT_PREMISSAS, DEFAULT_PRE_DIMENSIONAMENTO, createEmptyUC,
   redeAtendimentoToFaseTensao, mapLeadTipoTelhadoToProposal,
 } from "./types";
 import { type AdicionalItem } from "./StepAdicionais";
 import { useTenantTarifas, applyTenantTarifasToUC } from "./useWizardDataLoaders";
+
 
 type GenerationStatus = "idle" | "calculating" | "publishing" | "published" | "ready_web" | "rendering_pdf" | "ready" | "docx_only" | "error" | "generating_docx" | "converting_pdf" | "saving";
 
@@ -94,7 +95,12 @@ interface WizardContextType {
   generationStatus: GenerationStatus;
   setGenerationStatus: React.Dispatch<React.SetStateAction<GenerationStatus>>;
 
+  // Step 1 - Comercial
+  comercial: ComercialData;
+  setComercial: React.Dispatch<React.SetStateAction<ComercialData>>;
+
   // Edit Accepted Proposal
+
   editAceitaDialogOpen: boolean;
   setEditAceitaDialogOpen: (open: boolean) => void;
   editAceitaMotivo: string;
@@ -113,8 +119,10 @@ const WizardContext = createContext<WizardContextType | undefined>(undefined);
 export function WizardProvider({ children, initialData = {} }: { children: React.ReactNode; initialData?: any }) {
   // We mirror the state from ProposalWizard.tsx here
   const [selectedLead, setSelectedLead] = useState<LeadSelection | null>(null);
+  const [comercial, setComercial] = useState<ComercialData>(EMPTY_COMERCIAL);
   const [cliente, setCliente] = useState<ClienteData>(EMPTY_CLIENTE);
   const [clienteMunicipioIbgeCodigo, setClienteMunicipioIbgeCodigo] = useState<string | null>(null);
+
 
   const [locEstado, setLocEstado] = useState("");
   const [locCidade, setLocCidade] = useState("");
@@ -267,6 +275,7 @@ export function WizardProvider({ children, initialData = {} }: { children: React
 
   const value = useMemo(() => ({
     selectedLead, setSelectedLead,
+    comercial, setComercial,
     cliente, setCliente,
     clienteMunicipioIbgeCodigo, setClienteMunicipioIbgeCodigo,
     locEstado, setLocEstado,
@@ -307,7 +316,7 @@ export function WizardProvider({ children, initialData = {} }: { children: React
     handleSelectLead,
     handleLocTipoTelhadoChange,
   }), [
-    selectedLead, cliente, clienteMunicipioIbgeCodigo, locEstado, locCidade,
+    selectedLead, comercial, cliente, clienteMunicipioIbgeCodigo, locEstado, locCidade,
     locTipoTelhado, locDistribuidoraId, locDistribuidoraNome, locIrradiacao,
     locGhiSeries, locSkipPoa, locLatitude, mapSnapshots, distanciaKm,
     projectAddress, ucs, ucsRestoreEpoch, bumpUcsRestoreEpoch,
@@ -318,6 +327,7 @@ export function WizardProvider({ children, initialData = {} }: { children: React
     handleItensChange, handleUCsChange, handleVendaChange,
     handleSelectLead, handleLocTipoTelhadoChange,
   ]);
+
 
   return <WizardContext.Provider value={value}>{children}</WizardContext.Provider>;
 }

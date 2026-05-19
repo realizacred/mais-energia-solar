@@ -24,6 +24,8 @@ import { UCCard } from "./uc/UCCard";
 import { UCConfigModal, RateioCreditsModal, MesAMesDialog } from "./uc/UCModals";
 import { useTiposTelhado } from "@/hooks/useTiposTelhado";
 import { getRoofLabel, type RoofAreaFactor } from "@/hooks/useTenantPremises";
+import { LeadBriefingPanel } from "./LeadBriefingPanel";
+
 
 interface Props {
   ucs: UCData[];
@@ -476,8 +478,11 @@ function StepConsumptionIntelligenceImpl({
 
   return (
     <div className="space-y-4">
+      {/* ─── Briefing Operational & Cockpit ─── */}
+      <LeadBriefingPanel />
+
       {/* ─── Banner informativo Dados do Lead (RB-76/RB-62) */}
-      {/* Context Panel was moved to top of Wizard */}
+
 
 
       {/* ─── Header metrics bar */}

@@ -22,13 +22,13 @@ import {
 } from "./types";
 import solarBuildingImg from "@/assets/solar-building.png";
 import { useWizardContext } from "./WizardContext";
-
-
+import { LeadBriefingPanel } from "./LeadBriefingPanel";
 
 interface StepUCsProps {
   onNext?: () => void;
   onBack?: () => void;
 }
+
 
 
 export function StepUCsEnergia({ onNext, onBack }: StepUCsProps) {
@@ -129,7 +129,11 @@ export function StepUCsEnergia({ onNext, onBack }: StepUCsProps) {
 
   return (
     <div className="space-y-4">
+      {/* ── Briefing Operational & Cockpit ── */}
+      <LeadBriefingPanel />
+
       {/* ── Header Metrics Bar ── */}
+
       <div className="flex items-center justify-end gap-6 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
           <Zap className="h-3.5 w-3.5 text-primary" />
