@@ -167,7 +167,32 @@ export function StageDealCard({
     ? { background: `linear-gradient(180deg, ${etiquetaCfg.cor}, ${etiquetaCfg.cor}80)` }
     : undefined;
 
-  // Format time humanized: <24h → Xh, <30d → Xd, else → X meses
+  // SLA Calculation Logic
+  const slaDays = deal.sla_days || 0;
+  const daysInStage = differenceInDays(new Date(), new Date(deal.last_stage_change));
+  
+  const operationalStatus = useMemo(() => {
+    const isBlocked = (deal.notas?.toLowerCase().includes("bloqueado")) || deal.pendencias?.some(p => p.bloqueia_fluxo);
+    if (isBlocked) return "blocked";
+
+    if (slaDays > 0) {
+      if (daysInStage > slaDays * 1.5) return "critical";
+      if (daysInStage >= slaDays) return "delayed";
+      if (daysInStage >= slaDays * 0.8) return "attention";
+    }
+    
+    const hours = differenceInHours(new Date(), new Date(deal.last_stage_change));
+    if (hours >= 168) return "critical"; // 7 days fallback
+    if (hours >= 72) return "attention"; // 3 days fallback
+    
+    return "normal";
+  }, [deal.last_stage_change, deal.notas, deal.pendencias, slaDays, daysInStage]);
+
+  const isBlocked = operationalStatus === "blocked";
+  const isCritical = operationalStatus === "critical";
+  const isDelayed = operationalStatus === "delayed";
+  const isAttention = operationalStatus === "attention";
+
   function formatTimeInStage(lastChange: string) {
     const hours = differenceInHours(new Date(), new Date(lastChange));
     if (hours < 1) return "agora";
@@ -185,9 +210,6 @@ export function StageDealCard({
     return (priority[b.criticidade as keyof typeof priority] || 0) - (priority[a.criticidade as keyof typeof priority] || 0);
   })[0];
 
-  const isBlocked = stagnation === "critical" || (deal.notas?.toLowerCase().includes("bloqueado")) || deal.pendencias?.some(p => p.bloqueia_fluxo);
-
-  const isOverdueSLA = deal.pendencias?.some(p => p.sla_at && new Date(p.sla_at) < new Date());
 
   
   const cardContent = (
@@ -199,7 +221,10 @@ export function StageDealCard({
         "kanban-card group transition-all duration-200",
         borderClass,
         isDragging && "kanban-card--dragging shadow-xl scale-[1.02]",
-        isBlocked && "border-l-4 border-l-destructive bg-destructive/5"
+        isBlocked && "border-l-4 border-l-destructive bg-destructive/5 animate-pulse",
+        isCritical && "border-l-4 border-l-destructive shadow-[0_0_10px_rgba(239,68,68,0.2)] animate-pulse",
+        isDelayed && "border-l-4 border-l-orange-500",
+        isAttention && "border-l-4 border-l-warning"
       )}
     >
       {/* Left color bar */}
@@ -252,12 +277,18 @@ export function StageDealCard({
             <span className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Tempo na etapa</span>
             <div className={cn(
               "flex items-center gap-1 text-[11px] font-bold tabular-nums",
-              stagnation === "critical" ? "text-destructive" :
-              stagnation === "warning" ? "text-warning" :
+              isCritical ? "text-destructive" :
+              isDelayed ? "text-orange-600" :
+              isAttention ? "text-warning" :
               "text-foreground"
             )}>
               <Clock className="h-3 w-3" />
               {formatTimeInStage(deal.last_stage_change)}
+              {slaDays > 0 && (
+                <span className="text-[8px] font-normal text-muted-foreground ml-1">
+                  / {slaDays}d
+                </span>
+              )}
             </div>
           </div>
 

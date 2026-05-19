@@ -18347,6 +18347,7 @@ export type Database = {
           id: string
           nome: string
           ordem: number
+          sla_days: number | null
           tenant_id: string
           updated_at: string
         }
@@ -18359,6 +18360,7 @@ export type Database = {
           id?: string
           nome: string
           ordem?: number
+          sla_days?: number | null
           tenant_id?: string
           updated_at?: string
         }
@@ -18371,6 +18373,7 @@ export type Database = {
           id?: string
           nome?: string
           ordem?: number
+          sla_days?: number | null
           tenant_id?: string
           updated_at?: string
         }
@@ -18862,6 +18865,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           data_comissionamento: string | null
+          data_entrada_etapa: string | null
           data_instalacao: string | null
           data_previsao_instalacao: string | null
           data_venda: string | null
@@ -18920,6 +18924,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_comissionamento?: string | null
+          data_entrada_etapa?: string | null
           data_instalacao?: string | null
           data_previsao_instalacao?: string | null
           data_venda?: string | null
@@ -18978,6 +18983,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_comissionamento?: string | null
+          data_entrada_etapa?: string | null
           data_instalacao?: string | null
           data_previsao_instalacao?: string | null
           data_venda?: string | null

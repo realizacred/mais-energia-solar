@@ -3,7 +3,7 @@ import { formatKwp } from "@/lib/formatters/index";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, BarChart3, Layers, Tag, Info, Users, FileCheck, Download, Clock } from "lucide-react";
+import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, BarChart3, Layers, Tag, Info, Users, FileCheck, Download, Clock, Lock as LockIcon, ShieldAlert } from "lucide-react";
 
 import { motion } from "framer-motion";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -32,6 +32,7 @@ import { ProjetoPerformanceDashboard } from "./ProjetoPerformanceDashboard";
 import { EtiquetasManager } from "./EtiquetasManager";
 import { ProjetoPipelineTemplates } from "./ProjetoPipelineTemplates";
 import { CentralPendencias } from "./CentralPendencias";
+import { differenceInDays, differenceInHours } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast as sonnerToast } from "sonner";
 
@@ -74,7 +75,9 @@ function projetoToCard(p: ProjetoItem, etapaMap: Map<string, ProjetoEtapa>): Dea
     deal_kwp: p.potencia_kwp || 0,
     deal_status: projetoStatusToDeal(p.status),
     stage_probability: 0,
-    last_stage_change: p.updated_at,
+    last_stage_change: p.data_entrada_etapa || p.updated_at,
+    sla_days: etapa?.sla_days || 0,
+    pendencias: p.pendencias || [],
     etiqueta: null,
     etiqueta_ids: p.etiquetas || [],
     notas: p.observacoes,
@@ -96,6 +99,7 @@ function etapaToPipelineStage(e: ProjetoEtapa): PipelineStage {
     is_closed: e.categoria === "perdido" || e.categoria === "excluido",
     is_won: e.categoria === "ganho",
     color: e.cor,
+    sla_days: e.sla_days || 0,
   };
 }
 
@@ -201,6 +205,51 @@ export function ProjetosManager() {
     })).map(c => consultorColumnToOwner(c, etapaMap)),
     [consultorColumns, etapaMap, existingEtapaIds, filters.status, filters.tipoProjetoSolar, resolveProjetoStatus]
   );
+
+  const operationalKPIs = useMemo(() => {
+    const now = new Date();
+    const stats = {
+      blocked: 0,
+      overdueSLA: 0,
+      attention: 0,
+      noOwner: 0,
+      criticalToday: 0,
+      awaitingClient: 0,
+      awaitingUtility: 0,
+    };
+
+    adaptedDeals.forEach(deal => {
+      const isBlocked = (deal.notas?.toLowerCase().includes("bloqueado")) || deal.pendencias?.some(p => p.bloqueia_fluxo);
+      if (isBlocked) stats.blocked++;
+
+      const slaDays = deal.sla_days || 0;
+      const daysInStage = differenceInDays(now, new Date(deal.last_stage_change));
+      
+      if (slaDays > 0) {
+        if (daysInStage > slaDays * 1.5) {
+          stats.criticalToday++;
+          stats.overdueSLA++;
+        } else if (daysInStage >= slaDays) {
+          stats.overdueSLA++;
+        } else if (daysInStage >= slaDays * 0.8) {
+          stats.attention++;
+        }
+      } else {
+        const hours = differenceInHours(now, new Date(deal.last_stage_change));
+        if (hours >= 168) stats.criticalToday++;
+        else if (hours >= 72) stats.attention++;
+      }
+
+      if (!deal.owner_id) stats.noOwner++;
+
+      const stageName = deal.stage_name.toLowerCase();
+      if (stageName.includes("cliente") || stageName.includes("documento")) stats.awaitingClient++;
+      if (stageName.includes("concessionária") || stageName.includes("vistoria")) stats.awaitingUtility++;
+    });
+
+    return stats;
+  }, [adaptedDeals]);
+
 
   // ── Persistent filter storage (per user) ──
   const STORAGE_KEY = useMemo(
@@ -745,27 +794,76 @@ export function ProjetosManager() {
           </TabsList>
 
           {/* Mini KPI chips */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs">
-              <FolderKanban className="h-3.5 w-3.5 text-primary" />
-              <span className="font-bold text-foreground">{kpiStats.total}</span>
-              <span className="text-muted-foreground hidden sm:inline">projetos</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs">
-              <Zap className="h-3.5 w-3.5 text-info" />
-              <span className="font-bold text-foreground">{kpiStats.emAndamento}</span>
-              <span className="text-muted-foreground hidden sm:inline">andamento</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs">
-              <FileCheck className="h-3.5 w-3.5 text-success" />
-              <span className="font-bold text-foreground">{kpiStats.concluidos}</span>
-              <span className="text-muted-foreground hidden sm:inline">concluídos</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs">
-              <Clock className="h-3.5 w-3.5 text-warning" />
-              <span className="font-bold text-foreground">{kpiStats.atrasados}</span>
-              <span className="text-muted-foreground hidden sm:inline">estagnados</span>
-            </div>
+          <div className="flex items-center gap-2 flex-wrap overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs cursor-help transition-all",
+                  operationalKPIs.blocked > 0 ? "border-destructive/30 bg-destructive/5 text-destructive animate-pulse" : "opacity-60"
+                )}>
+                  <LockIcon className="h-3.5 w-3.5" />
+                  <span className="font-bold">{operationalKPIs.blocked}</span>
+                  <span className="hidden lg:inline font-medium opacity-80 ml-0.5">Bloqueados</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Projetos com fluxo impedido (técnico ou comercial)</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs cursor-help transition-all",
+                  operationalKPIs.overdueSLA > 0 ? "border-orange-500/30 bg-orange-50/50 text-orange-600" : "opacity-60"
+                )}>
+                  <Clock className="h-3.5 w-3.5" />
+                  <span className="font-bold">{operationalKPIs.overdueSLA}</span>
+                  <span className="hidden lg:inline font-medium opacity-80 ml-0.5">SLA Vencido</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Projetos que ultrapassaram o tempo planejado na etapa</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs cursor-help transition-all",
+                  operationalKPIs.awaitingClient > 0 ? "border-blue-500/30 bg-blue-50/50 text-blue-600" : "opacity-60"
+                )}>
+                  <Users className="h-3.5 w-3.5" />
+                  <span className="font-bold">{operationalKPIs.awaitingClient}</span>
+                  <span className="hidden lg:inline font-medium opacity-80 ml-0.5">Aguardando Cliente</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Projetos em etapas de documentação ou aceite do cliente</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs cursor-help transition-all",
+                  operationalKPIs.awaitingUtility > 0 ? "border-purple-500/30 bg-purple-50/50 text-purple-600" : "opacity-60"
+                )}>
+                  <Zap className="h-3.5 w-3.5" />
+                  <span className="font-bold">{operationalKPIs.awaitingUtility}</span>
+                  <span className="hidden lg:inline font-medium opacity-80 ml-0.5">Concessionária</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Projetos em vistoria ou aprovação técnica na concessionária</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs cursor-help transition-all",
+                  operationalKPIs.criticalToday > 0 ? "border-destructive bg-destructive/10 text-destructive shadow-[0_0_10px_rgba(239,68,68,0.2)] animate-pulse" : "hidden"
+                )}>
+                  <ShieldAlert className="h-3.5 w-3.5" />
+                  <span className="font-bold">{operationalKPIs.criticalToday}</span>
+                  <span className="hidden lg:inline font-medium ml-0.5 uppercase">Críticos</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Atenção imediata: SLA muito excedido</TooltipContent>
+            </Tooltip>
           </div>
         </div>
 

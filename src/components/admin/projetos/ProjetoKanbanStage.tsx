@@ -21,7 +21,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ProjetoAutomacaoConfig } from "./ProjetoAutomacaoConfig";
 import { StageDealCard } from "./StageDealCard";
-import { differenceInHours } from "date-fns";
+import { differenceInHours, differenceInDays } from "date-fns";
 
 interface AutomationRule {
   id: string;
@@ -66,26 +66,48 @@ const formatKwp = (v: number) => {
   return `${v.toFixed(1).replace(".", ",")} kWp`;
 };
 
+function getOperationalPriority(deal: DealKanbanCard): number {
+  const isBlocked = (deal.notas?.toLowerCase().includes("bloqueado")) || deal.pendencias?.some(p => p.bloqueia_fluxo);
+  if (isBlocked) return 500;
+
+  const slaDays = deal.sla_days || 0;
+  const daysInStage = differenceInDays(new Date(), new Date(deal.last_stage_change));
+  
+  if (slaDays > 0) {
+    if (daysInStage > slaDays * 1.5) return 400; // Critical
+    if (daysInStage >= slaDays) return 300;      // Delayed
+    if (daysInStage >= slaDays * 0.8) return 200; // Attention
+  }
+  
+  const hours = differenceInHours(new Date(), new Date(deal.last_stage_change));
+  if (hours >= 168) return 400; // 7 days fallback
+  if (hours >= 72) return 200;  // 3 days fallback
+  
+  return 100; // Normal
+}
+
 type StageSortOption = "default" | "nome_asc" | "nome_desc" | "valor_desc" | "valor_asc" | "data_desc" | "data_asc";
 
 function sortStageDeals(deals: DealKanbanCard[], sort: StageSortOption): DealKanbanCard[] {
-  // Always apply priority for critical pendencies first
+  // Always apply priority for operational status first
   const baseSorted = [...deals].sort((a, b) => {
-    const aHasCritical = a.pendencias?.some(p => p.criticidade === 'critica' || p.criticidade === 'alta') ? 1 : 0;
-    const bHasCritical = b.pendencias?.some(p => p.criticidade === 'critica' || p.criticidade === 'alta') ? 1 : 0;
-    if (aHasCritical !== bHasCritical) return bHasCritical - aHasCritical;
-    return 0;
+    const prioA = getOperationalPriority(a);
+    const prioB = getOperationalPriority(b);
+    if (prioA !== prioB) return prioB - prioA;
+    
+    // Fallback to last stage change date (older first within same priority)
+    return new Date(a.last_stage_change).getTime() - new Date(b.last_stage_change).getTime();
   });
 
   if (sort === "default") return baseSorted;
   
   switch (sort) {
-    case "nome_asc": return baseSorted.sort((a, b) => (a.customer_name || "").localeCompare(b.customer_name || ""));
-    case "nome_desc": return baseSorted.sort((a, b) => (b.customer_name || "").localeCompare(a.customer_name || ""));
-    case "valor_desc": return baseSorted.sort((a, b) => (b.deal_value || 0) - (a.deal_value || 0));
-    case "valor_asc": return baseSorted.sort((a, b) => (a.deal_value || 0) - (b.deal_value || 0));
-    case "data_desc": return baseSorted.sort((a, b) => new Date(b.last_stage_change).getTime() - new Date(a.last_stage_change).getTime());
-    case "data_asc": return baseSorted.sort((a, b) => new Date(a.last_stage_change).getTime() - new Date(b.last_stage_change).getTime());
+    case "nome_asc": return [...deals].sort((a, b) => (a.customer_name || "").localeCompare(b.customer_name || ""));
+    case "nome_desc": return [...deals].sort((a, b) => (b.customer_name || "").localeCompare(a.customer_name || ""));
+    case "valor_desc": return [...deals].sort((a, b) => (b.deal_value || 0) - (a.deal_value || 0));
+    case "valor_asc": return [...deals].sort((a, b) => (a.deal_value || 0) - (b.deal_value || 0));
+    case "data_desc": return [...deals].sort((a, b) => new Date(b.last_stage_change).getTime() - new Date(a.last_stage_change).getTime());
+    case "data_asc": return [...deals].sort((a, b) => new Date(a.last_stage_change).getTime() - new Date(b.last_stage_change).getTime());
     default: return baseSorted;
   }
 }
@@ -347,15 +369,30 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
         if (!matchesName && !matchesTitle) return false;
       }
       if (mobileFilterStatus !== "all") {
+        const isBlocked = (d.notas?.toLowerCase().includes("bloqueado")) || d.pendencias?.some(p => p.bloqueia_fluxo);
+        const slaDays = d.sla_days || 0;
+        const daysInStage = differenceInDays(new Date(), new Date(d.last_stage_change));
+        const isCritical = slaDays > 0 ? daysInStage > slaDays * 1.5 : differenceInHours(new Date(), new Date(d.last_stage_change)) >= 168;
+
         if (mobileFilterStatus === "overdue") {
-          const hours = differenceInHours(new Date(), new Date(d.last_stage_change));
-          if (hours < 72) return false;
+          if (slaDays > 0) {
+            if (daysInStage < slaDays) return false;
+          } else {
+             if (differenceInHours(new Date(), new Date(d.last_stage_change)) < 72) return false;
+          }
         } else if (mobileFilterStatus === "proposta") {
           if (!d.proposta_status) return false;
+        } else if (mobileFilterStatus === "blocked") {
+          if (!isBlocked) return false;
+        } else if (mobileFilterStatus === "critical") {
+          if (!isCritical) return false;
         }
       }
       return true;
     });
+
+    const sortedMobileDeals = sortStageDeals(filteredDeals, "default");
+
 
     return (
       <>
@@ -373,6 +410,8 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
           <div className="flex gap-1.5 overflow-x-auto pb-1">
             {[
               { key: "all", label: "Todos" },
+              { key: "blocked", label: "🔒 Bloqueados" },
+              { key: "critical", label: "🚨 Críticos" },
               { key: "overdue", label: "⚠ Atrasados" },
               { key: "proposta", label: "📄 C/ Proposta" },
             ].map(f => (
@@ -442,7 +481,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                       <p className="text-xs text-muted-foreground/50 italic text-center py-4">Nenhum projeto nesta etapa</p>
                     ) : (
                       <ProgressiveMobileCards
-                        deals={stageDeals}
+                        deals={sortStageDeals(stageDeals, "default")}
                         onViewProjeto={onViewProjeto}
                         hasAutomation={hasActiveAutomation}
                         dynamicEtiquetas={dynamicEtiquetas}
