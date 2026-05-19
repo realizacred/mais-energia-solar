@@ -123,14 +123,15 @@ export function useOrcamentos({ autoFetch = true, leadId }: UseOrcamentosOptions
     updateStatusMutation.mutate({ orcamentoId, statusId });
   }, [updateStatusMutation]);
 
-  const deleteOrcamento = useCallback(async (orcamentoId: string) => {
+  const deleteOrcamento = useCallback(async (orcamentoId: string, motivo?: string) => {
     try {
-      await deleteMutation.mutateAsync(orcamentoId);
+      await deleteMutation.mutateAsync({ orcamentoId, motivo });
       return true;
     } catch {
       return false;
     }
   }, [deleteMutation]);
+
 
   const totalKwh = orcamentos.reduce((acc, o) => acc + (o.media_consumo || 0), 0);
   const uniqueEstados = new Set(orcamentos.map((o) => o.estado).filter(Boolean)).size;
