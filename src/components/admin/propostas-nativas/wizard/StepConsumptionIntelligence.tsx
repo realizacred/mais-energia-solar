@@ -640,6 +640,8 @@ function StepConsumptionIntelligenceImpl({
           <p className="text-[10px] font-bold text-primary uppercase tracking-tighter">Apoio ao Dimensionamento</p>
           <p className="text-[11px] text-muted-foreground leading-tight">
             Use as abas laterais para detalhar o consumo real do cliente ou ajustar parâmetros de perda por sombreamento.
+          </p>
+        </div>
       </div>
     </div>
       {/* ─── Modals */}
