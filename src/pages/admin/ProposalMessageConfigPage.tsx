@@ -33,7 +33,7 @@ import {
   GripVertical, Pencil, ArrowUp, ArrowDown, Check,
   ExternalLink, ChevronRight, Wand2, Sparkles,
   Smartphone, Mail as MailIcon, FileText, AlertTriangle, Info, Plus,
-  Search, Filter, Layout, Zap, Database, Share2
+  Search, Filter, Layout, Zap, Database, Share2, Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -190,7 +190,6 @@ function ProposalMessageConfigPageInner() {
   const [previewMode, setPreviewMode] = useState<MessageMode>("cliente");
   const [previewStyle, setPreviewStyle] = useState<MessageStyle>("completa");
   const [copiedPlaceholder, setCopiedPlaceholder] = useState<string | null>(null);
-  const [previewTab, setPreviewTab] = useState<"text" | "structure">("text");
   const [editingBlock, setEditingBlock] = useState<string | null>(null);
   const [previewChannel, setPreviewChannel] = useState<"whatsapp" | "email" | "plain">("whatsapp");
 
@@ -251,50 +250,13 @@ function ProposalMessageConfigPageInner() {
       titulo_investimento: blocks?.investimento?.title || "Investimento",
     };
 
-    const activeBlocks = sortedBlockKeys.filter(key => {
-      const cfg = blocks[key];
-      if (!cfg?.enabled) return false;
-      if (cfg.modes && cfg.modes.length > 0 && !cfg.modes.includes(previewMode)) return false;
-      if (cfg.styles && cfg.styles.length > 0 && !cfg.styles.includes(previewStyle)) return false;
-      return true;
-    });
-
-    return { variables: vars, activeBlocks };
+    return { variables: vars };
   }, [previewMode, previewStyle, templates, blocks, defaults, sortedBlockKeys]);
 
   const previewText = useMemo(() => {
     const customTemplate = templates[`${previewMode}_${previewStyle}`] || undefined;
     return generateProposalMessage(MOCK_CONTEXT, previewMode, previewStyle, { customTemplate, blocksConfig: blocks });
   }, [previewMode, previewStyle, templates, blocks, defaults]);
-
-  const usedVariablesAnalysis = useMemo(() => {
-    const currentText = templates[activeTemplateKey] || DEFAULT_TEMPLATES[activeTemplateKey as keyof typeof DEFAULT_TEMPLATES] || "";
-    const matches = currentText.match(/\{\{([^}]+)\}\}/g) || [];
-    const uniqueKeys = [...new Set(matches.map(m => m.replace(/\{\{|\}\}/g, '')))];
-
-    const variables = uniqueKeys.map(key => {
-      const catalogInfo = PLACEHOLDER_CATALOG.find(p => p.key === key);
-      const resolvedValue = structureAnalysis.variables[key];
-      let status: 'resolved' | 'no_value' | 'invalid' = 'resolved';
-      if (!catalogInfo) status = 'invalid';
-      else if (!resolvedValue || resolvedValue === '—' || resolvedValue === '') status = 'no_value';
-
-      return {
-        key,
-        label: catalogInfo?.label || 'Variável desconhecida',
-        description: catalogInfo?.example || 'Exemplo indisponível',
-        resolvedValue: resolvedValue || '—',
-        status,
-        category: catalogInfo?.category || 'Desconhecida'
-      };
-    });
-
-    return {
-      variables,
-      hasInvalid: variables.some(v => v.status === 'invalid'),
-      hasMissing: variables.some(v => v.status === 'no_value')
-    };
-  }, [templates, activeTemplateKey, structureAnalysis.variables]);
 
   const handleSave = useCallback(async () => {
     if (!tenantId) return;
@@ -324,18 +286,16 @@ function ProposalMessageConfigPageInner() {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      setBlocks((items) => {
-        const oldIndex = sortedBlockKeys.indexOf(active.id as string);
-        const newIndex = sortedBlockKeys.indexOf(over.id as string);
+      const oldIndex = sortedBlockKeys.indexOf(active.id as string);
+      const newIndex = sortedBlockKeys.indexOf(over.id as string);
 
-        const newKeys = arrayMove(sortedBlockKeys, oldIndex, newIndex);
+      const newKeys = arrayMove(sortedBlockKeys, oldIndex, newIndex);
+      
+      setBlocks((items) => {
         const updatedBlocks = { ...items };
-        
-        // Re-assign order based on new index
         newKeys.forEach((key, index) => {
           updatedBlocks[key] = { ...updatedBlocks[key], order: (index + 1) * 10 };
         });
-
         return updatedBlocks;
       });
     }
@@ -388,12 +348,15 @@ function ProposalMessageConfigPageInner() {
                       <CardTitle className="text-sm font-bold flex items-center gap-2">
                         <MessageCircle className="h-4 w-4 text-primary" /> Editor de Template de Envio
                       </CardTitle>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Customização Multicanal</p>
+                      <CardDescription className="text-[10px] uppercase tracking-widest font-semibold">Customização Multicanal</CardDescription>
                     </div>
-                    <Select value={activeTemplateKey} onValueChange={setActiveTemplateKey}>
-                      <SelectTrigger className="w-[200px] h-8 text-xs bg-background"><SelectValue /></SelectTrigger>
-                      <SelectContent>{TEMPLATE_KEYS.map(k => <SelectItem key={k.key} value={k.key}>{k.label}</SelectItem>)}</SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs font-bold text-muted-foreground">Contexto:</Label>
+                      <Select value={activeTemplateKey} onValueChange={setActiveTemplateKey}>
+                        <SelectTrigger className="w-[180px] h-8 text-xs bg-background"><SelectValue /></SelectTrigger>
+                        <SelectContent>{TEMPLATE_KEYS.map(k => <SelectItem key={k.key} value={k.key}>{k.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-4">
@@ -405,72 +368,273 @@ function ProposalMessageConfigPageInner() {
                         setTemplates(prev => ({ ...prev, [activeTemplateKey]: e.target.value }));
                       }}
                       readOnly={!templates[activeTemplateKey]}
-                      className={cn("min-h-[350px] font-mono text-sm leading-relaxed", !templates[activeTemplateKey] && "bg-muted/40 cursor-default opacity-80")}
+                      className={cn("min-h-[400px] font-mono text-sm leading-relaxed focus-visible:ring-primary", !templates[activeTemplateKey] && "bg-muted/40 cursor-default opacity-80")}
                     />
                     {!templates[activeTemplateKey] && (
                       <div className="absolute inset-0 flex items-center justify-center bg-background/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                        <Button variant="secondary" size="sm" className="pointer-events-auto" onClick={() => setTemplates(prev => ({ ...prev, [activeTemplateKey]: DEFAULT_TEMPLATES[activeTemplateKey as keyof typeof DEFAULT_TEMPLATES] }))}>
+                        <Button variant="secondary" size="sm" className="pointer-events-auto shadow-lg" onClick={() => setTemplates(prev => ({ ...prev, [activeTemplateKey]: DEFAULT_TEMPLATES[activeTemplateKey as keyof typeof DEFAULT_TEMPLATES] }))}>
                           <Pencil className="h-3.5 w-3.5 mr-2" /> Editar manualmente
                         </Button>
                       </div>
                     )}
                   </div>
-                  {templates[activeTemplateKey] && (
-                    <Button variant="ghost" size="sm" className="text-destructive h-7 text-[10px]" onClick={() => setTemplates(prev => { const next = { ...prev }; delete next[activeTemplateKey]; return next; })}>
-                      <RotateCcw className="h-3 w-3 mr-1" /> Restaurar automático
-                    </Button>
-                  )}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      {templates[activeTemplateKey] && (
+                        <Button variant="ghost" size="sm" className="text-destructive h-7 text-[10px]" onClick={() => setTemplates(prev => { const next = { ...prev }; delete next[activeTemplateKey]; return next; })}>
+                          <RotateCcw className="h-3 w-3 mr-1" /> Restaurar automático
+                        </Button>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                      <Database className="h-3 w-3" /> Armazenado no Tenant
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-l-4 border-l-blue-500 bg-blue-500/[0.02]">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xs font-bold flex items-center gap-2">
+                    <Info className="h-3.5 w-3.5 text-blue-500" /> Dica de Governança
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Templates utilizam o motor de renderização <span className="font-mono text-blue-600 bg-blue-500/10 px-1 rounded">LiquidJS-Like</span>. 
+                    Você pode usar <span className="font-mono text-primary font-bold">{"{{bloco_nome}}"}</span> para injetar blocos configurados 
+                    ou <span className="font-mono text-primary font-bold">{"{{variavel}}"}</span> para dados diretos do projeto.
+                  </p>
                 </CardContent>
               </Card>
             </div>
+
             <div className="xl:col-span-4 space-y-4">
-              <Card className="border-l-4 border-l-primary h-full">
-                <CardHeader className="pb-3"><CardTitle className="text-sm font-semibold flex items-center gap-2"><Eye className="h-4 w-4 text-primary" /> Preview</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-1.5 p-1 bg-muted rounded-lg border">
-                    <Button variant={previewChannel === "whatsapp" ? "secondary" : "ghost"} size="sm" className="h-7 text-[10px]" onClick={() => setPreviewChannel("whatsapp")}><Smartphone className="h-3 w-3 mr-1" /> WhatsApp</Button>
-                    <Button variant={previewChannel === "email" ? "secondary" : "ghost"} size="sm" className="h-7 text-[10px]" onClick={() => setPreviewChannel("email")}><MailIcon className="h-3 w-3 mr-1" /> E-mail</Button>
-                  </div>
-                  <ScrollArea className="h-[450px] border rounded-lg bg-muted/20">
-                    <div className="p-4 whitespace-pre-wrap font-sans text-sm leading-relaxed">{previewText}</div>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
+              <div className="sticky top-6 space-y-4">
+                <Card className="border-l-4 border-l-primary shadow-sm overflow-hidden">
+                  <CardHeader className="pb-3 bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-bold flex items-center gap-2">
+                        <Eye className="h-4 w-4 text-primary" /> Visualização Real
+                      </CardTitle>
+                      <div className="flex items-center gap-1 p-0.5 bg-background border rounded-md">
+                        <Button variant={previewChannel === "whatsapp" ? "secondary" : "ghost"} size="icon" className="h-6 w-6" onClick={() => { setPreviewChannel("whatsapp"); setPreviewMode("cliente"); setPreviewStyle("completa"); }}><Smartphone className="h-3 w-3" /></Button>
+                        <Button variant={previewChannel === "email" ? "secondary" : "ghost"} size="icon" className="h-6 w-6" onClick={() => { setPreviewChannel("email"); setPreviewMode("cliente"); setPreviewStyle("completa"); }}><MailIcon className="h-3 w-3" /></Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-4 space-y-4">
+                    <div className={cn(
+                      "rounded-lg border shadow-inner transition-all duration-300",
+                      previewChannel === "whatsapp" ? "bg-[#e5ddd5]" : "bg-white"
+                    )}>
+                      {previewChannel === "whatsapp" && (
+                        <div className="bg-[#075e54] text-white p-2 rounded-t-lg flex items-center gap-2">
+                          <div className="h-6 w-6 rounded-full bg-white/20 flex items-center justify-center font-bold text-[10px]">M</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-bold truncate">Mais Energia Solar</p>
+                            <p className="text-[8px] opacity-80">Online</p>
+                          </div>
+                        </div>
+                      )}
+                      <ScrollArea className="h-[400px]">
+                        <div className={cn(
+                          "p-4 whitespace-pre-wrap font-sans text-sm leading-relaxed",
+                          previewChannel === "whatsapp" && "bg-white m-4 rounded-lg shadow-sm relative after:content-[''] after:absolute after:top-0 after:-left-2 after:border-8 after:border-transparent after:border-t-white"
+                        )}>
+                          {previewText}
+                          {previewChannel === "whatsapp" && (
+                            <div className="text-[10px] text-muted-foreground text-right mt-1 opacity-60">12:45 ✓✓</div>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="outline" size="sm" className="h-8 text-[10px] gap-1.5" onClick={() => { navigator.clipboard.writeText(previewText); toast({ title: "Copiado!" }); }}>
+                        <Copy className="h-3.5 w-3.5" /> Copiar Texto
+                      </Button>
+                      <Button variant="outline" size="sm" className="h-8 text-[10px] gap-1.5">
+                        <Share2 className="h-3.5 w-3.5" /> Enviar Teste
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="h-[300px]">
+                  <LiveStructurePreview 
+                    blockKeys={sortedBlockKeys}
+                    blocks={blocks}
+                    blockLabels={BLOCK_LABELS}
+                    previewMode={previewMode}
+                    previewStyle={previewStyle}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </TabsContent>
 
         <TabsContent value="blocks" className="space-y-4">
-          <Card className="border-l-4 border-l-primary">
-            <CardHeader><CardTitle className="text-sm font-semibold">Gerenciar Estrutura de Blocos</CardTitle></CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {Object.entries(BLOCK_LABELS).map(([key, meta]) => {
+          <div className="flex items-center justify-between gap-4 mb-2">
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold tracking-tight">Builder Visual de Blocos</h3>
+              <p className="text-sm text-muted-foreground">Arraste para reordenar. Configure cada unidade de mensagem individualmente.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="gap-1.5 h-8 text-[11px]"><Filter className="h-3.5 w-3.5" /> Filtrar</Button>
+              <Button variant="outline" size="sm" className="gap-1.5 h-8 text-[11px]"><Layout className="h-3.5 w-3.5" /> Visualização</Button>
+            </div>
+          </div>
+
+          <DndContext 
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext 
+              items={sortedBlockKeys}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {sortedBlockKeys.map((key) => {
+                  const meta = BLOCK_LABELS[key];
                   const blockCfg = blocks[key] || SYSTEM_DEFAULT_BLOCKS[key];
+                  const suggestedVars = BLOCK_VARS[key] || [];
+                  
+                  const previewSnippet = (blockCfg.template || "")
+                    .replace(/\{\{(\w+)\}\}/g, (_m, k) => structureAnalysis.variables[k] ?? "")
+                    .slice(0, 80);
+
                   return (
-                    <div key={key} className={cn("flex items-center justify-between p-4 rounded-xl border", blockCfg?.enabled ? "bg-primary/[0.02]" : "opacity-60 grayscale")}>
-                      <div className="space-y-1">
-                        <h4 className="text-sm font-bold">{blockCfg.title || meta.label}</h4>
-                        <p className="text-[10px] text-muted-foreground">{meta.description}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => setEditingBlock(key)}><Settings2 className="h-3.5 w-3.5" /></Button>
-                        <Switch checked={blockCfg?.enabled} onCheckedChange={(v) => handleBlockToggle(key, v)} />
-                      </div>
-                    </div>
+                    <BlockSortableItem 
+                      key={key}
+                      id={key}
+                      config={blockCfg}
+                      label={meta.label}
+                      description={meta.description}
+                      suggestedVars={suggestedVars}
+                      previewContent={previewSnippet}
+                      onToggle={(v) => handleBlockToggle(key, v)}
+                      onEdit={() => setEditingBlock(key)}
+                    />
                   );
                 })}
               </div>
-            </CardContent>
-          </Card>
+            </SortableContext>
+          </DndContext>
         </TabsContent>
 
-        {/* Outras abas (simplificadas para o build) */}
         <TabsContent value="defaults" className="space-y-4">
-          <Card><CardHeader><CardTitle className="text-sm">Configurações Padrão</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">Configure os padrões globais de envio.</p></CardContent></Card>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="md:col-span-2 border-l-4 border-l-primary">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Sliders className="h-4 w-4 text-primary" /> Padrões Globais de Geração
+                </CardTitle>
+                <CardDescription>Defina o comportamento padrão do gerador de mensagens.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Perfil de Público Padrão</Label>
+                    <Select value={defaults.mode} onValueChange={(v: any) => setDefaults(prev => ({ ...prev, mode: v }))}>
+                      <SelectTrigger className="bg-background"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cliente">Cliente Final (Foco em benefícios)</SelectItem>
+                        <SelectItem value="consultor">Consultor Interno (Foco em dados)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Estilo de Texto Padrão</Label>
+                    <Select value={defaults.style} onValueChange={(v: any) => setDefaults(prev => ({ ...prev, style: v }))}>
+                      <SelectTrigger className="bg-background"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="completa">Completa (Todos os blocos)</SelectItem>
+                        <SelectItem value="curta">Curta (Apenas essencial)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm font-bold">Oferta Especial Ativa</Label>
+                      <p className="text-[10px] text-muted-foreground">Injeta automaticamente uma oferta em todas as mensagens geradas.</p>
+                    </div>
+                    <Switch 
+                      checked={blocks.oferta_especial?.enabled} 
+                      onCheckedChange={(v) => handleBlockToggle('oferta_especial', v)}
+                    />
+                  </div>
+                  <Textarea 
+                    placeholder="Ex: Instalação grátis este mês! Use {{oferta_texto}} no template." 
+                    value={defaults.oferta_especial || ""}
+                    onChange={(e) => setDefaults(prev => ({ ...prev, oferta_especial: e.target.value }))}
+                    className="min-h-[80px] text-sm"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20 bg-primary/[0.01]">
+              <CardHeader>
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-primary" /> Sugestões de Conversão
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-3 bg-background border rounded-lg space-y-2">
+                  <p className="text-[11px] font-bold">Use Emojis Estratégicos</p>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">Mensagens com emojis em títulos de blocos convertem 15% mais no WhatsApp.</p>
+                </div>
+                <div className="p-3 bg-background border rounded-lg space-y-2">
+                  <p className="text-[11px] font-bold">Escassez e Urgência</p>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">Sempre mantenha o bloco de "Validade" ativo para incentivar a tomada de decisão.</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
+
         <TabsContent value="variables" className="space-y-4">
-          <Card><CardHeader><CardTitle className="text-sm">Catálogo de Variáveis</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">Lista de placeholders disponíveis para templates.</p></CardContent></Card>
+          <Card className="border-l-4 border-l-primary">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div className="space-y-1">
+                <CardTitle className="text-base">Catálogo de Variáveis Dinâmicas</CardTitle>
+                <CardDescription>Placeholders disponíveis para serem usados em qualquer template.</CardDescription>
+              </div>
+              <div className="relative w-64">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Buscar variável..." className="pl-9 h-9 text-xs" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[500px] pr-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {PLACEHOLDER_CATALOG.map((p) => (
+                    <div key={p.key} className="p-3 rounded-lg border bg-background hover:border-primary/50 transition-colors group">
+                      <div className="flex items-start justify-between mb-2">
+                        <Badge variant="outline" className="text-[9px] font-mono bg-muted/50 text-primary uppercase">{p.category}</Badge>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleCopyPlaceholder(p.key)}>
+                          {copiedPlaceholder === p.key ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                        </Button>
+                      </div>
+                      <h4 className="text-xs font-bold mb-1">{"{{ " + p.key + " }}"}</h4>
+                      <p className="text-[10px] text-muted-foreground font-medium mb-2">{p.label}</p>
+                      <div className="text-[9px] text-muted-foreground italic bg-muted/30 p-1.5 rounded border border-dashed truncate">
+                        Ex: {p.example}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
