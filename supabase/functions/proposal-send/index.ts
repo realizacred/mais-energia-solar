@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
         return jsonOk({
           success: true, idempotent: true,
           token: existingToken.token,
-          public_url: `${baseUrl}/proposta/${existingToken.token}`,
+          public_url: `${baseUrl}/pl/${existingToken.token}`,
           whatsapp_sent: false,
         });
       }
