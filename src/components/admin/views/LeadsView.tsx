@@ -326,6 +326,10 @@ export function LeadsView() {
                 setIsViewOpen(true);
               }}
               onDelete={canDeleteLeads ? (orc) => {
+                if (orc.projeto_id) {
+                  toast.error("Este orçamento já foi convertido e não pode ser arquivado.");
+                  return;
+                }
                 setOrcamentoToDelete(orc);
                 setIsDeleteOpen(true);
               } : undefined}

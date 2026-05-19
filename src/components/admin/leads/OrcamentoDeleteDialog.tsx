@@ -54,7 +54,7 @@ export function OrcamentoDeleteDialog({
           <AlertDialogDescription className="space-y-4">
             {isConverted ? (
               <div className="p-3 rounded-md bg-destructive/5 border border-destructive/20 text-destructive text-sm">
-                Este orçamento já foi <strong>convertido em projeto</strong> e não pode ser arquivado individualmente. 
+                Este orçamento já foi <strong>convertido em projeto</strong> e não pode ser arquivado. 
                 Para remover, gerencie o projeto vinculado.
               </div>
             ) : (
@@ -63,7 +63,7 @@ export function OrcamentoDeleteDialog({
                   Deseja arquivar o orçamento <strong>{orcamento.orc_code}</strong> de {orcamento.nome}?
                 </p>
                 <p className="text-sm">
-                  Ele será removido da listagem principal, mas o histórico será preservado para auditoria.
+                  Este orçamento será removido da listagem principal, mas o <strong>lead e os demais orçamentos serão preservados</strong>.
                 </p>
                 <div className="space-y-1.5 pt-2">
                   <Label className="text-xs">Motivo (opcional)</Label>
