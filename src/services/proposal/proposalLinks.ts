@@ -8,8 +8,8 @@
  *  - Simulação financeira → /pl/:token?view=simulacao (somente se houver financiamento ativo).
  *
  * ⚠️ NUNCA apontar QR/link público para /proposta/:token (PropostaPublica.tsx).
- * Essa rota é a tela genérica antiga, mantida só por compatibilidade de tokens
- * históricos e para o fluxo de assinatura/decisão. Não é a experiência canônica.
+ * Essa rota é mantida como REDIRECT inteligente para /pl/:token apenas por
+ * compatibilidade de tokens históricos. Não é a experiência canônica.
  *
  * Nenhum componente deve montar URLs com string solta — usar SEMPRE estes helpers.
  */
