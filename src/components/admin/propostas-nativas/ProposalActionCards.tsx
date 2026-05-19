@@ -28,6 +28,7 @@ interface ProposalActionCardsProps {
   rendering: boolean;
   onGenerateFile: () => void;
   onCopyLink: (withTracking: boolean) => void;
+  onCopyPdfLink: () => void;
   onDownloadPdf: () => void;
   onRender: () => void;
   publicUrl: string | null;
