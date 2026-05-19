@@ -3124,52 +3124,70 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
                       )}
                     </div>
 
-
-                  {/* Proposal indicator + action */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {linkedProposta && (() => {
-                      const normStatus = normalizeStatus(linkedProposta.status);
-                      return (
-                        <Badge
+                    {/* Proposal indicator + action */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {linkedProposta && (() => {
+                        const normStatus = normalizeStatus(linkedProposta.status);
+                        return (
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[9px] gap-1 border-opacity-20",
+                              normStatus === 'accepted' && "bg-success/10 text-success border-success/40",
+                              normStatus === 'generated' && "bg-primary/10 text-primary border-primary/40",
+                              normStatus === 'sent' && "bg-info/10 text-info border-info/40",
+                              normStatus === 'rejected' && "bg-destructive/10 text-destructive border-destructive/40"
+                            )}
+                          >
+                            {normStatus === 'accepted' ? (
+                              <><CheckCircle className="h-2.5 w-2.5" /> Proposta aceita</>
+                            ) : normStatus === 'rejected' ? (
+                              <><XCircle className="h-2.5 w-2.5" /> Proposta recusada</>
+                            ) : normStatus === 'sent' ? (
+                              <><Eye className="h-2.5 w-2.5" /> Proposta enviada</>
+                            ) : (
+                              <><CheckCircle className="h-2.5 w-2.5" /> Proposta gerada</>
+                            )}
+                          </Badge>
+                        );
+                      })()}
+                      {!isClosed && (
+                        <Button
                           variant="outline"
-                          className={cn(
-                            "text-[9px] gap-1 border-opacity-20",
-                            normStatus === 'accepted' && "bg-success/10 text-success border-success/40",
-                            normStatus === 'generated' && "bg-primary/10 text-primary border-primary/40",
-                            normStatus === 'sent' && "bg-info/10 text-info border-info/40",
-                            normStatus === 'rejected' && "bg-destructive/10 text-destructive border-destructive/40"
-                          )}
+                          size="sm"
+                          className="h-6 text-[10px] gap-1 px-2"
+                          onClick={() => {
+                            const params = new URLSearchParams({ deal_id: dealId });
+                            if (customerId) params.set("customer_id", customerId);
+                            if (projetoId) params.set("projeto_id", projetoId);
+                            params.set("lead_id", orc.lead_id);
+                            params.set("orc_id", orc.id);
+                            navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
+                          }}
                         >
-                          {normStatus === 'accepted' ? (
-                            <><CheckCircle className="h-2.5 w-2.5" /> Proposta aceita</>
-                          ) : normStatus === 'rejected' ? (
-                            <><XCircle className="h-2.5 w-2.5" /> Proposta recusada</>
-                          ) : normStatus === 'sent' ? (
-                            <><Eye className="h-2.5 w-2.5" /> Proposta enviada</>
-                          ) : (
-                            <><CheckCircle className="h-2.5 w-2.5" /> Proposta gerada</>
-                          )}
-                        </Badge>
-                      );
-                    })()}
-                    {!isClosed && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-6 text-[10px] gap-1 px-2"
-                        onClick={() => {
-                          const params = new URLSearchParams({ deal_id: dealId });
-                          if (customerId) params.set("customer_id", customerId);
-                          if (projetoId) params.set("projeto_id", projetoId);
-                          params.set("lead_id", orc.lead_id);
-                          params.set("orc_id", orc.id);
-                          navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
-                        }}
-                      >
-                        <Plus className="h-2.5 w-2.5" /> Criar Proposta
-                      </Button>
-                    )}
+                          <Plus className="h-2.5 w-2.5" /> Criar Proposta
+                        </Button>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Observations row */}
+                  {(orc.observacoes || orc.lead_observacoes) && (
+                    <div className="flex flex-col gap-1 border-t border-border/40 pt-1.5 px-1">
+                      {orc.lead_observacoes && (
+                        <div className="flex items-start gap-1.5 text-[10px] text-muted-foreground italic">
+                          <UserCircle className="h-3 w-3 shrink-0 mt-0.5" />
+                          <span className="line-clamp-1">{orc.lead_observacoes}</span>
+                        </div>
+                      )}
+                      {orc.observacoes && (
+                        <div className="flex items-start gap-1.5 text-[10px] text-primary/80 font-medium">
+                          <StickyNote className="h-3 w-3 shrink-0 mt-0.5" />
+                          <span className="line-clamp-1">{orc.observacoes}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
