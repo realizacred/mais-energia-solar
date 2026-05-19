@@ -766,24 +766,6 @@ export function ProjetosManager() {
         </div>
 
         <TabsContent value="kanban" className="space-y-4 mt-0">
-          {viewMode !== "lista" && (
-            <CentralPendencias 
-              projetos={projetos} 
-              onViewProjeto={(p, tab) => {
-                if (tab) {
-                  setSearchParams((prev) => {
-                    const next = new URLSearchParams(prev);
-                    next.set("projeto", p.deal_id || p.id);
-                    next.set("tab", tab);
-                    return next;
-                  }, { replace: true });
-                } else {
-                  setSelectedProjetoId(p.deal_id || p.id);
-                }
-              }} 
-              loading={loading}
-            />
-          )}
           <div className="flex-1 min-w-0 space-y-4">
             <div className="rounded-xl border border-border/60 bg-card overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
               {/* Summary bar — top */}
