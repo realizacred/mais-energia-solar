@@ -257,6 +257,7 @@ export function StageDealCard({
                     if (["rascunho", "draft"].includes(normalized)) return "rascunho";
                     return "gerada"; // fallback
                   })() as any}
+                  inconsistent={deal.proposta_status === 'accepted' && !deal.proposta_aceita_at}
                 />
                 {deal.proposta_has_unpublished_changes && (
                   <TooltipProvider>
