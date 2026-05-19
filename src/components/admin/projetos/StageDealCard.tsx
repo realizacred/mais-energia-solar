@@ -17,7 +17,7 @@ import {
   Clock, Phone, StickyNote, Archive,
   UserPlus, Tag, Copy, ExternalLink,
   Calendar, CheckCircle2, AlertTriangle, ShieldCheck, UserCog,
-  MapPin, Lock, DollarSign
+  MapPin, Lock as LockIcon, DollarSign
 } from "lucide-react";
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import type { DealKanbanCard } from "@/hooks/useDealPipeline";
