@@ -518,15 +518,13 @@ Deno.serve(async (req) => {
         .limit(1)
         .maybeSingle(),
       // ── TEMPLATE: Fetch default template if not provided ──
-      !body.template_id
-        ? adminClient.from("proposta_templates")
-            .select("id")
+        adminClient.from("proposta_templates")
+            .select("id, template_html")
             .eq("tenant_id", tenantId)
             .eq("ativo", true)
-            .eq("is_default", true)
+            .eq(body.template_id ? "id" : "is_default", body.template_id || true)
             .limit(1)
-            .maybeSingle()
-        : Promise.resolve({ data: null, error: null }),
+            .maybeSingle(),
     ]);
 
     // Resolve template_id (payload > default from DB)
