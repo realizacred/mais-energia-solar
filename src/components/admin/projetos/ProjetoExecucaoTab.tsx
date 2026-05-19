@@ -31,10 +31,18 @@ export function ProjetoExecucaoTab() {
       if (error) throw error;
 
       // Log event
+      const tipo = value === null && field === "proxima_acao" 
+        ? "action_completed" 
+        : field === "proxima_acao" 
+          ? "next_action_update" 
+          : field === "responsavel_operacional" 
+            ? "responsible_change" 
+            : "dependency_change";
+
       await supabase.from("projeto_operacoes_eventos").insert({
         projeto_id: projetoId,
         tenant_id: (await supabase.from("projetos").select("tenant_id").eq("id", projetoId).single()).data?.tenant_id,
-        tipo: field === "proxima_acao" ? "next_action_update" : field === "responsavel_operacional" ? "responsible_change" : "dependency_change",
+        tipo,
         payload: { field, value, previous: (deal as any)[field] },
         created_by: user?.id
       });
@@ -163,6 +171,7 @@ export function ProjetoExecucaoTab() {
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                           {evento.tipo === 'next_action_update' ? 'Próxima Ação' : 
+                           evento.tipo === 'action_completed' ? 'Ação Concluída' :
                            evento.tipo === 'responsible_change' ? 'Mudança de Responsável' : 
                            evento.tipo === 'dependency_change' ? 'Alteração de Dependência' : evento.tipo}
                         </span>
