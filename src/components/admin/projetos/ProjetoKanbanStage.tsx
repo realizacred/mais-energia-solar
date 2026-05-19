@@ -66,26 +66,48 @@ const formatKwp = (v: number) => {
   return `${v.toFixed(1).replace(".", ",")} kWp`;
 };
 
+function getOperationalPriority(deal: DealKanbanCard): number {
+  const isBlocked = (deal.notas?.toLowerCase().includes("bloqueado")) || deal.pendencias?.some(p => p.bloqueia_fluxo);
+  if (isBlocked) return 500;
+
+  const slaDays = deal.sla_days || 0;
+  const daysInStage = differenceInDays(new Date(), new Date(deal.last_stage_change));
+  
+  if (slaDays > 0) {
+    if (daysInStage > slaDays * 1.5) return 400; // Critical
+    if (daysInStage >= slaDays) return 300;      // Delayed
+    if (daysInStage >= slaDays * 0.8) return 200; // Attention
+  }
+  
+  const hours = differenceInHours(new Date(), new Date(deal.last_stage_change));
+  if (hours >= 168) return 400; // 7 days fallback
+  if (hours >= 72) return 200;  // 3 days fallback
+  
+  return 100; // Normal
+}
+
 type StageSortOption = "default" | "nome_asc" | "nome_desc" | "valor_desc" | "valor_asc" | "data_desc" | "data_asc";
 
 function sortStageDeals(deals: DealKanbanCard[], sort: StageSortOption): DealKanbanCard[] {
-  // Always apply priority for critical pendencies first
+  // Always apply priority for operational status first
   const baseSorted = [...deals].sort((a, b) => {
-    const aHasCritical = a.pendencias?.some(p => p.criticidade === 'critica' || p.criticidade === 'alta') ? 1 : 0;
-    const bHasCritical = b.pendencias?.some(p => p.criticidade === 'critica' || p.criticidade === 'alta') ? 1 : 0;
-    if (aHasCritical !== bHasCritical) return bHasCritical - aHasCritical;
-    return 0;
+    const prioA = getOperationalPriority(a);
+    const prioB = getOperationalPriority(b);
+    if (prioA !== prioB) return prioB - prioA;
+    
+    // Fallback to last stage change date (older first within same priority)
+    return new Date(a.last_stage_change).getTime() - new Date(b.last_stage_change).getTime();
   });
 
   if (sort === "default") return baseSorted;
   
   switch (sort) {
-    case "nome_asc": return baseSorted.sort((a, b) => (a.customer_name || "").localeCompare(b.customer_name || ""));
-    case "nome_desc": return baseSorted.sort((a, b) => (b.customer_name || "").localeCompare(a.customer_name || ""));
-    case "valor_desc": return baseSorted.sort((a, b) => (b.deal_value || 0) - (a.deal_value || 0));
-    case "valor_asc": return baseSorted.sort((a, b) => (a.deal_value || 0) - (b.deal_value || 0));
-    case "data_desc": return baseSorted.sort((a, b) => new Date(b.last_stage_change).getTime() - new Date(a.last_stage_change).getTime());
-    case "data_asc": return baseSorted.sort((a, b) => new Date(a.last_stage_change).getTime() - new Date(b.last_stage_change).getTime());
+    case "nome_asc": return [...deals].sort((a, b) => (a.customer_name || "").localeCompare(b.customer_name || ""));
+    case "nome_desc": return [...deals].sort((a, b) => (b.customer_name || "").localeCompare(a.customer_name || ""));
+    case "valor_desc": return [...deals].sort((a, b) => (b.deal_value || 0) - (a.deal_value || 0));
+    case "valor_asc": return [...deals].sort((a, b) => (a.deal_value || 0) - (b.deal_value || 0));
+    case "data_desc": return [...deals].sort((a, b) => new Date(b.last_stage_change).getTime() - new Date(a.last_stage_change).getTime());
+    case "data_asc": return [...deals].sort((a, b) => new Date(a.last_stage_change).getTime() - new Date(b.last_stage_change).getTime());
     default: return baseSorted;
   }
 }
