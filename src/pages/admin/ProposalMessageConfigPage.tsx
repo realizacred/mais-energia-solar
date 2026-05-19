@@ -125,6 +125,21 @@ const BLOCK_LABELS: Record<string, { label: string; description: string }> = {
   assinatura: { label: "Assinatura", description: "Nome do consultor e empresa" },
 };
 
+const BLOCK_VARS: Record<string, string[]> = {
+  saudacao: ["cliente_nome"],
+  resumo_tecnico: ["potencia_kwp", "modulos_qtd", "modulo_modelo", "inversor_modelo", "tipo_telhado"],
+  consumo_geracao: ["consumo_mensal", "geracao_mensal", "economia_mensal", "payback_info"],
+  garantias: ["modulo_garantia", "inversor_garantia", "instalacao_garantia"],
+  investimento: ["valor_total"],
+  pagamento: ["pagamento_detalhes"],
+  itens_inclusos: ["lista_itens"],
+  servicos: ["lista_servicos"],
+  oferta_especial: ["oferta_texto"],
+  link_proposta: ["link_proposta", "link_pdf"],
+  validade: ["validade_dias"],
+  assinatura: ["consultor_nome", "empresa_nome"],
+};
+
 // ─── Template key helpers ───────────────────────────
 
 const TEMPLATE_KEYS = [
