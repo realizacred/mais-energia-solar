@@ -14,6 +14,7 @@ import type { CenarioData, AcceptFormData } from "@/components/proposal-landing/
 import { formatBRL, formatNumberBR } from "@/lib/formatters";
 import { getCanonicalProposalTotal } from "@/services/proposal/proposalTotals";
 import { getMaskedPdfUrl } from "@/services/proposal/proposalLinks";
+import { ProposalPremiumViewer } from "@/components/proposal-landing/ProposalPremiumViewer";
 
 export default function PropostaLanding() {
   const { token } = useParams<{ token: string }>();
@@ -282,48 +283,20 @@ export default function PropostaLanding() {
   // Render Modo PDF Premium
   if (resolution?.mode === "pdf") {
     return (
-      <div className="min-h-screen bg-slate-900 flex flex-col">
-        {/* PDF Header */}
-        <header className="bg-white/5 backdrop-blur-md border-b border-white/10 p-4 sticky top-0 z-50 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {brand?.logo_white_url ? (
-              <img src={brand.logo_white_url} alt="" className="h-8 object-contain" />
-            ) : (
-              <FileText className="h-8 w-8 text-primary" />
-            )}
-            <div className="hidden sm:block">
-              <h1 className="text-white text-sm font-bold leading-tight">Proposta Solar</h1>
-              <p className="text-white/40 text-[10px] uppercase tracking-wider">{resolution.snapshot?.clienteNome}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <a 
-              href={getMaskedPdfUrl(token!)} 
-              download={`Proposta_${resolution.snapshot?.clienteNome}.pdf`}
-              className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors"
-              title="Baixar PDF"
-            >
-              <Download className="h-5 w-5" />
-            </a>
-            <button 
-              onClick={() => ctaRef.current?.scrollIntoView({ behavior: 'smooth' })}
-              className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
-            >
-              Aceitar Proposta <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </header>
+      <div className="proposal-premium-flow">
+        <ProposalPremiumViewer
+          token={token!}
+          clienteNome={resolution.snapshot?.clienteNome}
+          brand={brand}
+          version={resolution.tokenData?.versao_numero}
+          status={resolution.statusComercial}
+          onAccept={() => ctaRef.current?.scrollIntoView({ behavior: 'smooth' })}
+          onReject={() => setShowReject(true)}
+          onRetry={() => loadData()}
+        />
 
-        <main className="flex-1 overflow-auto p-4 sm:p-8 flex flex-col items-center gap-8">
-          <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden min-h-[800px] border border-white/5">
-             <iframe 
-                src={getMaskedPdfUrl(token!)} 
-                className="w-full h-full min-h-[800px] border-0"
-                title="Visualizador de Proposta"
-             />
-          </div>
-
-          <div ref={ctaRef} className="w-full max-w-5xl">
+        <main className="bg-slate-950 px-4 sm:px-8 pb-20">
+          <div ref={ctaRef} className="w-full max-w-5xl mx-auto">
             <ProposalCTASection
               snapshot={resolution.snapshot!}
               versaoData={{
@@ -345,11 +318,10 @@ export default function PropostaLanding() {
           </div>
         </main>
 
-        <footer className="p-8 text-center text-white/20 text-xs">
+        <footer className="p-8 text-center text-white/20 text-xs bg-slate-950">
           © {new Date().getFullYear()} {tenantNome} — Todos os direitos reservados
         </footer>
         
-        {/* Floating Chat */}
         <div className="fixed bottom-6 right-6 z-[60]">
            <button 
             className="w-14 h-14 bg-green-500 text-white rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform"
