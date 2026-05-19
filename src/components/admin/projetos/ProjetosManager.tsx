@@ -74,7 +74,9 @@ function projetoToCard(p: ProjetoItem, etapaMap: Map<string, ProjetoEtapa>): Dea
     deal_kwp: p.potencia_kwp || 0,
     deal_status: projetoStatusToDeal(p.status),
     stage_probability: 0,
-    last_stage_change: p.updated_at,
+    last_stage_change: p.data_entrada_etapa || p.updated_at,
+    sla_days: etapa?.sla_days || 0,
+    pendencias: p.pendencias || [],
     etiqueta: null,
     etiqueta_ids: p.etiquetas || [],
     notas: p.observacoes,
@@ -96,6 +98,7 @@ function etapaToPipelineStage(e: ProjetoEtapa): PipelineStage {
     is_closed: e.categoria === "perdido" || e.categoria === "excluido",
     is_won: e.categoria === "ganho",
     color: e.cor,
+    sla_days: e.sla_days || 0,
   };
 }
 
