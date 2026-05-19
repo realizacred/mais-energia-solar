@@ -373,11 +373,36 @@ function ProposalMessageConfigPageInner() {
                 <div className="space-y-2 pt-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Conteúdo do template</Label>
-                    {templates[activeTemplateKey] ? (
-                      <Badge className="text-[10px] bg-amber-500 hover:bg-amber-600">Customizado</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-[10px] bg-muted/50">Padrão do Sistema</Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <Select 
+                        onValueChange={(val) => {
+                          const current = templates[activeTemplateKey] || "";
+                          setTemplates(prev => ({ ...prev, [activeTemplateKey]: current + val }));
+                        }}
+                      >
+                        <SelectTrigger className="h-7 text-[10px] w-auto gap-1 border-primary/30 text-primary hover:bg-primary/5">
+                          <Variable className="h-3 w-3" />
+                          <span>Inserir Variável</span>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <ScrollArea className="h-[200px]">
+                            {PLACEHOLDER_CATALOG.map(v => (
+                              <SelectItem key={v.key} value={`{{${v.key}}}`} title={v.description}>
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="text-[11px] font-mono">{`{{${v.key}}}`}</span>
+                                  <span className="text-[9px] text-muted-foreground">{v.label}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </ScrollArea>
+                        </SelectContent>
+                      </Select>
+                      {templates[activeTemplateKey] ? (
+                        <Badge className="text-[10px] bg-amber-500 hover:bg-amber-600">Customizado</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] bg-muted/50">Padrão do Sistema</Badge>
+                      )}
+                    </div>
                   </div>
                   <Textarea
                     value={templates[activeTemplateKey] || ""}
