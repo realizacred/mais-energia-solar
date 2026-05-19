@@ -254,30 +254,42 @@ export function ProjetosManager() {
       criticalToday: 0,
       awaitingClient: 0,
       awaitingUtility: 0,
+      revenueLocked: 0,
+      activeProjects: 0,
     };
 
     adaptedDeals.forEach(deal => {
+      // Projetos ativos = qualquer deal não fechado (open)
+      if (deal.deal_status === "open") stats.activeProjects++;
+
       const isBlocked = (deal.notas?.toLowerCase().includes("bloqueado")) || deal.pendencias?.some(p => p.bloqueia_fluxo);
-      if (isBlocked) stats.blocked++;
+      if (isBlocked) {
+        stats.blocked++;
+        stats.revenueLocked += deal.deal_value || 0;
+      }
 
       const slaDays = deal.sla_days || 0;
       const daysInStage = differenceInDays(now, new Date(deal.last_stage_change));
-      const timeStopped = differenceInHours(now, new Date(deal.ultima_mudanca_operacional_at || deal.last_stage_change));
-      
-      
+
       if (slaDays > 0) {
         if (daysInStage > slaDays * 1.5) {
           stats.criticalToday++;
           stats.overdueSLA++;
+          if (!isBlocked) stats.revenueLocked += deal.deal_value || 0;
         } else if (daysInStage >= slaDays) {
           stats.overdueSLA++;
+          if (!isBlocked) stats.revenueLocked += deal.deal_value || 0;
         } else if (daysInStage >= slaDays * 0.8) {
           stats.attention++;
         }
       } else {
         const hours = differenceInHours(now, new Date(deal.last_stage_change));
-        if (hours >= 168) stats.criticalToday++;
-        else if (hours >= 72) stats.attention++;
+        if (hours >= 168) {
+          stats.criticalToday++;
+          if (!isBlocked) stats.revenueLocked += deal.deal_value || 0;
+        } else if (hours >= 72) {
+          stats.attention++;
+        }
       }
 
       if (!deal.owner_id) stats.noOwner++;
