@@ -535,15 +535,15 @@ export default function SystemHealthPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-3 rounded-lg bg-muted/50">
               <span className="text-xs text-muted-foreground uppercase tracking-wider">Em processamento</span>
-              <p className="text-2xl font-bold mt-1">{docStats.pending}</p>
+              <p className="text-2xl font-bold mt-1">{docStats?.pending ?? 0}</p>
             </div>
             <div className="p-3 rounded-lg bg-muted/50">
               <span className="text-xs text-muted-foreground uppercase tracking-wider">Falhas</span>
-              <p className={cn("text-2xl font-bold mt-1", docStats.failed > 0 && "text-destructive")}>{docStats.failed}</p>
+              <p className={cn("text-2xl font-bold mt-1", (docStats?.failed ?? 0) > 0 && "text-destructive")}>{docStats?.failed ?? 0}</p>
             </div>
             <div className="p-3 rounded-lg bg-muted/50">
               <span className="text-xs text-muted-foreground uppercase tracking-wider">Tempo médio</span>
-              <p className="text-2xl font-bold mt-1">{docStats.avgGenTimeMinutes} min</p>
+              <p className="text-2xl font-bold mt-1">{docStats?.avgGenTimeMinutes ?? 0} min</p>
             </div>
           </div>
         </CardContent>
