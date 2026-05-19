@@ -145,6 +145,7 @@ function ProposalMessageConfigPageInner() {
   const [previewMode, setPreviewMode] = useState<MessageMode>("cliente");
   const [previewStyle, setPreviewStyle] = useState<MessageStyle>("completa");
   const [copiedPlaceholder, setCopiedPlaceholder] = useState<string | null>(null);
+  const [previewTab, setPreviewTab] = useState<"text" | "structure">("text");
 
   // Initialize from config (sem setState durante render)
   useEffect(() => {
@@ -155,6 +156,46 @@ function ProposalMessageConfigPageInner() {
       setInitialized(true);
     }
   }, [config, initialized]);
+
+  // Analisa como a mensagem foi montada
+  const structureAnalysis = useMemo(() => {
+    const templateKey = `${previewMode}_${previewStyle}`;
+    const customTemplate = templates[templateKey];
+    
+    // Resolve blocks for MOCK_CONTEXT
+    const vars: Record<string, string> = {
+      cliente_nome: MOCK_CONTEXT.clienteNome || "Cliente",
+      potencia_kwp: MOCK_CONTEXT.potenciaKwp ? MOCK_CONTEXT.potenciaKwp.toLocaleString('pt-BR') : "—",
+      modulos_qtd: MOCK_CONTEXT.modulosQtd != null ? MOCK_CONTEXT.modulosQtd.toString() : "—",
+      modulo_potencia: MOCK_CONTEXT.moduloPotenciaW ? `${MOCK_CONTEXT.moduloPotenciaW}W` : "—",
+      modulo_modelo: MOCK_CONTEXT.moduloModelo || "—",
+      inversor_modelo: MOCK_CONTEXT.inversorModelo || "—",
+      consumo_mensal: MOCK_CONTEXT.consumoMensal != null ? MOCK_CONTEXT.consumoMensal.toLocaleString('pt-BR') : "—",
+      geracao_mensal: MOCK_CONTEXT.geracaoMensal ? MOCK_CONTEXT.geracaoMensal.toLocaleString('pt-BR') : "—",
+      economia_mensal: MOCK_CONTEXT.economiaMensal ? MOCK_CONTEXT.economiaMensal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : "—",
+      valor_total: MOCK_CONTEXT.valorTotal ? MOCK_CONTEXT.valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : "—",
+      link_proposta: MOCK_CONTEXT.linkProposta || "",
+      link_pdf: MOCK_CONTEXT.linkPdf || "",
+      status: MOCK_CONTEXT.propostaStatus || "—",
+      consultor_nome: MOCK_CONTEXT.consultorNome || "",
+      empresa_nome: MOCK_CONTEXT.empresaNome || "",
+    };
+
+    const activeBlocks = Object.entries(blocks)
+      .filter(([key, cfg]) => {
+        if (!cfg.enabled) return false;
+        if (cfg.modes && cfg.modes.length > 0 && !cfg.modes.includes(previewMode)) return false;
+        if (cfg.styles && cfg.styles.length > 0 && !cfg.styles.includes(previewStyle)) return false;
+        return true;
+      })
+      .map(([key]) => key);
+
+    return {
+      templateUsed: customTemplate ? "Customizado" : "Padrão do Sistema",
+      activeBlocks,
+      variables: vars,
+    };
+  }, [previewMode, previewStyle, templates, blocks]);
 
   // Preview — depende de templates + blocks + defaults para reagir a edições e toggles
   const previewText = useMemo(() => {
