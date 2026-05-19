@@ -13,6 +13,7 @@ export type OperationalScoreConfig = {
   acceptedProposal: number;
   pendingFinance: number;
   installationSoon: number; // within 3 days
+  highValue: number; // > 50k
 };
 
 export const DEFAULT_SCORE_CONFIG: OperationalScoreConfig = {
@@ -28,6 +29,7 @@ export const DEFAULT_SCORE_CONFIG: OperationalScoreConfig = {
   acceptedProposal: 25,
   pendingFinance: 20,
   installationSoon: 40,
+  highValue: 20,
 };
 
 export function calculateOperationalScore(p: any, config: OperationalScoreConfig = DEFAULT_SCORE_CONFIG): number {
@@ -46,7 +48,7 @@ export function calculateOperationalScore(p: any, config: OperationalScoreConfig
   // 2. Pendencies Logic
   const pendencias = p.pendencias || [];
   pendencias.forEach((pend: any) => {
-    if (pend.status !== 'resolvido') {
+    if (pend.status !== 'resolvida') {
       if (pend.criticidade === 'critica') score += config.criticalPendency;
       if (pend.criticidade === 'alta') score += config.highPendency;
       if (pend.bloqueia_fluxo) score += config.blockingPendency;
@@ -74,6 +76,10 @@ export function calculateOperationalScore(p: any, config: OperationalScoreConfig
       score += config.installationSoon;
     }
   }
+
+  // 7. High Value
+  const value = p.valor_total || p.deal_value || 0;
+  if (value >= 50000) score += config.highValue;
 
   return score;
 }
