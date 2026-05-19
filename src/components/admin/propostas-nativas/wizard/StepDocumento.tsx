@@ -1106,26 +1106,33 @@ export function StepDocumento({
                     <TooltipContent>Adicione uma opção de financiamento para liberar a simulação</TooltipContent>
                   </Tooltip>
                 )}
-                <div className="h-px bg-border/40 my-1" />
+                <div className="h-px bg-border/40 my-2" />
+                <Label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-1 block px-2">
+                  Exportar documento
+                </Label>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="w-full justify-start gap-2 h-8 text-xs"
+                  className={cn("w-full justify-start gap-2 h-8 text-xs", !hasArtifact && "opacity-50")}
                   onClick={handleDownloadPdf}
+                  disabled={!hasArtifact && !rendering}
                 >
-                  <Download className="h-3.5 w-3.5" />
-                  Baixar PDF
+                  <Download className={cn("h-3.5 w-3.5", rendering && !hasArtifact && "animate-pulse")} />
+                  {rendering && !hasArtifact ? "Preparando PDF..." : "Baixar PDF"}
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="w-full justify-start gap-2 h-8 text-xs"
+                  className={cn("w-full justify-start gap-2 h-8 text-xs", !outputDocxPath && "opacity-50")}
                   onClick={handleDownloadDocx}
+                  disabled={!outputDocxPath}
                 >
                   <FileDown className="h-3.5 w-3.5" />
-                  Baixar DOC
+                  Baixar DOCX (Editável)
                 </Button>
-                <div className="h-px bg-border/40 my-1" />
+              </div>
+            </div>
+          )}
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
