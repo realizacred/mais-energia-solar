@@ -22,13 +22,13 @@ import {
 } from "./types";
 import solarBuildingImg from "@/assets/solar-building.png";
 import { useWizardContext } from "./WizardContext";
-
-
+import { LeadBriefingPanel } from "./LeadBriefingPanel";
 
 interface StepUCsProps {
   onNext?: () => void;
   onBack?: () => void;
 }
+
 
 
 export function StepUCsEnergia({ onNext, onBack }: StepUCsProps) {
