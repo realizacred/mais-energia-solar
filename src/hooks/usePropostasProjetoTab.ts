@@ -137,6 +137,7 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
         versao_atual: p.versao_atual,
         status: p.status,
         created_at: p.created_at,
+        updated_at: p.updated_at,
         cliente_nome: p.clientes?.nome || null,
         is_principal: p.is_principal ?? false,
         aceita_at: p.aceita_at || null,
