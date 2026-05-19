@@ -177,7 +177,7 @@ export function ProjetosManager() {
 
   const statusFiltered = useMemo(() => {
     const status = filters.status;
-    const tipoSolar = filters.tipoProjetoSolar;
+    const tipoSolar = filters.tipo_projeto_solar;
     return validProjetos.filter((p) => {
       if (status && status !== "todos" && resolveProjetoStatus(p) !== status) return false;
       if (tipoSolar && tipoSolar !== "todos") {
@@ -186,7 +186,7 @@ export function ProjetosManager() {
       }
       return true;
     });
-  }, [validProjetos, filters.status, filters.tipoProjetoSolar, resolveProjetoStatus]);
+  }, [validProjetos, filters.status, filters.tipo_projeto_solar, resolveProjetoStatus]);
 
   const adaptedDeals = useMemo(
     () => statusFiltered.map(p => projetoToCard(p, etapaMap)),
@@ -200,7 +200,7 @@ export function ProjetosManager() {
         if (!p.etapa_id || !existingEtapaIds.has(p.etapa_id)) return false;
         const status = filters.status;
         if (status && status !== "todos" && resolveProjetoStatus(p) !== status) return false;
-        const tipoSolar = filters.tipoProjetoSolar;
+        const tipoSolar = filters.tipo_projeto_solar;
         if (tipoSolar && tipoSolar !== "todos") {
           const t = (p.tipo_projeto_solar || "on_grid").toString();
           if (t !== tipoSolar) return false;
@@ -208,7 +208,7 @@ export function ProjetosManager() {
         return true;
       }),
     })).map(c => consultorColumnToOwner(c, etapaMap)),
-    [consultorColumns, etapaMap, existingEtapaIds, filters.status, filters.tipoProjetoSolar, resolveProjetoStatus]
+    [consultorColumns, etapaMap, existingEtapaIds, filters.status, filters.tipo_projeto_solar, resolveProjetoStatus]
   );
 
   const operationalKPIs = useMemo(() => {
@@ -271,7 +271,7 @@ export function ProjetosManager() {
         funilId?: string | null;
         consultorId?: string;
         status?: string;
-        tipoProjetoSolar?: string;
+        tipo_projeto_solar?: string;
         etiquetaIds?: string[];
       };
     } catch { return null; }
@@ -379,7 +379,7 @@ export function ProjetosManager() {
     const fromUrl = {
       status: urlFilters.status,
       consultorId: urlFilters.consultor,
-      tipoProjetoSolar: urlFilters.tipoSolar,
+      tipo_projeto_solar: urlFilters.tipoSolar,
       etiquetaIds: urlFilters.etiquetas,
       funilId: urlFilters.funil,
     };
@@ -389,7 +389,7 @@ export function ProjetosManager() {
     const source = {
       status: fromUrl.status ?? storedPrefs?.status ?? dbFiltros.status,
       consultorId: fromUrl.consultorId ?? storedPrefs?.consultorId ?? dbFiltros.consultorId,
-      tipoProjetoSolar: fromUrl.tipoProjetoSolar ?? storedPrefs?.tipoProjetoSolar ?? dbFiltros.tipoProjetoSolar,
+      tipo_projeto_solar: fromUrl.tipo_projeto_solar ?? storedPrefs?.tipo_projeto_solar ?? dbFiltros.tipo_projeto_solar,
       etiquetaIds: fromUrl.etiquetaIds ?? storedPrefs?.etiquetaIds ?? dbFiltros.etiquetaIds,
       funilId: fromUrl.funilId ?? storedPrefs?.funilId ?? dbFiltros.funilId,
     };
@@ -401,8 +401,8 @@ export function ProjetosManager() {
     if (source.consultorId && source.consultorId !== "todos" && filters.consultorId !== source.consultorId) {
       updates.consultorId = source.consultorId;
     }
-    if (source.tipoProjetoSolar && source.tipoProjetoSolar !== "todos" && filters.tipoProjetoSolar !== source.tipoProjetoSolar) {
-      updates.tipoProjetoSolar = source.tipoProjetoSolar;
+    if (source.tipo_projeto_solar && source.tipo_projeto_solar !== "todos" && filters.tipo_projeto_solar !== source.tipo_projeto_solar) {
+      updates.tipo_projeto_solar = source.tipo_projeto_solar;
     }
     if (Array.isArray(source.etiquetaIds) && source.etiquetaIds.length > 0) {
       const current = filters.etiquetaIds || [];
@@ -434,7 +434,7 @@ export function ProjetosManager() {
         status: source.status,
         consultor: source.consultorId,
         funil: viewMode === "kanban-consultor" ? null : (funilExiste ? source.funilId : null),
-        tipoSolar: source.tipoProjetoSolar,
+        tipoSolar: source.tipo_projeto_solar,
         etiquetas: source.etiquetaIds,
         view: (storedPrefs?.viewMode as string) || (dbPrefs?.view as string) || viewMode,
       });
@@ -497,9 +497,9 @@ export function ProjetosManager() {
       applyFilters({ consultorId: value });
       savePrefs({ consultorId: value });
       updateUrlFilter({ consultor: value });
-    } else if (key === "tipoProjetoSolar") {
-      applyFilters({ tipoProjetoSolar: value });
-      savePrefs({ tipoProjetoSolar: value });
+    } else if (key === "tipo_projeto_solar") {
+      applyFilters({ tipo_projeto_solar: value });
+      savePrefs({ tipo_projeto_solar: value });
       updateUrlFilter({ tipoSolar: value });
     } else if (key === "etiquetas") {
       applyFilters({ etiquetaIds: value });
@@ -547,7 +547,7 @@ export function ProjetosManager() {
   }, [funis, selectedFunilId, activeFunis, defaultFunilApplied]);
 
   const clearFilters = () => {
-    applyFilters({ funilId: null, consultorId: "todos", status: "todos", search: "", tipoProjetoSolar: "todos", etiquetaIds: [] });
+    applyFilters({ funilId: null, consultorId: "todos", status: "todos", search: "", tipo_projeto_solar: "todos", etiquetaIds: [] });
     setSelectedFunilId(null);
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
     updateUrlFilter({ status: null, consultor: null, funil: null, tipoSolar: null, etiquetas: null });
@@ -716,7 +716,7 @@ export function ProjetosManager() {
                 valor_total: data.valor || 0,
                 observacoes: data.descricao || null,
                 status: "criado" as any,
-                tipo_projeto_solar: data.tipoProjetoSolar || "on_grid",
+                tipo_projeto_solar: data.tipo_projeto_solar || "on_grid",
               } as any)
               .select("id")
               .single();
@@ -928,8 +928,8 @@ export function ProjetosManager() {
                   consultores={consultoresFilter}
                   filterStatus={filters.status}
                   onFilterStatusChange={(v) => handleFilterChange("status", v)}
-                  filterTipoProjetoSolar={filters.tipoProjetoSolar || "todos"}
-                  onFilterTipoProjetoSolarChange={(v) => handleFilterChange("tipoProjetoSolar", v)}
+                  filterTipoProjetoSolar={filters.tipo_projeto_solar || "todos"}
+                  onFilterTipoProjetoSolarChange={(v) => handleFilterChange("tipo_projeto_solar", v)}
                   etiquetas={dynamicEtiquetas.map(e => ({ id: e.id, nome: e.nome, cor: e.cor, tenant_id: "" }))}
                   filterEtiquetas={filters.etiquetaIds || []}
                   onFilterEtiquetasChange={(ids) => { applyFilters({ etiquetaIds: ids }); savePrefs({ etiquetaIds: ids }); updateUrlFilter({ etiquetas: ids }); }}
