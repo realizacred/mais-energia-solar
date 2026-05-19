@@ -919,9 +919,23 @@ export function StepDocumento({
                         : "Gere a proposta para liberar envio e link público"}
             </p>
             {isReady && (
-              <div className="flex items-center gap-1.5 pl-6 pt-0.5 text-[10px] text-muted-foreground">
-                <Calendar className="h-3 w-3" />
-                <span>Validade: {validade ? formatDate(validade + "T12:00:00") : "—"}</span>
+              <div className="space-y-1.5 pl-6 pt-0.5">
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <Calendar className="h-3 w-3" />
+                  <span>Validade: {validade ? formatDate(validade + "T12:00:00") : "—"}</span>
+                </div>
+                {rendering && !hasArtifact && (
+                  <div className="flex items-center gap-1.5 text-[10px] text-info font-medium animate-pulse">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <span>PDF sendo preparado em segundo plano...</span>
+                  </div>
+                )}
+                {hasArtifact && (
+                  <div className="flex items-center gap-1.5 text-[10px] text-success font-medium">
+                    <FileText className="h-3 w-3" />
+                    <span>PDF pronto para exportação</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
