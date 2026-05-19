@@ -85,6 +85,11 @@ function projetoToCard(p: ProjetoItem, etapaMap: Map<string, ProjetoEtapa>): Dea
     deal_num: p.projeto_num ?? null,
     proposta_id: p.proposta_id || null,
     proposta_status: p.proposta_status || null,
+    proxima_acao: p.proxima_acao || null,
+    responsavel_operacional: p.responsavel_operacional || null,
+    prazo_acao: p.prazo_acao || null,
+    dependencia_tipo: p.dependencia_tipo || null,
+    ultima_mudanca_operacional_at: p.ultima_mudanca_operacional_at || null,
   };
 }
 
