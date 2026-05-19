@@ -980,6 +980,68 @@ function ProposalMessageConfigPageInner() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Block Editor Dialog */}
+      <Dialog open={!!editingBlock} onOpenChange={(open) => !open && setEditingBlock(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="h-5 w-5 text-primary" />
+              Configurar Bloco: {editingBlock && (BLOCK_LABELS[editingBlock]?.label || editingBlock)}
+            </DialogTitle>
+            <DialogDescription>
+              Personalize o título, ícone e visibilidade deste bloco na mensagem automática.
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingBlock && (
+            <div className="space-y-6 py-4">
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Título do Bloco</Label>
+                <Input 
+                  value={blocks[editingBlock]?.title || ""} 
+                  onChange={(e) => setBlocks(prev => ({
+                    ...prev,
+                    [editingBlock]: { ...(prev[editingBlock] || SYSTEM_DEFAULT_BLOCKS[editingBlock]), title: e.target.value }
+                  }))}
+                  placeholder={BLOCK_LABELS[editingBlock]?.label}
+                />
+                <p className="text-[10px] text-muted-foreground italic">
+                  Este título aparecerá em destaque no WhatsApp (ex: ━━━ *{blocks[editingBlock]?.title || BLOCK_LABELS[editingBlock]?.label}* ━━━)
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Prefixo / Emoji</Label>
+                <Input 
+                  value={blocks[editingBlock]?.prefix || ""} 
+                  onChange={(e) => setBlocks(prev => ({
+                    ...prev,
+                    [editingBlock]: { ...(prev[editingBlock] || SYSTEM_DEFAULT_BLOCKS[editingBlock]), prefix: e.target.value }
+                  }))}
+                  placeholder="Ex: ☀️, ⚡, 💰"
+                />
+              </div>
+
+              <div className="p-4 rounded-lg bg-primary/5 border border-primary/10 flex items-start gap-3">
+                <Sparkles className="h-5 w-5 text-primary shrink-0" />
+                <div className="space-y-1">
+                  <h5 className="text-xs font-bold text-primary uppercase tracking-wider">Dica Enterprise</h5>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Personalizar os títulos dos blocos ajuda a criar uma identidade visual única para sua empresa no WhatsApp, aumentando a percepção de profissionalismo.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button onClick={() => setEditingBlock(null)} className="w-full sm:w-auto">
+              Confirmar Alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
