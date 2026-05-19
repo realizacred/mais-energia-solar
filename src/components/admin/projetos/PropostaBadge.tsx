@@ -3,12 +3,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { Star } from "lucide-react";
 
-export type PropostaBadgeType = "gerada" | "aceita" | "principal" | "gerado" | "enviada" | "rascunho" | "migrada" | "desatualizada";
+export type PropostaBadgeType = "gerada" | "aceita" | "principal" | "gerado" | "enviada" | "rascunho" | "migrada" | "desatualizada" | "aguardando_aceite";
 
 interface PropostaBadgeProps {
   type: PropostaBadgeType;
   className?: string;
+  inconsistent?: boolean;
 }
+
 
 const TOOLTIPS: Record<string, string> = {
   gerada: "Proposta gerada automaticamente pelo sistema",
