@@ -115,6 +115,18 @@ export function ProjetoExecucaoTab() {
                   disabled={saving}
                   className="font-bold text-primary"
                 />
+                {deal.proxima_acao && (
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="shrink-0 text-success hover:bg-success/10"
+                    onClick={() => handleUpdateField("proxima_acao", null)}
+                    disabled={saving}
+                    title="Concluir Ação"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
 
