@@ -646,7 +646,7 @@ function ResizableKanbanColumn({
             {hasRestriction && (
               <Tooltip>
                 <TooltipTrigger>
-                  <Lock className="h-3 w-3 text-warning shrink-0" />
+                  <LockIcon className="h-3 w-3 text-warning shrink-0" />
                 </TooltipTrigger>
                 <TooltipContent className="text-xs">
                   {permission === "apenas_responsavel" ? "Apenas o consultor pode mover" : "Restrito por papel"}
