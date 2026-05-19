@@ -83,6 +83,7 @@ interface PropostaData {
   versao_atual: number | null;
   status: string;
   created_at: string;
+  updated_at?: string;
   cliente_nome: string | null;
   is_principal: boolean;
   aceita_at: string | null;
