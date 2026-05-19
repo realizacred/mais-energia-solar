@@ -982,6 +982,24 @@ export function ProjetosManager() {
             </div>
           </div>
         </TabsContent>
+        <TabsContent value="pendencias" className="mt-0">
+          <CentralPendencias 
+            projetos={projetos} 
+            onViewProjeto={(p, tab) => {
+              if (tab) {
+                setSearchParams((prev) => {
+                  const next = new URLSearchParams(prev);
+                  next.set("projeto", p.deal_id || p.id);
+                  next.set("tab", tab);
+                  return next;
+                }, { replace: true });
+              } else {
+                setSelectedProjetoId(p.deal_id || p.id);
+              }
+            }} 
+            loading={loading}
+          />
+        </TabsContent>
 
         <TabsContent value="performance" className="mt-0">
           <ProjetoPerformanceDashboard />
