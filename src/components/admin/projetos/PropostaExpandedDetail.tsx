@@ -822,6 +822,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [recusaMotivo, setRecusaMotivo] = useState("");
   const [recusaDialogOpen, setRecusaDialogOpen] = useState(false);
+  const [aceiteRevertDialogOpen, setAceiteRevertDialogOpen] = useState(false);
+  const [revertReason, setRevertReason] = useState("");
+
   const [messageDrawerOpen, setMessageDrawerOpen] = useState(false);
   const [cloneModalOpen, setCloneModalOpen] = useState(false);
   const [reabrirDialogOpen, setReabrirDialogOpen] = useState(false);
