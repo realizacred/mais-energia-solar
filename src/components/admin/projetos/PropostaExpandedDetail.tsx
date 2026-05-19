@@ -278,24 +278,29 @@ function useMergedTimeline(
 // ─── Status Badge (SSOT from proposalStatusConfig) ───
 import { getProposalStatusConfig } from "@/lib/proposalStatusConfig";
 
-function StatusBadge({ status, aceita_at, enviada_at, recusada_at, created_at }: { status: string; aceita_at?: string | null; enviada_at?: string | null; recusada_at?: string | null; created_at?: string | null }) {
+function StatusBadge({ status, aceita_at, accepted_via, enviada_at, recusada_at, created_at }: { status: string; aceita_at?: string | null; accepted_via?: string | null; enviada_at?: string | null; recusada_at?: string | null; created_at?: string | null }) {
   const s = getProposalStatusConfig(status);
   
   // Map internal status to badge type
   const getBadgeType = () => {
-    const normalized = status.toLowerCase();
-    if (["accepted", "aceita"].includes(normalized)) return "aceita";
-    if (["sent", "enviada", "visualizada", "vista"].includes(normalized)) return "enviada";
-    if (["generated", "gerada"].includes(normalized)) return "gerada";
-    if (["draft", "rascunho"].includes(normalized)) return "rascunho";
+    const normalized = normalizeStatus(status);
+    if (normalized === "accepted") {
+      // GOVERNANÇA: Se é aceito mas não tem evidência, o badge deve refletir isso
+      if (!aceita_at && !accepted_via) return "aguardando_aceite";
+      return "aceita";
+    }
+    if (["sent", "viewed"].includes(normalized)) return "enviada";
+    if (normalized === "generated") return "gerada";
+    if (normalized === "draft") return "rascunho";
     return null;
   };
 
   const badgeType = getBadgeType();
+  const isInconsistent = badgeType === "aceita" && !aceita_at && !accepted_via;
 
   // If we have a mapped tooltip type, use it
   if (badgeType) {
-    return <PropostaBadge type={badgeType as any} className={s.className} />;
+    return <PropostaBadge type={badgeType as any} className={s.className} inconsistent={isInconsistent} />;
   }
 
   // Fallback to standard Badge without custom tooltip for other statuses
@@ -305,6 +310,7 @@ function StatusBadge({ status, aceita_at, enviada_at, recusada_at, created_at }:
     </Badge>
   );
 }
+
 
 
 /** Returns contextual date label based on proposal status */
