@@ -474,30 +474,30 @@ function StageDealCardImpl({
           <ContextMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
             Ações rápidas
           </ContextMenuLabel>
-          <ContextMenuItem className="text-xs gap-2" onClick={() => onClick()}>
+          <ContextMenuItem className="text-xs gap-2" onClick={handleClick}>
             <ExternalLink className="h-3.5 w-3.5" /> Abrir detalhes
           </ContextMenuItem>
           <ContextMenuItem className="text-xs gap-2" onClick={() => { if (deal.customer_phone) setWhatsappDialogOpen(true); }} disabled={!deal.customer_phone}>
             <MessageSquare className="h-3.5 w-3.5" /> Enviar WhatsApp
           </ContextMenuItem>
-          <ContextMenuItem className="text-xs gap-2" onClick={() => onSchedule?.(deal)}>
+          <ContextMenuItem className="text-xs gap-2" onClick={handleSchedule}>
             <Calendar className="h-3.5 w-3.5" /> Agendar compromisso
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
             Gerenciar
           </ContextMenuLabel>
-          <ContextMenuItem className="text-xs gap-2" onClick={() => onTransfer?.(deal)}>
+          <ContextMenuItem className="text-xs gap-2" onClick={handleTransfer}>
             <UserPlus className="h-3.5 w-3.5" /> Transferir consultor
           </ContextMenuItem>
-          <ContextMenuItem className="text-xs gap-2" onClick={() => onTag?.(deal)}>
+          <ContextMenuItem className="text-xs gap-2" onClick={handleTag}>
             <Tag className="h-3.5 w-3.5" /> Alterar etiqueta
           </ContextMenuItem>
           <ContextMenuItem className="text-xs gap-2" onClick={() => { navigator.clipboard.writeText(deal.deal_id); }}>
             <Copy className="h-3.5 w-3.5" /> Copiar ID
           </ContextMenuItem>
           <ContextMenuSeparator />
-          <ContextMenuItem className="text-xs gap-2 text-destructive focus:text-destructive" onClick={() => onArchive?.(deal)}>
+          <ContextMenuItem className="text-xs gap-2 text-destructive focus:text-destructive" onClick={handleArchive}>
             <Archive className="h-3.5 w-3.5" /> Arquivar
           </ContextMenuItem>
         </ContextMenuContent>
