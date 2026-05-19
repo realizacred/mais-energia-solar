@@ -1,9 +1,10 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import { Eye, Layers, ChevronRight, Hash, Smartphone, Mail, AlertTriangle } from "lucide-react";
+import { Eye, Layers, ChevronRight, Hash, Smartphone, Mail, AlertTriangle, Settings2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { BlockConfig } from "@/hooks/useProposalMessageConfig";
 
 interface Props {
@@ -133,6 +134,3 @@ export function LiveStructurePreview({ blockKeys, blocks, blockLabels, previewMo
     </div>
   );
 }
-
-import { Settings2, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "lucide-react";
-// Wait, I already imported some of these. Fixed the double import below.
