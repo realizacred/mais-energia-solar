@@ -95,7 +95,7 @@ export interface StageDealCardProps {
   cardVisibleFields?: string[];
 }
 
-export function StageDealCard({
+function StageDealCardImpl({
   deal,
   isDragging,
   onDragStart,
