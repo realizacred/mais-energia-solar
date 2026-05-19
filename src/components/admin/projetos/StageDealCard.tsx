@@ -243,10 +243,11 @@ function StageDealCardImpl({
         "kanban-card group transition-all duration-200",
         borderClass,
         isDragging && "kanban-card--dragging shadow-xl scale-[1.02]",
-        isBlocked && "border-l-4 border-l-destructive bg-destructive/5 animate-pulse",
-        isCritical && "border-l-4 border-l-destructive shadow-[0_0_10px_rgba(239,68,68,0.2)] animate-pulse",
-        isDelayed && "border-l-4 border-l-orange-500",
-        isAttention && "border-l-4 border-l-warning"
+        // Escalonamento de criticidade — vermelho só para CRÍTICO real:
+        isBlocked && "border-l-2 border-l-destructive bg-destructive/[0.03]",
+        isCritical && "border-l-2 border-l-destructive",
+        isDelayed && "border-l-2 border-l-warning",
+        isAttention && "border-l-2 border-l-muted-foreground/30"
       )}
     >
       {/* Left color bar */}
