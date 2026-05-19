@@ -194,6 +194,13 @@ function ProposalMessageConfigPageInner() {
   const [editingBlock, setEditingBlock] = useState<string | null>(null);
   const [previewChannel, setPreviewChannel] = useState<"whatsapp" | "email" | "plain">("whatsapp");
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   useEffect(() => {
     if (config && !initialized) {
       setTemplates(config.templates);
@@ -202,6 +209,14 @@ function ProposalMessageConfigPageInner() {
       setInitialized(true);
     }
   }, [config, initialized]);
+
+  const sortedBlockKeys = useMemo(() => {
+    return Object.keys(blocks).sort((a, b) => {
+      const orderA = blocks[a]?.order ?? 100;
+      const orderB = blocks[b]?.order ?? 100;
+      return orderA - orderB;
+    });
+  }, [blocks]);
 
   const structureAnalysis = useMemo(() => {
     const vars: Record<string, string> = {
@@ -236,17 +251,16 @@ function ProposalMessageConfigPageInner() {
       titulo_investimento: blocks?.investimento?.title || "Investimento",
     };
 
-    const activeBlocks = Object.entries(blocks)
-      .filter(([key, cfg]) => {
-        if (!cfg.enabled) return false;
-        if (cfg.modes && cfg.modes.length > 0 && !cfg.modes.includes(previewMode)) return false;
-        if (cfg.styles && cfg.styles.length > 0 && !cfg.styles.includes(previewStyle)) return false;
-        return true;
-      })
-      .map(([key]) => key);
+    const activeBlocks = sortedBlockKeys.filter(key => {
+      const cfg = blocks[key];
+      if (!cfg?.enabled) return false;
+      if (cfg.modes && cfg.modes.length > 0 && !cfg.modes.includes(previewMode)) return false;
+      if (cfg.styles && cfg.styles.length > 0 && !cfg.styles.includes(previewStyle)) return false;
+      return true;
+    });
 
     return { variables: vars, activeBlocks };
-  }, [previewMode, previewStyle, templates, blocks, defaults]);
+  }, [previewMode, previewStyle, templates, blocks, defaults, sortedBlockKeys]);
 
   const previewText = useMemo(() => {
     const customTemplate = templates[`${previewMode}_${previewStyle}`] || undefined;
@@ -305,6 +319,27 @@ function ProposalMessageConfigPageInner() {
       [blockKey]: { ...(prev[blockKey] || SYSTEM_DEFAULT_BLOCKS[blockKey]), enabled },
     }));
   }, []);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setBlocks((items) => {
+        const oldIndex = sortedBlockKeys.indexOf(active.id as string);
+        const newIndex = sortedBlockKeys.indexOf(over.id as string);
+
+        const newKeys = arrayMove(sortedBlockKeys, oldIndex, newIndex);
+        const updatedBlocks = { ...items };
+        
+        // Re-assign order based on new index
+        newKeys.forEach((key, index) => {
+          updatedBlocks[key] = { ...updatedBlocks[key], order: (index + 1) * 10 };
+        });
+
+        return updatedBlocks;
+      });
+    }
+  };
 
   const handleCopyPlaceholder = useCallback(async (key: string) => {
     await navigator.clipboard.writeText(`{{${key}}}`);
