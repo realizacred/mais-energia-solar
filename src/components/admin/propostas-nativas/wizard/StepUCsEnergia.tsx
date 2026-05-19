@@ -134,9 +134,11 @@ export function StepUCsEnergia({ onNext, onBack }: StepUCsProps) {
       {/* ── Briefing Operational & Cockpit ── */}
       <LeadBriefingPanel />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         {/* ── Main UC Area (Col 9) ── */}
-        <div className="lg:col-span-9 space-y-4">
+        <div className="xl:col-span-12 xl:grid xl:grid-cols-12 gap-6">
+          <div className="xl:col-span-9 space-y-4">
+
           {/* ── Sub-tabs ── */}
           <div className="flex gap-2">
             <Button
