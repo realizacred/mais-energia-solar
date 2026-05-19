@@ -1642,6 +1642,132 @@ function ProposalWizardContent() {
       cliente: cliente.nome && cliente.celular ? cliente : undefined,
     };
   }, [collectSnapshot, savedPropostaId, savedVersaoId, potenciaKwp, precoFinal, geracaoMensalEstimada, ucs, selectedLead, resolvedDealId, nomeProposta, cliente]);
+1645: 
+1646:   const ClientContextPanel = useMemo(() => {
+1647:     if (!selectedLead) return null;
+1648:     const geracao = selectedLead.geracao_estimada_kwh;
+1649:     const consumo = selectedLead.media_consumo;
+1650:     const telhado = selectedLead.tipo_telhado;
+1651:     const fase = selectedLead.rede_atendimento;
+1652:     const cidade = selectedLead.cidade;
+1653:     const uf = selectedLead.estado;
+1654:     const obsLead = selectedLead.observacoes;
+1655:     const obsOrc = selectedLead.orc_observacoes;
+1656:     const source = selectedLead.source_type || "lead";
+1657: 
+1658:     return (
+1659:       <div className="bg-card border-b border-border shadow-sm sticky top-0 z-20 overflow-hidden">
+1660:         <div className="max-w-[1400px] mx-auto px-4 py-2 flex flex-col md:flex-row md:items-center justify-between gap-3">
+1661:           <div className="flex flex-wrap items-center gap-2">
+1662:             <div className="flex items-center gap-1.5 mr-2">
+1663:               <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[10px] uppercase font-bold py-0 h-5">
+1664:                 {source === "orcamento" ? "Orçamento" : "Lead"}
+1665:               </Badge>
+1666:               <span className="text-sm font-bold truncate max-w-[180px]">{selectedLead.nome}</span>
+1667:             </div>
+1668: 
+1669:             <div className="flex flex-wrap items-center gap-1.5">
+1670:               {consumo && (
+1671:                 <TooltipProvider>
+1672:                   <Tooltip>
+1673:                     <TooltipTrigger asChild>
+1674:                       <Badge variant="secondary" className="h-5 text-[10px] gap-1 px-1.5 font-medium">
+1675:                         <Zap className="h-3 w-3" /> {consumo} kWh
+1676:                       </Badge>
+1677:                     </TooltipTrigger>
+1678:                     <TooltipContent>Consumo atual informado</TooltipContent>
+1679:                   </Tooltip>
+1680:                 </TooltipProvider>
+1681:               )}
+1682: 
+1683:               {geracao && (
+1684:                 <TooltipProvider>
+1685:                   <Tooltip>
+1686:                     <TooltipTrigger asChild>
+1687:                       <div className="flex items-center">
+1688:                         <Badge variant="secondary" className="h-5 text-[10px] gap-1 px-1.5 font-medium bg-blue-50 text-blue-700 border-blue-100">
+1689:                           <SunMedium className="h-3 w-3" /> {geracao} kWh/mês
+1690:                         </Badge>
+1691:                         <Button
+1692:                           variant="ghost"
+1693:                           size="icon"
+1694:                           className="h-5 w-5 ml-0.5 text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+1695:                           onClick={() => {
+1696:                             if (!ucs.length) return;
+1697:                             handleUcsChange(prev => {
+1698:                               const updated = [...prev];
+1699:                               updated[0] = { ...updated[0], consumo_mensal: geracao };
+1700:                               return updated;
+1701:                             });
+1702:                             toast({ title: "Geração aplicada", description: `A UC geradora foi ajustada para ${geracao} kWh.` });
+1703:                           }}
+1704:                         >
+1705:                           <RefreshCw className="h-2.5 w-2.5" />
+1706:                         </Button>
+1707:                       </div>
+1708:                     </TooltipTrigger>
+1709:                     <TooltipContent>Geração desejada. Clique em repetir para usar na UC.</TooltipContent>
+1710:                   </Tooltip>
+1711:                 </TooltipProvider>
+1712:               )}
+1713: 
+1714:               {telhado && (
+1715:                 <Badge variant="outline" className="h-5 text-[10px] gap-1 px-1.5 border-border/60">
+1716:                   <LayoutGrid className="h-3 w-3" /> {telhado}
+1717:                 </Badge>
+1718:               )}
+1719: 
+1720:               {fase && (
+1721:                 <Badge variant="outline" className="h-5 text-[10px] gap-1 px-1.5 border-border/60">
+1722:                   <Zap className="h-3 w-3" /> {fase}
+1723:                 </Badge>
+1724:               )}
+1725: 
+1726:               {(cidade || uf) && (
+1727:                 <Badge variant="outline" className="h-5 text-[10px] gap-1 px-1.5 border-border/60">
+1728:                   <MapPin className="h-3 w-3" /> {cidade}{uf ? `/${uf}` : ""}
+1729:                 </Badge>
+1730:               )}
+1731:             </div>
+1732:           </div>
+1733: 
+1734:           <div className="flex items-center gap-3">
+1735:             {(obsLead || obsOrc) && (
+1736:               <TooltipProvider>
+1737:                 <Tooltip>
+1738:                   <TooltipTrigger asChild>
+1739:                     <div className="flex items-center gap-1.5 text-muted-foreground cursor-help">
+1740:                       <ClipboardList className="h-3.5 w-3.5" />
+1741:                       <span className="text-[11px] truncate max-w-[200px] lg:max-w-[400px]">
+1742:                         {obsOrc || obsLead}
+1743:                       </span>
+1744:                     </div>
+1745:                   </TooltipTrigger>
+1746:                   <TooltipContent className="max-w-xs">
+1747:                     <div className="space-y-2 py-1">
+1748:                       {obsLead && (
+1749:                         <div>
+1750:                           <p className="font-bold text-[10px] uppercase text-primary">Obs. Lead</p>
+1751:                           <p className="text-xs">{obsLead}</p>
+1752:                         </div>
+1753:                       )}
+1754:                       {obsOrc && (
+1755:                         <div>
+1756:                           <p className="font-bold text-[10px] uppercase text-primary">Obs. Orçamento</p>
+1757:                           <p className="text-xs">{obsOrc}</p>
+1758:                         </div>
+1759:                       )}
+1760:                     </div>
+1761:                   </TooltipContent>
+1762:                 </Tooltip>
+1763:               </TooltipProvider>
+1764:             )}
+1765:           </div>
+1766:         </div>
+1767:       </div>
+1768:     );
+1769:   }, [selectedLead, ucs, handleUcsChange]);
+
 
   /** Apply result from atomic persist to local state */
   const applyPersistResult = useCallback((res: AtomicPersistResult) => {
