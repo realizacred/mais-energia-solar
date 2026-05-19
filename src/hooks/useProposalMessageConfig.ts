@@ -15,6 +15,14 @@ export interface BlockConfig {
   enabled: boolean;
   modes: ("cliente" | "consultor")[];
   styles: ("curta" | "completa")[];
+  /** Custom title for the block section (e.g. "Sistema Solar") */
+  title?: string;
+  /** Custom emoji or prefix */
+  prefix?: string;
+  /** Custom visual style (e.g. bold, dividers) */
+  visual_style?: "default" | "minimal" | "modern";
+  /** Execution order */
+  order?: number;
 }
 
 export interface ProposalMessageDefaults {
