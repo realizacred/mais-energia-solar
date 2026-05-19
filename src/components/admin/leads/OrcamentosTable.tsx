@@ -422,12 +422,12 @@ export function OrcamentosTable({
                             </DropdownMenuItem>
                           </>
                         )}
-                        {onDelete && (
+                        {onDelete && !isConverted && (
                           <>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => onDelete(orc)}>
                               <Archive className="w-4 h-4 mr-2 text-muted-foreground" />
-                              Arquivar
+                              Arquivar orçamento
                             </DropdownMenuItem>
                           </>
                         )}
