@@ -28,10 +28,11 @@ export interface PipelineStage {
   position: number;
   probability: number;
   is_closed: boolean;
-  is_won: boolean;
-  color?: string | null;
-  card_visible_fields?: string[] | null;
-}
+    is_won: boolean;
+    color?: string | null;
+    card_visible_fields?: string[] | null;
+    sla_days?: number;
+  }
 
 export interface DealKanbanCard {
   deal_id: string;
@@ -52,6 +53,7 @@ export interface DealKanbanCard {
   deal_status: string;
   stage_probability: number;
   last_stage_change: string;
+  sla_days?: number;
   etiqueta: string | null;
   etiqueta_ids?: string[]; // relational etiqueta IDs from projeto_etiqueta_rel
   notas: string | null;
