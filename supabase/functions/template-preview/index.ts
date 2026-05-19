@@ -1963,7 +1963,7 @@ Deno.serve(async (req) => {
             payload: { 
               versao_id: latestVersao.id,
               template_id: template_id,
-              duration_ms: Date.now() - new Date(forensicReport.timestamp).getTime(),
+              duration_ms: Date.now() - startTime,
               error: pdfConversionError || docxUploadErr?.message
             },
             tenant_id: tenantId,
