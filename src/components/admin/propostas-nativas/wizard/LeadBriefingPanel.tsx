@@ -5,12 +5,10 @@ import {
   MapPin, 
   MessageSquare, 
   Target, 
-  Building2, 
   Info,
   Sun,
   Layout,
   Calculator,
-  ArrowRight,
   ClipboardList
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useWizardContext } from "./WizardContext";
 import { cn } from "@/lib/utils";
+
 
 /**
  * Premium Executive Briefing for the Proposal Wizard.
