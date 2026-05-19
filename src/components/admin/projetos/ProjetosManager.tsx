@@ -407,7 +407,7 @@ export function ProjetosManager() {
     }, { replace: true });
   }, [setSearchParams]);
   const [activeTab, setActiveTab] = useState<string>("kanban");
-  const [showCentralPendencias, setShowCentralPendencias] = useState(true);
+  
   const [dynamicEtiquetas, setDynamicEtiquetas] = useState<DynamicEtiqueta[]>([]);
   const [defaultFunilApplied, setDefaultFunilApplied] = useState(false);
 
@@ -726,6 +726,10 @@ export function ProjetosManager() {
               <Layers className="h-4 w-4" />
               <span className="hidden sm:inline">Funil</span>
             </TabsTrigger>
+            <TabsTrigger value="pendencias" className="gap-1.5 text-xs">
+              <Clock className="h-4 w-4" />
+              <span className="hidden sm:inline">Pendências</span>
+            </TabsTrigger>
             <TabsTrigger value="performance" className="gap-1.5 text-xs">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Performance</span>
@@ -762,24 +766,6 @@ export function ProjetosManager() {
         </div>
 
         <TabsContent value="kanban" className="space-y-4 mt-0">
-          {viewMode !== "lista" && (
-            <CentralPendencias 
-              projetos={projetos} 
-              onViewProjeto={(p, tab) => {
-                if (tab) {
-                  setSearchParams((prev) => {
-                    const next = new URLSearchParams(prev);
-                    next.set("projeto", p.deal_id || p.id);
-                    next.set("tab", tab);
-                    return next;
-                  }, { replace: true });
-                } else {
-                  setSelectedProjetoId(p.deal_id || p.id);
-                }
-              }} 
-              loading={loading}
-            />
-          )}
           <div className="flex-1 min-w-0 space-y-4">
             <div className="rounded-xl border border-border/60 bg-card overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
               {/* Summary bar — top */}
@@ -995,6 +981,24 @@ export function ProjetosManager() {
               )}
             </div>
           </div>
+        </TabsContent>
+        <TabsContent value="pendencias" className="mt-0">
+          <CentralPendencias 
+            projetos={projetos} 
+            onViewProjeto={(p, tab) => {
+              if (tab) {
+                setSearchParams((prev) => {
+                  const next = new URLSearchParams(prev);
+                  next.set("projeto", p.deal_id || p.id);
+                  next.set("tab", tab);
+                  return next;
+                }, { replace: true });
+              } else {
+                setSelectedProjetoId(p.deal_id || p.id);
+              }
+            }} 
+            loading={loading}
+          />
         </TabsContent>
 
         <TabsContent value="performance" className="mt-0">
