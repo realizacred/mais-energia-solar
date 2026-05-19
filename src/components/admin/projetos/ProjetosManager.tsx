@@ -40,6 +40,25 @@ import { differenceInDays, differenceInHours } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast as sonnerToast } from "sonner";
 
+/**
+ * Pure resolver for the initial active tab of /admin/projetos.
+ * Sincroniza tab principal com URL (?view=), prefs persistidas e viewMode atual.
+ * Regras (ordem de precedência): URL > prefs > fallback "operacional".
+ */
+export function resolveInitialProjectsTab(
+  viewMode: string | undefined,
+  urlViewParam: string | undefined,
+  prefsViewMode: string | undefined,
+): "operacional" | "kanban" | "lista" {
+  const isLista = (v?: string) => v === "lista";
+  const isKanban = (v?: string) => !!v && v.startsWith("kanban");
+  if (isLista(urlViewParam)) return "lista";
+  if (isKanban(urlViewParam)) return "kanban";
+  if (isLista(prefsViewMode)) return "lista";
+  if (isKanban(prefsViewMode)) return "kanban";
+  return "operacional";
+}
+
 interface DynamicEtiqueta {
   id: string;
   nome: string;
@@ -512,7 +531,9 @@ export function ProjetosManager() {
       return next;
     }, { replace: true });
   }, [setSearchParams]);
-  const [activeTab, setActiveTab] = useState<string>("operacional");
+  const [activeTab, setActiveTab] = useState<string>(() =>
+    resolveInitialProjectsTab(viewMode, urlFilters.view, storedPrefs?.viewMode)
+  );
 
   // Sync viewMode with the active tab: Kanban tab never shows "lista"; Lista tab forces "lista".
   useEffect(() => {
