@@ -369,15 +369,30 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
         if (!matchesName && !matchesTitle) return false;
       }
       if (mobileFilterStatus !== "all") {
+        const isBlocked = (d.notas?.toLowerCase().includes("bloqueado")) || d.pendencias?.some(p => p.bloqueia_fluxo);
+        const slaDays = d.sla_days || 0;
+        const daysInStage = differenceInDays(new Date(), new Date(d.last_stage_change));
+        const isCritical = slaDays > 0 ? daysInStage > slaDays * 1.5 : differenceInHours(new Date(), new Date(d.last_stage_change)) >= 168;
+
         if (mobileFilterStatus === "overdue") {
-          const hours = differenceInHours(new Date(), new Date(d.last_stage_change));
-          if (hours < 72) return false;
+          if (slaDays > 0) {
+            if (daysInStage < slaDays) return false;
+          } else {
+             if (differenceInHours(new Date(), new Date(d.last_stage_change)) < 72) return false;
+          }
         } else if (mobileFilterStatus === "proposta") {
           if (!d.proposta_status) return false;
+        } else if (mobileFilterStatus === "blocked") {
+          if (!isBlocked) return false;
+        } else if (mobileFilterStatus === "critical") {
+          if (!isCritical) return false;
         }
       }
       return true;
     });
+
+    const sortedMobileDeals = sortStageDeals(filteredDeals, "default");
+
 
     return (
       <>
@@ -395,6 +410,8 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
           <div className="flex gap-1.5 overflow-x-auto pb-1">
             {[
               { key: "all", label: "Todos" },
+              { key: "blocked", label: "🔒 Bloqueados" },
+              { key: "critical", label: "🚨 Críticos" },
               { key: "overdue", label: "⚠ Atrasados" },
               { key: "proposta", label: "📄 C/ Proposta" },
             ].map(f => (
@@ -464,7 +481,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                       <p className="text-xs text-muted-foreground/50 italic text-center py-4">Nenhum projeto nesta etapa</p>
                     ) : (
                       <ProgressiveMobileCards
-                        deals={stageDeals}
+                        deals={sortStageDeals(stageDeals, "default")}
                         onViewProjeto={onViewProjeto}
                         hasAutomation={hasActiveAutomation}
                         dynamicEtiquetas={dynamicEtiquetas}
