@@ -47,7 +47,7 @@ export function CentralPendencias({ projetos, onViewProjeto, loading }: Props) {
   });
 
   const [showCreate, setShowCreate] = useState(false);
-  const { data: vendedores } = useConsultoresAtivos();
+  const { data: consultores } = useConsultoresAtivos();
 
   // 2. Mapear projetos para acesso rápido
   const projetoMap = useMemo(() => {
@@ -132,7 +132,7 @@ export function CentralPendencias({ projetos, onViewProjeto, loading }: Props) {
               setShowCreate(false);
             }}
             isSubmitting={isCreating}
-            vendedores={vendedores || []}
+            vendedores={consultores || []}
             projetos={projetos}
           />
         </div>

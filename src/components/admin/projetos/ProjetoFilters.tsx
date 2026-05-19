@@ -220,7 +220,7 @@ export function ProjetoFilters({
             )}
           >
             <Users className="h-4 w-4" />
-            Por Vendedor
+            Por Consultor
           </Button>
 
           <Button

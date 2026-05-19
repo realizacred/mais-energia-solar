@@ -336,7 +336,7 @@ export function StageDealCard({
           </div>
 
           <div className="flex flex-col items-end gap-0.5">
-            <span className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Vendedor</span>
+            <span className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Consultor</span>
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-medium text-foreground truncate max-w-[80px]">{deal.owner_name}</span>
               <Avatar className="h-5 w-5 border border-border/60">
