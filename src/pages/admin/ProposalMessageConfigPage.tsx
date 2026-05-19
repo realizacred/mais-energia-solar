@@ -64,6 +64,7 @@ import {
 } from "@/hooks/useProposalMessageConfig";
 import {
   generateProposalMessage,
+  DEFAULT_TEMPLATES,
   type MessageMode,
   type MessageStyle,
   type ProposalMessageContext,
