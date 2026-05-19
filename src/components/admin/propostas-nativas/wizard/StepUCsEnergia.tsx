@@ -210,7 +210,7 @@ export function StepUCsEnergia({ onNext, onBack }: StepUCsProps) {
               <p className="text-sm font-medium">Pré-Dimensionamento será configurado nas etapas seguintes.</p>
             </div>
           )}
-        </div>
+
 
         {/* ── Sidebar Metrics (Col 3) ── */}
         <div className="xl:col-span-3 space-y-4 xl:sticky xl:top-4 xl:block hidden lg:hidden">
