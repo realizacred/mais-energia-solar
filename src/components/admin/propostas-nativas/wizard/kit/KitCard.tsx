@@ -6,6 +6,7 @@ import { formatBRL } from "../types";
 export interface KitCardData {
   id: string;
   distribuidorNome: string;
+  fornecedorId?: string;
   moduloDescricao: string;
   moduloQtd: number;
   moduloPotenciaKwp: number;
@@ -18,6 +19,7 @@ export interface KitCardData {
   tipoEstrutura?: string;
   updatedAt?: string;
 }
+
 
 interface KitCardProps {
   kit: KitCardData;

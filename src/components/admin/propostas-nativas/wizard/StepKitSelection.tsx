@@ -507,7 +507,9 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
     const card = kitItemsToCardData(newItens, topoLabel);
     if (card) {
       if (meta?.distribuidorNome) card.distribuidorNome = meta.distribuidorNome;
+      if (meta?.fornecedorId) card.fornecedorId = meta.fornecedorId;
       if (meta?.custo != null && meta.custo > 0) card.precoTotal = meta.custo;
+
 
       // Fase A: override one-shot baseado em meta.custo do kit recém-criado.
       const overrideShot = meta?.custo && meta.custo > 0 ? meta.custo : null;

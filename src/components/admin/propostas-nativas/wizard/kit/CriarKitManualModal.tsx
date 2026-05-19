@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
-import { Plus, Trash2, SunMedium, Cable, Zap, BatteryCharging, Check, ChevronsUpDown, X, Package, Boxes } from "lucide-react";
+import { Plus, Trash2, SunMedium, Cable, Zap, BatteryCharging, Check, ChevronsUpDown, X, Package, Boxes, Settings2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,6 +96,7 @@ interface Props {
 
 export interface KitMeta {
   distribuidorNome?: string;
+  fornecedorId?: string;
   nomeKit?: string;
   codigoKit?: string;
   catalogKitId?: string;
@@ -119,6 +120,7 @@ export interface KitMeta {
   external_data?: Record<string, any> | null;
   selected_at?: string;
 }
+
 
 /** Searchable equipment combo with highlight, keyboard nav, badge */
 interface SearchableOption { value: string; label: string; searchText: string }
@@ -468,13 +470,15 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   }, [initialItens]);
 
   const [distribuidorNome, setDistribuidorNome] = useState(initialCardData?.distribuidorNome || "");
+  const [fornecedorId, setFornecedorId] = useState<string | undefined>(initialCardData?.fornecedorId);
   const [distribuidorOpen, setDistribuidorOpen] = useState(false);
   const { data: fornecedoresList = [] } = useFornecedoresNomes();
   const fornecedoresFiltered = useMemo(() => {
     if (!distribuidorNome.trim()) return fornecedoresList.slice(0, 10);
-    const q = distribuidorNome.toLowerCase();
-    return fornecedoresList.filter(f => f.nome.toLowerCase().includes(q)).slice(0, 10);
+    const q = normalize(distribuidorNome);
+    return fornecedoresList.filter(f => normalize(f.nome).includes(q)).slice(0, 10);
   }, [fornecedoresList, distribuidorNome]);
+
   const [custo, setCusto] = useState(initialCardData?.custo || 0);
   const [nomeKit, setNomeKit] = useState(initialCardData?.nomeKit || "");
   const [codigoKit, setCodigoKit] = useState(initialCardData?.codigoKit || "");
@@ -509,6 +513,8 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
     setCusto(initialCardData?.custo || initCusto);
     if (initialCardData) {
       setDistribuidorNome(initialCardData.distribuidorNome || "");
+      setFornecedorId(initialCardData.fornecedorId);
+
       setNomeKit(initialCardData.nomeKit || "");
       setCodigoKit(initialCardData.codigoKit || "");
       if (initialCardData.topologia) {
@@ -712,10 +718,14 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
     }
 
     const meta: KitMeta = {
-      distribuidorNome, nomeKit, codigoKit,
+      distribuidorNome, 
+      fornecedorId,
+      nomeKit, 
+      codigoKit,
       topologia: normalizeTopologyValue(topologia),
       custo, sistema, custosEmbutidos,
     };
+
     onKitCreated(itens, meta);
     onOpenChange(false);
     toast({ title: "Kit criado manualmente", description: `${itens.length} itens adicionados` });
@@ -746,38 +756,106 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
           {/* Header fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-foreground">Nome do distribuidor <span className="text-destructive">*</span></Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium text-foreground">
+                  Nome do distribuidor <span className="text-destructive">*</span>
+                </Label>
+                <a 
+                  href="/admin/fornecedores" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-primary hover:underline flex items-center gap-1 transition-all hover:opacity-80"
+                >
+                  <Settings2 className="w-2.5 h-2.5" /> Gerenciar fornecedores
+                </a>
+              </div>
               <Popover open={distribuidorOpen} onOpenChange={setDistribuidorOpen}>
                 <PopoverTrigger asChild>
-                  <div className="relative">
+                  <div className="relative group">
                     <Input
                       value={distribuidorNome}
-                      onChange={e => { setDistribuidorNome(e.target.value); if (!distribuidorOpen) setDistribuidorOpen(true); }}
+                      onChange={e => { 
+                        setDistribuidorNome(e.target.value); 
+                        setFornecedorId(undefined); // Clear ID when typing
+                        if (!distribuidorOpen) setDistribuidorOpen(true); 
+                      }}
                       onFocus={() => setDistribuidorOpen(true)}
-                      placeholder="Digite para buscar..."
-                      className={cn("h-8 text-xs", triedSave && !distribuidorNome.trim() && "ring-2 ring-destructive")}
+                      placeholder="Busque fornecedor ou digite..."
+                      className={cn(
+                        "h-8 text-xs transition-all", 
+                        triedSave && !distribuidorNome.trim() && "ring-2 ring-destructive",
+                        fornecedorId && "border-primary/50 bg-primary/5 pr-8"
+                      )}
                       autoComplete="off"
                     />
+                    {fornecedorId && (
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
+                        <Badge variant="secondary" className="h-4 px-1 text-[9px] bg-primary/10 text-primary border-none">
+                          ID
+                        </Badge>
+                      </div>
+                    )}
                   </div>
                 </PopoverTrigger>
-                {fornecedoresFiltered.length > 0 && (
-                  <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start" sideOffset={4} onOpenAutoFocus={e => e.preventDefault()}>
-                    <div className="max-h-48 overflow-y-auto">
-                      {fornecedoresFiltered.map(f => (
-                        <button
-                          key={f.id}
-                          type="button"
-                          className="w-full text-left px-3 py-2 text-xs hover:bg-muted/50 transition-colors cursor-pointer text-foreground"
-                          onMouseDown={e => { e.preventDefault(); setDistribuidorNome(f.nome); setDistribuidorOpen(false); }}
-                        >
+                <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start" sideOffset={4} onOpenAutoFocus={e => e.preventDefault()}>
+                  <div className="max-h-60 overflow-y-auto overflow-x-hidden py-1">
+                    {fornecedoresFiltered.length > 0 && (
+                      <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider bg-muted/30">
+                        Fornecedores cadastrados
+                      </div>
+                    )}
+                    {fornecedoresFiltered.map(f => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        className={cn(
+                          "w-full text-left px-3 py-2 text-xs hover:bg-primary/5 hover:text-primary transition-colors cursor-pointer flex items-center justify-between group",
+                          fornecedorId === f.id ? "bg-primary/10 text-primary font-medium" : "text-foreground"
+                        )}
+                        onMouseDown={e => { 
+                          e.preventDefault(); 
+                          setDistribuidorNome(f.nome); 
+                          setFornecedorId(f.id);
+                          setDistribuidorOpen(false); 
+                        }}
+                      >
+                        <span className="truncate flex-1">
                           {distribuidorNome.trim() ? highlightMatch(f.nome, distribuidorNome) : f.nome}
+                        </span>
+                        {f.cidade && <span className="text-[10px] text-muted-foreground group-hover:text-primary/70 ml-2 shrink-0">{f.cidade}</span>}
+                      </button>
+                    ))}
+                    
+                    {distribuidorNome.trim() && !fornecedoresList.some(f => normalize(f.nome) === normalize(distribuidorNome)) && (
+                      <>
+                        <div className="border-t border-border mt-1 pt-1 px-2 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                          Ação
+                        </div>
+                        <button
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-xs hover:bg-primary/5 text-primary transition-colors cursor-pointer flex items-center gap-2"
+                          onMouseDown={e => { 
+                            e.preventDefault(); 
+                            setFornecedorId(undefined);
+                            setDistribuidorOpen(false); 
+                          }}
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Usar texto digitado: "<strong>{distribuidorNome}</strong>"</span>
                         </button>
-                      ))}
-                    </div>
-                  </PopoverContent>
-                )}
+                      </>
+                    )}
+                    
+                    {fornecedoresList.length === 0 && (
+                      <div className="p-4 text-center">
+                        <p className="text-xs text-muted-foreground">Nenhum fornecedor cadastrado.</p>
+                      </div>
+                    )}
+                  </div>
+                </PopoverContent>
               </Popover>
             </div>
+
             <div className="space-y-1">
               <Label className="text-xs font-medium text-foreground">Custo <span className="text-destructive">*</span></Label>
               <CurrencyInput value={custo} onChange={setCusto} className={cn("h-8 text-xs", triedSave && custo <= 0 && "ring-2 ring-destructive")} placeholder="0,00" />
