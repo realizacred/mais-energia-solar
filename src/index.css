@@ -710,11 +710,11 @@ a[href*="lovable.dev"][target="_blank"] {
     transform: translateY(0);
   }
   .kanban-card__top-bar {
-    width: 5px;
+    width: 3px;
     min-height: 100%;
     flex-shrink: 0;
     border-radius: 14px 0 0 14px;
-    background: linear-gradient(180deg, hsl(var(--success)), hsl(var(--success) / 0.5));
+    background: hsl(var(--muted-foreground) / 0.25);
   }
   .kanban-card--won {
     background: hsl(var(--success) / 0.06);
