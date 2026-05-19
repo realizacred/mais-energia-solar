@@ -108,6 +108,28 @@ function StageDealCardImpl({
   onSchedule,
   cardVisibleFields,
 }: StageDealCardProps) {
+  // -------- Stale-closure shield (RB-176 / AP-54) --------
+  // A custom equality do `memo` IGNORA identidade de callbacks (eles são recriados
+  // inline pelo pai a cada render). Para evitar que handlers do card disparem uma
+  // versão "velha" do callback do pai, mantemos os últimos refs vivos via useRef
+  // e expomos handlers internos ESTÁVEIS que sempre leem do ref + `deal` corrente.
+  // Isso preserva a memoização (sem rebind por render do pai) E garante frescor.
+  const latest = useRef({ onClick, onDragStart, onProposalClick, onArchive, onTransfer, onTag, onSchedule });
+  useEffect(() => {
+    latest.current = { onClick, onDragStart, onProposalClick, onArchive, onTransfer, onTag, onSchedule };
+  });
+
+  const handleClick = useCallback(() => latest.current.onClick?.(), []);
+  const handleDragStart = useCallback(
+    (e: React.DragEvent) => latest.current.onDragStart?.(e, deal.deal_id),
+    [deal.deal_id],
+  );
+  const handleProposalClick = useCallback(() => latest.current.onProposalClick?.(), []);
+  const handleArchive = useCallback(() => latest.current.onArchive?.(deal), [deal]);
+  const handleTransfer = useCallback(() => latest.current.onTransfer?.(deal), [deal]);
+  const handleTag = useCallback(() => latest.current.onTag?.(deal), [deal]);
+  const handleSchedule = useCallback(() => latest.current.onSchedule?.(deal), [deal]);
+
   const allEtiquetaCfgs = useMemo(() => {
     const cfgs: { label: string; short: string; cor: string; icon: string | null }[] = [];
     if (deal.etiqueta_ids && deal.etiqueta_ids.length > 0) {
