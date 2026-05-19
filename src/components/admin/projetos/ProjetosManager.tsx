@@ -512,7 +512,9 @@ export function ProjetosManager() {
       return next;
     }, { replace: true });
   }, [setSearchParams]);
-  const [activeTab, setActiveTab] = useState<string>("operacional");
+  const [activeTab, setActiveTab] = useState<string>(() =>
+    resolveInitialProjectsTab(viewMode, urlFilters.view, storedPrefs?.viewMode)
+  );
 
   // Sync viewMode with the active tab: Kanban tab never shows "lista"; Lista tab forces "lista".
   useEffect(() => {
