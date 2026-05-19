@@ -2,12 +2,13 @@ import React, { createContext, useContext, useState, useCallback, useMemo, useEf
 import {
   type LeadSelection, type ClienteData, type UCData,
   type PremissasData, type KitItemRow, type ServicoItem, type VendaData,
-  type PagamentoOpcao, type LayoutArranjo, type PreDimensionamentoData,
-  EMPTY_CLIENTE, DEFAULT_PREMISSAS, DEFAULT_PRE_DIMENSIONAMENTO, createEmptyUC,
+  type PagamentoOpcao, type LayoutArranjo, type PreDimensionamentoData, type ComercialData,
+  EMPTY_CLIENTE, EMPTY_COMERCIAL, DEFAULT_PREMISSAS, DEFAULT_PRE_DIMENSIONAMENTO, createEmptyUC,
   redeAtendimentoToFaseTensao, mapLeadTipoTelhadoToProposal,
 } from "./types";
 import { type AdicionalItem } from "./StepAdicionais";
 import { useTenantTarifas, applyTenantTarifasToUC } from "./useWizardDataLoaders";
+
 
 type GenerationStatus = "idle" | "calculating" | "publishing" | "published" | "ready_web" | "rendering_pdf" | "ready" | "docx_only" | "error" | "generating_docx" | "converting_pdf" | "saving";
 
