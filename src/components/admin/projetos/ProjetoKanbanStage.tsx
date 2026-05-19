@@ -390,7 +390,12 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
             const totalKwp = stageDeals.reduce((s, d) => s + (d.deal_kwp || 0), 0);
             const stageAutomations = automationsByStage.get(stage.id) || [];
             const hasActiveAutomation = stageAutomations.length > 0;
-            const overdueCount = stageDeals.filter(d => differenceInHours(new Date(), new Date(d.last_stage_change)) >= 72).length;
+            
+            const stageOverdueDeals = stageDeals.filter(d => {
+              const hours = differenceInHours(new Date(), new Date(d.last_stage_change));
+              return hours >= 72; // Proxy for overdue in mobile
+            });
+            const overdueCount = stageOverdueDeals.length;
 
             if (mobileSearch && stageDeals.length === 0) return null;
 
@@ -400,27 +405,29 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                   <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border/60 bg-card hover:bg-muted/30 transition-colors h-auto">
                     <div className="flex items-center gap-2 min-w-0">
                       <h3 className="text-sm font-bold text-foreground truncate">{stage.name}</h3>
-                      <Badge variant="outline" className="text-[10px] h-5 font-semibold rounded-lg">
+                      <Badge variant="outline" className={cn(
+                        "text-[10px] h-5 font-semibold rounded-lg",
+                        overdueCount > 0 ? "border-destructive/30 text-destructive bg-destructive/5" : ""
+                      )}>
                         {stageDeals.length}
                       </Badge>
                       {overdueCount > 0 && (
-                        <Badge variant="destructive" className="text-[9px] h-4 px-1.5 font-bold rounded-full">
-                          {overdueCount} ⚠
-                        </Badge>
+                        <span className="text-[10px] text-destructive font-bold animate-pulse flex items-center gap-1">
+                          <Clock className="h-2.5 w-2.5" />
+                          {overdueCount} atrasado(s)
+                        </span>
                       )}
                       {hasActiveAutomation && <Zap className="h-3 w-3 text-primary animate-pulse shrink-0" />}
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="text-right">
                         <span className="text-[11px] font-mono font-semibold text-foreground">{formatBRL(totalValue)}</span>
-                        {totalKwp > 0 && (
-                          <span className="text-[10px] font-mono text-muted-foreground ml-2">{formatKwp(totalKwp)}</span>
-                        )}
                       </div>
                       <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform [[data-state=open]>&]:rotate-180" />
                     </div>
                   </Button>
                 </CollapsibleTrigger>
+
                 <CollapsibleContent>
                   <div className="space-y-2 pt-2 pb-1">
                     {stageDeals.length === 0 ? (
