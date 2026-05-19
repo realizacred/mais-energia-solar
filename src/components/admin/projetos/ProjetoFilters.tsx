@@ -110,6 +110,8 @@ interface Props {
   onFilterStatusChange: (v: string) => void;
   filterTipoProjetoSolar?: string;
   onFilterTipoProjetoSolarChange?: (v: string) => void;
+  filterResponsavel?: string;
+  onFilterResponsavelChange?: (v: string) => void;
   etiquetas: ProjetoEtiqueta[];
   filterEtiquetas: string[];
   onFilterEtiquetasChange: (ids: string[]) => void;
@@ -139,6 +141,7 @@ export function ProjetoFilters({
   filterStatus, onFilterStatusChange,
   filterTipoProjetoSolar = "todos", onFilterTipoProjetoSolarChange,
   etiquetas, filterEtiquetas, onFilterEtiquetasChange,
+  filterResponsavel = "todos", onFilterResponsavelChange,
   viewMode, onViewModeChange,
   onClearFilters,
   onEditEtapas, onCreateFunil, onReorderFunis,
@@ -335,6 +338,29 @@ export function ProjetoFilters({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Responsável Operacional */}
+          {onFilterResponsavelChange && (
+            <div className="flex flex-col gap-1">
+              <label className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <UserCog className="h-3 w-3" />
+                Responsável
+              </label>
+              <Select value={filterResponsavel} onValueChange={onFilterResponsavelChange}>
+                <SelectTrigger className="w-full xl:w-[130px] h-9 text-xs border-border/60 bg-card">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="Engenharia">Engenharia</SelectItem>
+                  <SelectItem value="Financeiro">Financeiro</SelectItem>
+                  <SelectItem value="Instalação">Instalação</SelectItem>
+                  <SelectItem value="Administrativo">Administrativo</SelectItem>
+                  <SelectItem value="Concessionária">Concessionária</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Tipo de projeto solar */}
           {onFilterTipoProjetoSolarChange && (
