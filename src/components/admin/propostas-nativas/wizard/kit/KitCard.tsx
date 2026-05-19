@@ -24,10 +24,14 @@ export interface KitCardData {
 interface KitCardProps {
   kit: KitCardData;
   onSelect: (kit: KitCardData) => void;
+  onCompare?: (kit: KitCardData) => void;
+  isComparing?: boolean;
+  isBestMatch?: boolean;
   viewMode: "grid" | "list";
 }
 
-export function KitCard({ kit, onSelect, viewMode }: KitCardProps) {
+export function KitCard({ kit, onSelect, onCompare, isComparing, isBestMatch, viewMode }: KitCardProps) {
+
   if (viewMode === "list") {
     return (
       <div className="flex items-center gap-4 p-4 rounded-xl border-2 border-border/40 hover:border-primary/30 transition-all bg-card">
