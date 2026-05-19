@@ -349,7 +349,33 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
     }
   };
 
+  // Identify Best Match (closest to potenciaIdeal)
+  const bestMatchKitId = useMemo(() => {
+    if (potenciaIdeal <= 0 || catalogKits.length === 0) return null;
+    let bestId = null;
+    let minDiff = Infinity;
+    
+    catalogKits.forEach(kit => {
+      const diff = Math.abs((kit.estimated_kwp || 0) - potenciaIdeal);
+      if (diff < minDiff) {
+        minDiff = diff;
+        bestId = kit.id;
+      }
+    });
+    
+    return minDiff < potenciaIdeal * 0.3 ? bestId : null; // Only suggest if within 30%
+  }, [catalogKits, potenciaIdeal]);
+
+  const toggleCompare = (kitId: string) => {
+    setComparingKitIds(prev => {
+      if (prev.includes(kitId)) return prev.filter(id => id !== kitId);
+      if (prev.length >= 2) return [prev[1], kitId];
+      return [...prev, kitId];
+    });
+  };
+
   const consumoTotal = 0; // Simplified as it was before
+
 
   // Build KitCardData from current itens for the Edit Kit Fechado modal
   const currentKitCards = useMemo(() => {
