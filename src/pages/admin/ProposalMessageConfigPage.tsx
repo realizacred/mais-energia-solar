@@ -682,8 +682,6 @@ function ProposalMessageConfigPageInner() {
                 </Tabs>
               </CardContent>
             </Card>
-              </CardContent>
-            </Card>
           </div>
         </TabsContent>
 
