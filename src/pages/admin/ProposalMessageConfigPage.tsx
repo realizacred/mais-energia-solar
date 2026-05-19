@@ -32,7 +32,7 @@ import {
   ToggleLeft, Sliders, Copy, CheckCircle, ShieldAlert,
   GripVertical, Pencil, ArrowUp, ArrowDown, Check,
   ExternalLink, ChevronRight, Wand2, Sparkles,
-  Smartphone, Mail as MailIcon, FileText
+  Smartphone, Mail as MailIcon, FileText, AlertTriangle, Info
 } from "lucide-react";
 import { Reorder, useDragControls } from "framer-motion";
 import { Button } from "@/components/ui/button";
