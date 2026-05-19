@@ -515,12 +515,20 @@ function StageDealCardImpl({
 /**
  * Memoized export — RB-176 / AP-54 compliance.
  *
- * Stability contract: re-render apenas quando dados visíveis do card mudarem.
- * Callbacks (onClick, onDragStart, onProposalClick, onArchive, onTransfer, onTag,
- * onSchedule) são intencionalmente IGNORADOS na equality:
- *  - Eles são recriados a cada render do pai (arrow inline);
- *  - Comportamento é estável (delegam para setters/handlers estáveis do parent);
- *  - Só disparam em gesto do usuário, sem closure stale relevante.
+ * Stability contract:
+ *  - Re-render APENAS quando dados visíveis do card mudarem: `deal` (ref), `isDragging`,
+ *    `hasAutomation`, `dynamicEtiquetas`, `cardVisibleFields`.
+ *  - Callbacks (onClick, onDragStart, onProposalClick, onArchive, onTransfer, onTag,
+ *    onSchedule) são INTENCIONALMENTE IGNORADOS na equality — pais inline-arrow os
+ *    recriam a cada render e isso destruiria a memoização.
+ *
+ * Stale-closure shield (interno):
+ *  - Os callbacks externos vivos são espelhados em `latest` (useRef) atualizado em
+ *    cada commit (`useEffect` sem deps). Handlers internos do card são `useCallback`
+ *    estáveis que sempre disparam `latest.current.*` com o `deal` corrente do render.
+ *  - Resultado: mesmo que o pai passe um onArchive/onTransfer/... "novo" sem mudar
+ *    `deal` (e nós pulemos o render), o próximo clique ainda chamará a versão MAIS
+ *    NOVA do callback — sem closure stale, sem flicker, sem rebind.
  *
  * Re-renderiza quando: `deal` muda por referência (React Query structural sharing
  * já garante referência estável quando o conteúdo não muda), drag state muda,
