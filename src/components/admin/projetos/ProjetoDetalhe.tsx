@@ -2014,31 +2014,101 @@ function GerenciamentoTab({
     loadProjectEvents();
   }, [deal.id, formatDate, getStageNameById]);
 
-  // Load proposal records for timeline
+  // Load proposal events for timeline (explicit events source)
   useEffect(() => {
-    async function loadPropostaEvents() {
+    async function loadProposalEventsTable() {
       try {
-        const { data } = await (supabase as any)
+        const { data: proposals } = await supabase
           .from("propostas_nativas")
-          .select("id, titulo, status, created_at, codigo")
+          .select("id, titulo, status, created_at, codigo, aceita_at")
           .or(`deal_id.eq.${deal.id},projeto_id.eq.${deal.id}`)
-          .neq("status", "excluida")
+          .neq("status", "excluida");
+        
+        if (!proposals || proposals.length === 0) return;
+        const propIds = proposals.map(p => p.id);
+
+        const { data: events } = await supabase
+          .from("proposal_events")
+          .select("id, proposta_id, tipo, payload, created_at, user_id")
+          .in("proposta_id", propIds)
           .order("created_at", { ascending: false })
-          .limit(20);
-        if (data && data.length > 0) {
-          const { getProposalStatusLabel } = await import("@/lib/proposalStatusConfig");
-          setPropostaEntries(data.map((p: any) => ({
-            id: `prop-${p.id}`,
-            type: "proposta" as const,
-            title: `Proposta: ${p.titulo || p.codigo || "Sem título"}`,
-            subtitle: `${p.codigo || "—"} • Status: ${getProposalStatusLabel(p.status)}`,
-            date: formatDate(p.created_at),
-          })));
+          .limit(50);
+
+        const actorIds = [...new Set(events?.map(e => e.user_id).filter(Boolean))] as string[];
+        const actorNameMap = new Map<string, string>();
+        if (actorIds.length > 0) {
+          const { data: profiles } = await supabase.from("profiles").select("user_id, nome").in("user_id", actorIds);
+          profiles?.forEach(p => actorNameMap.set(p.user_id, p.nome));
         }
-      } catch { /* ignore */ }
+
+        const entries: UnifiedTimelineItem[] = [];
+        
+        // 1. Mapear propostas existentes (Criação)
+        proposals.forEach(p => {
+          entries.push({
+            id: `prop-created-${p.id}`,
+            type: "proposta",
+            title: `Proposta criada: ${p.titulo || p.codigo || "Sem título"}`,
+            subtitle: p.codigo || undefined,
+            date: formatDate(p.created_at),
+          });
+
+          // GOVERNANÇA: Se o status for accepted mas não houver evento EXPLÍCITO de aceite
+          const hasAcceptEvent = events?.some(e => e.proposta_id === p.id && (e.tipo === "proposta_aceita" || (e.tipo === "status_change" && e.payload?.new_status === "accepted")));
+          if (p.status === "accepted" && !p.aceita_at && !hasAcceptEvent) {
+            entries.push({
+              id: `prop-inconsistent-${p.id}`,
+              type: "proposta",
+              title: "ALERTA: Estado atual sem evento de auditoria",
+              subtitle: "Proposta aparece como aceita mas não possui evidência formal ou evento de aceite registrado.",
+              date: formatDate(new Date().toISOString()),
+              isCurrent: true
+            });
+          }
+        });
+
+        // 2. Mapear eventos explícitos da proposal_events
+        events?.forEach(e => {
+          const prop = proposals.find(p => p.id === e.proposta_id);
+          const actorName = actorNameMap.get(e.user_id || "");
+          const actorSuffix = actorName ? ` por ${actorName}` : "";
+          
+          const EVENT_LABELS: Record<string, string> = {
+            proposta_enviada: "Proposta enviada",
+            proposta_visualizada: "Cliente visualizou a proposta",
+            proposta_aceita: "PROPOSTA ACEITA FORMALMENTE",
+            proposta_recusada: "Proposta recusada pelo cliente",
+            status_change: "Status da proposta alterado",
+            aceite_revertido: "Aceite formal cancelado (Admin)",
+          };
+
+          let title = EVENT_LABELS[e.tipo] || e.tipo;
+          let subtitle = prop?.titulo || prop?.codigo || "";
+          
+          if (e.tipo === "status_change") {
+            const payload = e.payload as any;
+            title = `Status: ${payload?.previous_status || "?"} → ${payload?.new_status || "?"}`;
+          }
+
+          if (e.tipo === "proposta_aceita" && (e.payload as any)?.via) {
+            title = `ACEITE FORMAL via ${(e.payload as any).via}`;
+          }
+
+          entries.push({
+            id: `prop-ev-${e.id}`,
+            type: "proposta",
+            title,
+            subtitle: `${subtitle}${actorSuffix}`,
+            date: formatDate(e.created_at),
+          });
+        });
+
+        setPropostaEntries(entries);
+      } catch (err) { console.error("loadProposalEventsTable error:", err); }
     }
-    loadPropostaEvents();
+    loadProposalEventsTable();
   }, [deal.id, formatDate]);
+
 
   // Build unified timeline
   const allEntries = useMemo(() => {
