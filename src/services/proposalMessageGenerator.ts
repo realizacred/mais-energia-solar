@@ -425,6 +425,10 @@ export function generateProposalMessage(
     status: ctx.propostaStatus || "—",
     consultor_nome: ctx.consultorNome || "",
     empresa_nome: ctx.empresaNome || "",
+    // Custom Titles (Enterprise)
+    titulo_sistema_solar: blocksConfig?.resumo_tecnico?.title || "Sistema Solar",
+    titulo_consumo_geracao: blocksConfig?.consumo_geracao?.title || "Consumo e Geração",
+    titulo_investimento: blocksConfig?.investimento?.title || "Investimento",
   };
 
   // Resolve blocks
