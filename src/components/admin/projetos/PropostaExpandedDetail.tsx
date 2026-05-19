@@ -282,7 +282,7 @@ function StatusBadge({ status, aceita_at, enviada_at, recusada_at, created_at }:
   // Map internal status to badge type
   const getBadgeType = () => {
     const normalized = status.toLowerCase();
-    if (["accepted", "aceita", "aprovada", "ganha"].includes(normalized)) return "aceita";
+    if (["accepted", "aceita"].includes(normalized)) return "aceita";
     if (["sent", "enviada", "visualizada", "vista"].includes(normalized)) return "enviada";
     if (["generated", "gerada"].includes(normalized)) return "gerada";
     if (["draft", "rascunho"].includes(normalized)) return "rascunho";
