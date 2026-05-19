@@ -854,8 +854,8 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
                       />
                     );
                   })}
-                  })}
                 </div>
+
               )}
             </div>
           ) : tab === "customizado" ? (
