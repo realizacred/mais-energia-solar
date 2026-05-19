@@ -363,51 +363,42 @@ function StageDealCardImpl({
 
         {/* PENDENCIES: Real Operational Obstacles */}
         {mainPendencia && (
-          <div className={cn(
-            "flex items-start gap-1.5 rounded p-1.5",
-            mainPendencia.criticidade === 'critica'
-              ? "bg-destructive/5 border border-destructive/20"
-              : "bg-warning/5 border border-warning/20"
-          )}>
+          <div className="flex items-start gap-1.5">
             <AlertTriangle className={cn(
               "h-3 w-3 shrink-0 mt-0.5",
-              mainPendencia.criticidade === 'critica'
-                ? "text-destructive"
-                : "text-warning"
+              mainPendencia.criticidade === 'critica' ? "text-destructive" : "text-warning"
             )} />
             <div className="flex-1 min-w-0">
               <p className={cn(
-                "text-[10px] font-bold leading-tight line-clamp-1",
-                mainPendencia.criticidade === 'critica'
-                  ? "text-destructive"
-                  : "text-foreground"
+                "text-[10px] font-medium leading-tight line-clamp-1",
+                mainPendencia.criticidade === 'critica' ? "text-destructive" : "text-foreground/90"
               )}>
                 {mainPendencia.titulo}
               </p>
               {mainPendencia.sla_at && (
-                <span className="text-[8px] text-muted-foreground block mt-0.5">
+                <span className="text-[9px] text-muted-foreground/70 block">
                   SLA: {formatDate(mainPendencia.sla_at)}
                 </span>
               )}
             </div>
             {mainPendencia.bloqueia_fluxo && (
-              <LockIcon className="h-2.5 w-2.5 text-destructive shrink-0" />
+              <LockIcon className="h-2.5 w-2.5 text-destructive shrink-0 mt-0.5" />
             )}
           </div>
         )}
 
         {/* FALLBACK NOTE: If no formal pendency exists */}
         {!mainPendencia && deal.notas?.trim() && (
-          <div className="flex items-start gap-1.5 bg-warning/5 border border-warning/20 rounded p-1.5">
-            <StickyNote className="h-3 w-3 text-warning shrink-0 mt-0.5" />
-            <p className="text-[10px] text-amber-900/80 leading-tight line-clamp-2 italic">
+          <div className="flex items-start gap-1.5">
+            <StickyNote className="h-3 w-3 text-muted-foreground/60 shrink-0 mt-0.5" />
+            <p className="text-[10px] text-muted-foreground leading-tight line-clamp-2">
               {deal.notas}
             </p>
           </div>
         )}
 
         {/* METRICS & ETIQUETAS (Commercial Data - Secondary) */}
-        <div className="flex items-center justify-between pt-1 border-t border-border/20 mt-1">
+        <div className="flex items-center justify-between pt-1.5 border-t border-border/30 mt-1">
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 text-[10px] font-mono">
               <Zap className="h-2.5 w-2.5 text-success" />
