@@ -560,11 +560,10 @@ export function StepDocumento({
       let statusMsg = generationStatus === "calculating" ? "Calculando dimensionamento..."
         : generationStatus === "publishing" ? "Publicando versão oficial no CRM..."
         : generationStatus === "published" ? "Versão publicada com sucesso!"
-        : generationStatus === "rendering_pdf" ? "Gerando PDF de alta conversão..."
-        : "Gerando proposta comercial...";
+        : "Gerando proposta em PDF...";
 
       if (elapsedTime > 30 && (generating || rendering)) {
-        statusMsg = "Aguarde, a geração está levando mais tempo que o normal (pode levar até 2 minutos)...";
+        statusMsg = "Aguarde, a geração está levando mais tempo que o normal...";
       }
       
       if (elapsedTime > 120 && (generating || rendering)) {
@@ -579,7 +578,7 @@ export function StepDocumento({
           </div>
           <div className="space-y-2 max-w-sm">
             <p className="text-sm font-semibold text-foreground">{statusMsg}</p>
-            <p className="text-xs text-muted-foreground">Gerando proposta... (pode levar até 2 minutos)</p>
+            <p className="text-xs text-muted-foreground">Isso pode levar até 2 minutos.</p>
             {elapsedTime > 0 && <p className="text-[10px] text-muted-foreground/60">{elapsedTime}s decorridos</p>}
           </div>
           <div className="flex items-center gap-2 mt-2">
