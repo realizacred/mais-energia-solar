@@ -477,79 +477,83 @@ function StepConsumptionIntelligenceImpl({
   );
 
   return (
-    <div className="space-y-4">
-      {/* ─── Briefing Operational & Cockpit ─── */}
-      <LeadBriefingPanel />
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="lg:col-span-3 space-y-6">
+        <LeadBriefingPanel />
 
-      {/* ─── Banner informativo Dados do Lead (RB-76/RB-62) */}
-
-
-
-      {/* ─── Header metrics bar */}
-      <div className="flex items-center justify-end gap-4 text-xs flex-wrap">
-        <div className="flex items-center gap-1.5 text-muted-foreground">
-          <BarChart3 className="h-3.5 w-3.5" />
-          <span>Consumo Médio Total</span>
-          <span className="font-bold text-foreground">{formatNumberBR(consumoTotal)} kWh</span>
-        </div>
-        <Button variant="ghost" onClick={() => setPreDimModal(true)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground group h-auto p-0">
-          <Pencil className="h-3.5 w-3.5" />
-          <span>Potência Ideal</span>
-          <span className="font-bold text-foreground">
-            T: {potenciaIdealByTopo.tradicional.toFixed(2)} | M: {potenciaIdealByTopo.microinversor.toFixed(2)} | O: {potenciaIdealByTopo.otimizador.toFixed(2)}
-          </span>
-          <Pencil className="h-2.5 w-2.5 text-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
-        </Button>
-        <Button variant="ghost" onClick={() => setPreDimModal(true)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground group h-auto p-0">
-          <Zap className="h-3.5 w-3.5" />
-          <span>Fator de Geração</span>
-          <span className="font-bold text-foreground">
-            T: {getTopoConfig("tradicional").fator_geracao.toFixed(2)} | M: {getTopoConfig("microinversor").fator_geracao.toFixed(2)} | O: {getTopoConfig("otimizador").fator_geracao.toFixed(2)}
-          </span>
-          <Pencil className="h-2.5 w-2.5 text-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
-        </Button>
-      </div>
-
-      {/* ─── Tabs + actions */}
-      <div className="flex items-center justify-between">
-        <div className="flex gap-2">
-          <Button
-            variant={activeTab === "ucs" ? "outline" : "ghost"}
-            size="sm"
-            className={`gap-1.5 ${activeTab === "ucs" ? "border-2 border-secondary text-secondary font-semibold" : ""}`}
-            onClick={() => setActiveTab("ucs")}
-          >
-            <Zap className="h-3.5 w-3.5" /> Unidades Consumidoras
-          </Button>
-          <Button
-            variant={activeTab === "pre" ? "outline" : "ghost"}
-            size="sm"
-            className={`gap-1.5 ${activeTab === "pre" ? "border-2 border-secondary text-secondary font-semibold" : ""}`}
-            onClick={() => setActiveTab("pre")}
-          >
-            <Settings2 className="h-3.5 w-3.5" /> Pré-Dimensionamento
-          </Button>
-        </div>
-
-        {ucs.length > 1 && (
+        {/* ─── Metric Cockpit Summary */}
+        <div className="flex flex-wrap items-center gap-6 text-[11px] text-muted-foreground bg-muted/30 p-3 rounded-lg border border-border/40">
           <div className="flex items-center gap-2">
-            <Button size="sm" className="h-7 text-[11px] bg-primary hover:bg-primary/90" onClick={handleAutoRateio}>
-              Rateio automático
+            <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">
+              <Zap className="h-3 w-3 text-primary" />
+            </div>
+            <span>Consumo Médio: <span className="font-bold text-foreground text-sm tracking-tight">{formatNumberBR(consumoTotal)} kWh</span></span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="h-5 w-5 rounded-full bg-secondary/10 flex items-center justify-center">
+              <Sun className="h-3 w-3 text-secondary" />
+            </div>
+            <span>Irradiação: <span className="font-bold text-foreground text-sm tracking-tight">{irradiacao?.toFixed(2) || "—"} kWh/m²</span></span>
+          </div>
+
+          <Button 
+            variant="ghost" 
+            onClick={() => setPreDimModal(true)} 
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-white/50 group h-7 py-0 px-2 ml-auto"
+          >
+            <Settings2 className="h-3.5 w-3.5" />
+            <span className="font-bold text-foreground text-[10px] uppercase tracking-wider">Configurações Técnicas</span>
+            <Pencil className="h-2.5 w-2.5 text-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
+          </Button>
+        </div>
+
+        {/* ─── Tabs + actions */}
+        <div className="flex items-center justify-between border-b border-border/40 pb-2">
+          <div className="flex gap-1">
+            <Button
+              variant={activeTab === "ucs" ? "secondary" : "ghost"}
+              size="sm"
+              className={cn(
+                "gap-1.5 h-8 text-[11px] font-bold uppercase tracking-wider",
+                activeTab === "ucs" ? "bg-primary/10 text-primary hover:bg-primary/20" : ""
+              )}
+              onClick={() => setActiveTab("ucs")}
+            >
+              <Zap className="h-3.5 w-3.5" /> Unidades Consumidoras
             </Button>
-            <Button variant="link" onClick={() => setRateioOpen(true)} className="text-[11px] text-secondary hover:underline flex items-center gap-1 h-auto p-0">
-              <Settings2 className="h-3 w-3" /> Gerenciar rateio de créditos
+            <Button
+              variant={activeTab === "pre" ? "secondary" : "ghost"}
+              size="sm"
+              className={cn(
+                "gap-1.5 h-8 text-[11px] font-bold uppercase tracking-wider",
+                activeTab === "pre" ? "bg-primary/10 text-primary hover:bg-primary/20" : ""
+              )}
+              onClick={() => setActiveTab("pre")}
+            >
+              <Settings2 className="h-3.5 w-3.5" /> Detalhamento Técnico
             </Button>
           </div>
-        )}
-      </div>
 
-      {/* ─── Tab content */}
-      {activeTab === "ucs" ? (
-        <div className="space-y-3">
-          <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1">
-            {ucs.map((uc, i) => (
-              <div key={uc.id} className="shrink-0">
+          {ucs.length > 1 && (
+            <div className="flex items-center gap-2">
+              <Button size="sm" className="h-7 text-[10px] font-bold uppercase bg-primary hover:bg-primary/90" onClick={handleAutoRateio}>
+                Rateio automático
+              </Button>
+              <Button variant="link" onClick={() => setRateioOpen(true)} className="text-[10px] text-secondary hover:underline flex items-center gap-1 h-auto p-0 uppercase font-bold">
+                <Settings2 className="h-3 w-3" /> Rateio
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* ─── Tab content */}
+        {activeTab === "ucs" ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-2">
+              {ucs.map((uc, i) => (
                 <UCCard
+                  key={uc.id}
                   uc={uc}
                   index={i}
                   onChange={u => updateUC(i, u)}
@@ -560,31 +564,31 @@ function StepConsumptionIntelligenceImpl({
                   totalUcs={ucs.length}
                   leadFase={i === 0 ? leadFase : undefined}
                 />
+              ))}
 
-              </div>
-            ))}
+              <button
+                onClick={addUC}
+                className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-primary/20 rounded-xl min-h-[350px] text-primary/60 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer group"
+              >
+                <div className="p-3 rounded-full bg-primary/5 group-hover:bg-primary/10 transition-colors">
+                  <Plus className="h-8 w-8" />
+                </div>
+                <span className="text-sm font-bold uppercase tracking-widest">Adicionar Unidade</span>
+              </button>
+            </div>
 
+            {/* Configurações adicionais */}
             <button
-              onClick={addUC}
-              className="shrink-0 w-[220px] min-h-[400px] rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/10 transition-colors cursor-pointer"
+              onClick={() => setConfigModal({ open: true, index: 0 })}
+              className="flex items-center gap-1.5 text-[10px] text-primary font-bold uppercase tracking-wider hover:underline"
             >
-              <Plus className="h-5 w-5 text-primary" />
-              <span className="text-xs text-primary font-medium">+ Nova Unidade</span>
+              <Settings2 className="h-3.5 w-3.5" />
+              Configurações Técnicas Avançadas
             </button>
           </div>
-
-          {/* Configurações adicionais */}
-          <button
-            onClick={() => setConfigModal({ open: true, index: 0 })}
-            className="flex items-center gap-1.5 text-xs text-primary hover:underline"
-          >
-            <Settings2 className="h-3.5 w-3.5" />
-            Configurações adicionais
-          </button>
-        </div>
-      ) : (
-        preDimContent
-      )}
+        ) : (
+          preDimContent
+        )}
       </div>
 
       {/* ─── RIGHT SIDEBAR (Col 1) */}
