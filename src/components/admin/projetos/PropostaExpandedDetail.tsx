@@ -180,9 +180,11 @@ function useMergedTimeline(
   auditLogs: Array<{ id: string; acao: string; tabela: string; user_email: string | null; created_at: string }>,
   events: ProposalEventEntry[],
   propostaCreatedAt?: string | null,
+  propostaUpdatedAt?: string | null,
   dealStatus?: string,
   acceptedAt?: string | null
 ): TimelineEntry[] {
+
 
   return useMemo(() => {
     const entries: TimelineEntry[] = [];
