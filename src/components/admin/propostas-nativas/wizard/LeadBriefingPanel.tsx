@@ -9,7 +9,6 @@ import {
   Calculator,
   ClipboardList
 } from "lucide-react";
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,6 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useWizardContext } from "./WizardContext";
 import { cn } from "@/lib/utils";
-
 
 /**
  * Premium Executive Briefing for the Proposal Wizard.
@@ -54,7 +52,6 @@ export function LeadBriefingPanel() {
   const geracaoDesejada = selectedLead?.geracao_estimada_kwh;
   const observacao = selectedLead?.observacoes || selectedLead?.orc_observacoes;
   const necessidade = selectedLead?.necessidade_cliente;
-
 
   if (!selectedLead) return null;
 
