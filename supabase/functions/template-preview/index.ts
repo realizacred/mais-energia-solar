@@ -1240,14 +1240,35 @@ Deno.serve(async (req) => {
       // (id + public_slug needed for QR injection)
       const { data: versao } = await adminClient
         .from("proposta_versoes")
-        .select("id, public_slug, snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
+        .select("id, public_slug, snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero, retry_count")
         .eq("proposta_id", proposta_id)
         .order("versao_numero", { ascending: false })
         .limit(1)
         .maybeSingle();
 
       versaoData = versao;
+
+      if (versao) {
+        const isRetry = body.force === true;
+        await adminClient.from("proposta_versoes")
+          .update({ 
+            generation_status: "generating",
+            retry_count: isRetry ? (versao.retry_count || 0) + 1 : versao.retry_count,
+            last_retry_at: isRetry ? new Date().toISOString() : null
+          })
+          .eq("id", versao.id);
+
+        await adminClient.from("proposal_events").insert({
+          proposta_id,
+          tipo: "pdf_started",
+          payload: { versao_id: versao.id, template_id, is_retry: isRetry },
+          tenant_id,
+          user_id: userId
+        });
+      }
     }
+
+    const startTime = Date.now();
 
     // ── 5. BUSCAR DADOS RELACIONADOS ──────────────────────
     const [leadRes, clienteRes, projetoRes, consultorRes, tenantRes, brandSettingsRes] = await Promise.all([
@@ -2039,6 +2060,43 @@ Deno.serve(async (req) => {
     });
   } catch (err: any) {
     console.error("[template-preview] Error:", err?.message, err?.stack);
+
+    // Record failure if we have a version
+    if (proposta_id) {
+       const { data: versao } = await adminClient
+        .from("proposta_versoes")
+        .select("id, retry_count")
+        .eq("proposta_id", proposta_id)
+        .order("versao_numero", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (versao) {
+        const nextRetry = new Date();
+        nextRetry.setMinutes(nextRetry.getMinutes() + 5); // 5 min default
+
+        await adminClient.from("proposta_versoes")
+          .update({ 
+            generation_status: "failed", 
+            generation_error: err?.message || "Erro técnico",
+            next_retry_at: nextRetry.toISOString()
+          })
+          .eq("id", versao.id);
+
+        await adminClient.from("proposal_events").insert({
+          proposta_id,
+          tipo: "pdf_failed",
+          payload: { 
+            versao_id: versao.id, 
+            error: err?.message,
+            retry_count: versao.retry_count 
+          },
+          tenant_id,
+          user_id: userId
+        });
+      }
+    }
+
     return jsonError(err?.message ?? "Erro interno", 500);
   }
 });
