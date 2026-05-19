@@ -657,40 +657,112 @@ function ProposalMessageConfigPageInner() {
               </p>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {Object.entries(BLOCK_LABELS).map(([key, meta]) => {
-                  const blockCfg = blocks[key] || SYSTEM_DEFAULT_BLOCKS[key];
-                  return (
-                    <div
-                      key={key}
-                      className={cn(
-                        "flex items-center justify-between p-3 rounded-lg border transition-colors",
-                        blockCfg?.enabled ? "border-primary/20 bg-primary/5" : "border-border bg-card"
-                      )}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground">{meta.label}</p>
-                        <p className="text-[10px] text-muted-foreground">{meta.description}</p>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {blockCfg?.modes?.map(m => (
-                            <Badge key={m} variant="outline" className="text-[8px] h-4 px-1">
-                              {m === "cliente" ? "👤" : "📋"} {m}
-                            </Badge>
-                          ))}
-                          {blockCfg?.styles?.map(s => (
-                            <Badge key={s} variant="outline" className="text-[8px] h-4 px-1">
-                              {s}
-                            </Badge>
-                          ))}
+              <div className="space-y-3">
+                {Object.entries(BLOCK_LABELS)
+                  .sort(([keyA], [keyB]) => {
+                    const orderA = blocks[keyA]?.order ?? Object.keys(BLOCK_LABELS).indexOf(keyA);
+                    const orderB = blocks[keyB]?.order ?? Object.keys(BLOCK_LABELS).indexOf(keyB);
+                    return orderA - orderB;
+                  })
+                  .map(([key, meta], index, array) => {
+                    const blockCfg = blocks[key] || SYSTEM_DEFAULT_BLOCKS[key];
+                    const isFirst = index === 0;
+                    const isLast = index === array.length - 1;
+
+                    return (
+                      <div
+                        key={key}
+                        className={cn(
+                          "flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 shadow-sm group/block",
+                          blockCfg?.enabled ? "border-primary/30 bg-primary/[0.02] dark:bg-primary/[0.05]" : "border-border bg-card opacity-60 grayscale-[0.5]"
+                        )}
+                      >
+                        {/* Order Controls */}
+                        <div className="flex flex-col items-center gap-1 shrink-0">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6" 
+                            disabled={isFirst}
+                            onClick={() => {
+                              const prevKey = array[index - 1][0];
+                              const currentOrder = blockCfg.order ?? index;
+                              const prevOrder = blocks[prevKey]?.order ?? (index - 1);
+                              setBlocks(prev => ({
+                                ...prev,
+                                [key]: { ...blockCfg, order: prevOrder },
+                                [prevKey]: { ...(prev[prevKey] || SYSTEM_DEFAULT_BLOCKS[prevKey]), order: currentOrder }
+                              }));
+                            }}
+                          >
+                            <ArrowUp className="h-3.5 w-3.5" />
+                          </Button>
+                          <GripVertical className="h-4 w-4 text-muted-foreground/40 cursor-grab" />
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6" 
+                            disabled={isLast}
+                            onClick={() => {
+                              const nextKey = array[index + 1][0];
+                              const currentOrder = blockCfg.order ?? index;
+                              const nextOrder = blocks[nextKey]?.order ?? (index + 1);
+                              setBlocks(prev => ({
+                                ...prev,
+                                [key]: { ...blockCfg, order: nextOrder },
+                                [nextKey]: { ...(prev[nextKey] || SYSTEM_DEFAULT_BLOCKS[nextKey]), order: currentOrder }
+                              }));
+                            }}
+                          >
+                            <ArrowDown className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                             <h4 className="text-sm font-bold text-foreground">{blockCfg.title || meta.label}</h4>
+                             {(blockCfg.title || blockCfg.prefix) && (
+                               <Badge variant="outline" className="text-[8px] h-3.5 px-1 uppercase opacity-50 border-primary/30 text-primary">Customizado</Badge>
+                             )}
+                          </div>
+                          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-1">{meta.description}</p>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {blockCfg?.modes?.map(m => (
+                              <Badge key={m} variant="outline" className="text-[9px] h-4 px-1.5 bg-background/50 border-muted-foreground/20">
+                                {m === "cliente" ? "👤" : "📋"} {m}
+                              </Badge>
+                            ))}
+                            {blockCfg?.styles?.map(s => (
+                              <Badge key={s} variant="outline" className="text-[9px] h-4 px-1.5 bg-background/50 border-muted-foreground/20">
+                                {s}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 shrink-0 ml-4">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 gap-1.5 text-xs text-primary hover:bg-primary/10"
+                            onClick={() => setEditingBlock(key)}
+                          >
+                            <Settings2 className="h-3.5 w-3.5" />
+                            Configurar
+                          </Button>
+                          <Separator orientation="vertical" className="h-8" />
+                          <div className="flex flex-col items-end gap-1.5">
+                            <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">Habilitado</span>
+                            <Switch
+                              checked={blockCfg?.enabled ?? true}
+                              onCheckedChange={(val) => handleBlockToggle(key, val)}
+                              className="scale-90"
+                            />
+                          </div>
                         </div>
                       </div>
-                      <Switch
-                        checked={blockCfg?.enabled ?? true}
-                        onCheckedChange={(v) => handleBlockToggle(key, v)}
-                      />
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             </CardContent>
           </Card>
