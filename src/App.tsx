@@ -37,6 +37,7 @@ const AtivarConta = lazy(() => import("./pages/AtivarConta"));
 const PropostaPublica = lazy(() => import("./pages/PropostaPublica"));
 const PropostaLanding = lazy(() => import("./pages/PropostaLanding"));
 const KitsLanding = lazy(() => import("./pages/KitsLanding"));
+const PropostaPdfRedirect = lazy(() => import("./pages/PropostaPdfRedirect"));
 const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const UCPublica = lazy(() => import("./pages/UCPublica"));
