@@ -928,6 +928,7 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
       calc_hash: hash,
       gerado_em: new Date().toISOString(),
       grupo: backendGrupo,
+      web_template_snapshot: templateRes.data?.template_html || null,
       regra_lei_14300: {
         versao: `${anoAtual}-01`,
         fio_b_ano: anoAtual,
