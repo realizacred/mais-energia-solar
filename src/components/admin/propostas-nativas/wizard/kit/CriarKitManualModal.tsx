@@ -718,10 +718,14 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
     }
 
     const meta: KitMeta = {
-      distribuidorNome, nomeKit, codigoKit,
+      distribuidorNome, 
+      fornecedorId,
+      nomeKit, 
+      codigoKit,
       topologia: normalizeTopologyValue(topologia),
       custo, sistema, custosEmbutidos,
     };
+
     onKitCreated(itens, meta);
     onOpenChange(false);
     toast({ title: "Kit criado manualmente", description: `${itens.length} itens adicionados` });
