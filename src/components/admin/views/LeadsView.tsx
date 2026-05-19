@@ -113,14 +113,15 @@ export function LeadsView() {
     setFilterConversao("todos");
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (motivo?: string) => {
     if (orcamentoToDelete) {
-      await deleteOrcamento(orcamentoToDelete.id);
+      await deleteOrcamento(orcamentoToDelete.id, motivo);
       setIsDeleteOpen(false);
       setOrcamentoToDelete(null);
       setWidgetRefreshKey(k => k + 1);
     }
   };
+
 
   // Convert orcamento to lead format for conversion dialog
   const handleConvertOrcamento = (orc: OrcamentoDisplayItem) => {
