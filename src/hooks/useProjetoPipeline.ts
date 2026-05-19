@@ -30,6 +30,11 @@ export interface ProjetoItem {
   updated_at: string;
   proposta_status?: string | null;
   tipo_projeto_solar?: string | null;
+  proxima_acao?: string | null;
+  responsavel_operacional?: string | null;
+  prazo_acao?: string | null;
+  dependencia_tipo?: string | null;
+  ultima_mudanca_operacional_at?: string | null;
   // Joined
   cliente?: { nome: string; telefone: string } | null;
   consultor?: { nome: string } | null;
@@ -61,7 +66,8 @@ export interface ProjetoFiltersState {
   status: string;
   etiquetaIds: string[];
   search: string;
-  tipoProjetoSolar?: string; // "todos" | on_grid | hibrido | off_grid | ampliacao | bombeamento
+  tipo_projeto_solar?: string; // "todos" | on_grid | hibrido | off_grid | ampliacao | bombeamento
+  responsavel_operacional?: string; // "todos" | Engenharia | Financeiro | etc
 }
 
 const PROJETOS_FETCH_BATCH_SIZE = 1000;
@@ -167,12 +173,15 @@ export function useProjetoPipeline() {
 
     let query = supabase
       .from("projetos")
-      .select("id, deal_id, codigo, projeto_num, nome, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, tipo_projeto_solar, data_entrada_etapa, clientes:cliente_id(nome, telefone)")
+      .select("id, deal_id, codigo, projeto_num, nome, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, tipo_projeto_solar, data_entrada_etapa, proxima_acao, responsavel_operacional, prazo_acao, dependencia_tipo, ultima_mudanca_operacional_at, clientes:cliente_id(nome, telefone)")
       .order("created_at", { ascending: false })
       .limit(2000); // Aumentado para 2000 para suportar grandes volumes sem N+1 e com batching otimizado
 
     if (f.consultorId !== "todos") {
       query = query.eq("consultor_id", f.consultorId);
+    }
+    if (f.responsavel_operacional && f.responsavel_operacional !== "todos") {
+      query = query.eq("responsavel_operacional", f.responsavel_operacional);
     }
     // NOTE: f.status ("aberto" | "ganho" | "perdido") é filtro SEMÂNTICO
     // aplicado client-side via etapa.categoria (ver ProjetosManager.statusFiltered).
@@ -254,7 +263,7 @@ export function useProjetoPipeline() {
         const chunk = dealIdsToFetch.slice(i, i + DEAL_CHUNK);
         let extraQuery = supabase
           .from("projetos")
-          .select("id, deal_id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, tipo_projeto_solar, data_entrada_etapa, clientes:cliente_id(nome, telefone)")
+          .select("id, deal_id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, tipo_projeto_solar, data_entrada_etapa, proxima_acao, responsavel_operacional, prazo_acao, dependencia_tipo, ultima_mudanca_operacional_at, clientes:cliente_id(nome, telefone)")
           .in("deal_id", chunk)
           .order("created_at", { ascending: false });
 

@@ -15,6 +15,7 @@ import type {
   StageInfo,
   PipelineInfo,
   EtiquetaItem,
+  ProjetoOperacaoEvento,
 } from "@/contexts/ProjetoDetalheContext";
 
 const STALE_TIME = 1000 * 60 * 5; // 5 min
@@ -39,6 +40,7 @@ export interface ProjetoDetalheFullData {
   /** Descrição do projeto (projetos.observacoes). */
   projetoDescricao: string | null;
   history: StageHistory[];
+  operacoesHistory: ProjetoOperacaoEvento[];
   stages: StageInfo[];
   customerName: string;
   customerPhone: string;
@@ -299,6 +301,7 @@ export function useProjetoDetalheData(dealId: string) {
         projetoNum,
         projetoDescricao,
         history: historyData,
+        operacoesHistory: (rpcData.operacoes_history || []) as ProjetoOperacaoEvento[],
         stages: (rpcData.stages || []) as StageInfo[],
         customerName,
         customerPhone,

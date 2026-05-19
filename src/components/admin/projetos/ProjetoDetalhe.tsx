@@ -80,7 +80,7 @@ import { TipoProjetoSolarAlert } from "./TipoProjetoSolarAlert";
 import { ProjetoRecibosTab } from "./ProjetoRecibosTab";
 import { EmitirReciboModal } from "@/components/admin/documentos/EmitirReciboModal";
 import { useRecibos } from "@/hooks/useRecibos";
-
+import { ProjetoExecucaoTab } from "./ProjetoExecucaoTab";
 
 import { useOperationalStatus } from "@/hooks/useOperationalStatus";
 import { useFinancialSummary } from "@/hooks/useFinancialSummary";
@@ -135,6 +135,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 
 const TABS = [
   { id: "gerenciamento" as TabId, label: "Gerenciamento", icon: Settings, color: "text-secondary" },
+  { id: "execucao" as TabId, label: "Execução", icon: Zap, color: "text-primary", roles: ["admin", "gerente", "gestor", "tecnico", "engenheiro"] },
   { id: "comunicacao" as TabId, label: "Comunicação", icon: MessageSquare, color: "text-success", roles: ["admin", "gerente", "gestor", "consultor", "vendas"] },
   { id: "propostas" as TabId, label: "Propostas", icon: FileText, color: "text-primary", roles: ["admin", "gerente", "gestor", "consultor", "vendas"] },
   { id: "credito" as TabId, label: "Crédito", icon: CreditCard, color: "text-primary", roles: ["admin", "gerente", "gestor", "consultor", "vendas"] },
@@ -1103,6 +1104,9 @@ function ProjetoDetalheContent() {
                 onRefreshCustomer={refreshCustomer}
                 onEditCliente={(id) => setEditClienteId(id)}
               />
+            )}
+            {activeTab === "execucao" && (
+              <ProjetoExecucaoTab />
             )}
             {activeTab === "comunicacao" && (
               <ProjetoComunicacaoResumo customerId={deal.customer_id} customerPhone={customerPhone} />

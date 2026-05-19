@@ -82,6 +82,12 @@ export interface DealKanbanCard {
     bloqueia_fluxo: boolean;
     sla_at?: string | null;
   }[];
+  // Operational Execution (Phase 2C)
+  proxima_acao?: string | null;
+  responsavel_operacional?: string | null;
+  prazo_acao?: string | null;
+  dependencia_tipo?: string | null;
+  ultima_mudanca_operacional_at?: string | null;
 }
 
 export interface OwnerColumn {

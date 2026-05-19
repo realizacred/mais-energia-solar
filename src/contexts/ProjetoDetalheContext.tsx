@@ -34,6 +34,20 @@ export interface DealDetail {
   status_projeto: string;
   won_at: string | null;
   won_by: string | null;
+  proxima_acao: string | null;
+  responsavel_operacional: string | null;
+  prazo_acao: string | null;
+  dependencia_tipo: string | null;
+  ultima_mudanca_operacional_at: string | null;
+}
+
+export interface ProjetoOperacaoEvento {
+  id: string;
+  projeto_id: string;
+  tipo: string;
+  payload: any;
+  created_at: string;
+  created_by: string | null;
 }
 
 
@@ -61,7 +75,7 @@ export interface PipelineInfo {
   name: string;
 }
 
-export type TabId = "gerenciamento" | "comunicacao" | "propostas" | "documentos" | "instalacao" | "suprimentos" | "concessionaria" | "recibos" | "notificacoes" | "credito";
+export type TabId = "gerenciamento" | "execucao" | "comunicacao" | "propostas" | "documentos" | "instalacao" | "suprimentos" | "concessionaria" | "recibos" | "notificacoes" | "credito";
 
 export interface EtiquetaItem {
   id: string;
@@ -91,6 +105,7 @@ export interface ProjetoDetalheContextValue {
   /** Descrição do projeto (projetos.observacoes). */
   projetoDescricao: string | null;
   history: StageHistory[];
+  operacoesHistory: ProjetoOperacaoEvento[];
   portalToken: string | null;
   stages: StageInfo[];
   loading: boolean;
@@ -228,7 +243,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get("tab") as TabId | null;
 
-  const validTabs: TabId[] = ["gerenciamento", "comunicacao", "propostas", "documentos", "instalacao", "suprimentos", "concessionaria", "recibos"];
+  const validTabs: TabId[] = ["gerenciamento", "execucao", "comunicacao", "propostas", "documentos", "instalacao", "suprimentos", "concessionaria", "recibos"];
 
   const [activeTab, setActiveTabState] = useState<TabId>(
     (tabFromUrl && validTabs.includes(tabFromUrl))
@@ -484,6 +499,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
     onBack,
     initialPipelineId,
     initialPipelineName,
+    operacoesHistory: fullData?.operacoesHistory ?? [],
     deal,
     projetoId,
     projetoNome,

@@ -67,8 +67,14 @@ const formatKwp = (v: number) => {
 };
 
 function getOperationalPriority(deal: DealKanbanCard): number {
-  const isBlocked = (deal.notas?.toLowerCase().includes("bloqueado")) || deal.pendencias?.some(p => p.bloqueia_fluxo);
-  if (isBlocked) return 500;
+  const isBlocked = (deal.notas?.toLowerCase().includes("bloqueado")) || deal.pendencias?.some(p => p.bloqueia_fluxo) || !!deal.dependencia_tipo;
+  
+  // Projects with "Próxima Ação" and "Prazo" overdue have high priority
+  const actionOverdue = deal.prazo_acao && new Date(deal.prazo_acao) < new Date();
+  
+  if (isBlocked) return 600;
+  if (actionOverdue) return 550;
+  if (deal.proxima_acao) return 500;
 
   const slaDays = deal.sla_days || 0;
   const daysInStage = differenceInDays(new Date(), new Date(deal.last_stage_change));

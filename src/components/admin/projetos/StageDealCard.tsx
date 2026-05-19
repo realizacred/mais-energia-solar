@@ -17,7 +17,7 @@ import {
   Clock, Phone, StickyNote, Archive,
   UserPlus, Tag, Copy, ExternalLink,
   Calendar, CheckCircle2, AlertTriangle, ShieldCheck, UserCog,
-  MapPin, Lock as LockIcon, DollarSign
+  MapPin, Lock as LockIcon, DollarSign, AlertCircle
 } from "lucide-react";
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import type { DealKanbanCard } from "@/hooks/useDealPipeline";
@@ -271,6 +271,49 @@ export function StageDealCard({
           ) : null}
         </div>
 
+        {/* OPERATIONAL EXECUTION (Phase 2C) */}
+        {(deal.proxima_acao || deal.responsavel_operacional) && (
+          <div className="bg-primary/5 rounded-md p-2 border border-primary/10 space-y-1.5">
+            {deal.proxima_acao && (
+              <div className="flex items-start gap-1.5">
+                <div className="mt-0.5 p-0.5 bg-primary/20 rounded shadow-sm">
+                  <Zap className="h-2.5 w-2.5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[8px] uppercase font-bold text-primary/70 tracking-tighter block leading-none mb-0.5">Próxima Ação</span>
+                  <p className="text-[10px] font-bold text-foreground leading-tight line-clamp-1">{deal.proxima_acao}</p>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex items-center justify-between pt-1 border-t border-primary/10">
+              {deal.responsavel_operacional && (
+                <div className="flex items-center gap-1.5">
+                  <UserCog className="h-3 w-3 text-primary/60" />
+                  <span className="text-[9px] font-bold text-muted-foreground uppercase">{deal.responsavel_operacional}</span>
+                </div>
+              )}
+              {deal.prazo_acao && (
+                <div className={cn(
+                  "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold",
+                  new Date(deal.prazo_acao) < new Date() ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
+                )}>
+                  <Calendar className="h-2.5 w-2.5" />
+                  {formatDate(deal.prazo_acao)}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* DEPENDENCY INDICATOR */}
+        {deal.dependencia_tipo && (
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-500/10 border border-amber-500/20 rounded-md">
+            <AlertCircle className="h-3 w-3 text-amber-600" />
+            <span className="text-[9px] font-bold text-amber-700 uppercase">Aguardando: {deal.dependencia_tipo}</span>
+          </div>
+        )}
+
         {/* OPERATIONAL INFO: SLA / Time in Stage + Technician */}
         <div className="flex items-center justify-between bg-muted/30 rounded-md p-1.5 border border-border/40">
           <div className="flex flex-col gap-0.5">
@@ -293,7 +336,7 @@ export function StageDealCard({
           </div>
 
           <div className="flex flex-col items-end gap-0.5">
-            <span className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Responsável</span>
+            <span className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Vendedor</span>
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-medium text-foreground truncate max-w-[80px]">{deal.owner_name}</span>
               <Avatar className="h-5 w-5 border border-border/60">
