@@ -387,7 +387,7 @@ function ProposalMessageConfigPageInner() {
                         <SelectContent>
                           <ScrollArea className="h-[200px]">
                             {PLACEHOLDER_CATALOG.map(v => (
-                              <SelectItem key={v.key} value={`{{${v.key}}}`} title={v.description}>
+                              <SelectItem key={v.key} value={`{{${v.key}}}`} title={v.example}>
                                 <div className="flex flex-col gap-0.5">
                                   <span className="text-[11px] font-mono">{`{{${v.key}}}`}</span>
                                   <span className="text-[9px] text-muted-foreground">{v.label}</span>
