@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
         return jsonOk({
           success: true, idempotent: true,
           token: existingToken.token,
-          public_url: `${baseUrl}/proposta/${existingToken.token}`,
+          public_url: `${baseUrl}/pl/${existingToken.token}`,
           whatsapp_sent: false,
         });
       }
@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
 
     // Build public URL
     const baseUrl = Deno.env.get("APP_URL") || Deno.env.get("APP_URL_LOCKED") || `https://${tenant?.slug || "app"}.lovable.app`;
-    const publicUrl = `${baseUrl}/proposta/${aceiteToken.token}`;
+    const publicUrl = `${baseUrl}/pl/${aceiteToken.token}`;
 
     // ── 5b. RESOLVER MENSAGEM (template ou custom) ──────────
     const canalFinal = canal || "link";

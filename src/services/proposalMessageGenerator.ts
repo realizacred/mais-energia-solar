@@ -513,9 +513,9 @@ export function extractMessageContext(
   // Serviços
   const servicos = snap.servicos || [];
 
-  // Link
+  // Link - Unificação Fase 1 (AGENTS.md): SEMPRE landing de alta conversão (/pl/:token)
   const publicSlug = versao.public_slug;
-  const linkProposta = publicSlug ? `${getPublicUrl()}/proposta/${publicSlug}` : null;
+  const linkProposta = publicSlug ? `${getPublicUrl()}/pl/${publicSlug}` : null;
 
   const result: ProposalMessageContext & { _snapshot?: any } = {
     clienteNome: proposta.cliente_nome || snap.clienteNome || snap.cliente_nome || null,
