@@ -532,6 +532,7 @@ export function extractMessageContext(
     paybackMeses: versao.payback_meses || snap.paybackMeses || snap.payback_meses || null,
     valorTotal: versao.valor_total || snap.valorTotal || snap.valor_total || null,
     linkProposta,
+    linkPdf,
     tipoTelhado: snap.locTipoTelhado || snap.loc_tipo_telhado || snap.tipo_telhado || null,
     distribuidora: snap.locDistribuidoraNome || snap.loc_distribuidora_nome || snap.distribuidora || null,
     consultorNome: snap.consultorNome || snap.consultor_nome || null,
