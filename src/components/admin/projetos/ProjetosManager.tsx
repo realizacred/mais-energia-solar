@@ -932,6 +932,8 @@ export function ProjetosManager() {
                   consultores={consultoresFilter}
                   filterStatus={filters.status}
                   onFilterStatusChange={(v) => handleFilterChange("status", v)}
+                  filterResponsavel={filters.responsavel_operacional || "todos"}
+                  onFilterResponsavelChange={(v) => handleFilterChange("responsavel_operacional", v)}
                   filterTipoProjetoSolar={filters.tipo_projeto_solar || "todos"}
                   onFilterTipoProjetoSolarChange={(v) => handleFilterChange("tipo_projeto_solar", v)}
                   etiquetas={dynamicEtiquetas.map(e => ({ id: e.id, nome: e.nome, cor: e.cor, tenant_id: "" }))}
