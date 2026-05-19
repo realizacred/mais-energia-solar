@@ -170,7 +170,7 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
         .select(`
           id, codigo, titulo, status, status_visualizacao, is_principal,
           created_at, enviada_at, primeiro_acesso_em, ultimo_acesso_em,
-          total_aberturas, aceita_at, accepted_via, recusada_at, validade_dias,
+          total_aberturas, aceita_at, recusada_at, validade_dias,
           public_token, proposta_num, versao_atual,
           consultor_id, cliente_id, lead_id, projeto_id,
           proposta_aceite_tokens(token),
