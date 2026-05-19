@@ -55,7 +55,8 @@ export function LeadBriefingPanel() {
 
   const geracaoDesejada = selectedLead?.geracao_estimada_kwh;
   const observacao = selectedLead?.observacoes || selectedLead?.orc_observacoes;
-  const necessidade = (selectedLead as any)?.necessidade_cliente; // Fallback to extra field if exists
+  const necessidade = selectedLead?.necessidade_cliente;
+
 
   if (!selectedLead) return null;
 
