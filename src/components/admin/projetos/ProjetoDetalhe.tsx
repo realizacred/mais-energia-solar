@@ -2913,18 +2913,22 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
 
         const { data: leads } = await (supabase as any)
           .from("leads")
-          .select("id, lead_code")
+          .select("id, lead_code, observacoes")
           .or(`telefone_normalized.ilike.%${suffix}%,telefone.ilike.%${suffix}%`)
           .limit(10);
 
         if (leads && leads.length > 0) {
           const leadIds = leads.map((l: any) => l.id);
           const leadCodeMap = new Map<string, string>();
-          leads.forEach((l: any) => leadCodeMap.set(l.id, l.lead_code));
+          const leadObsMap = new Map<string, string>();
+          leads.forEach((l: any) => {
+            leadCodeMap.set(l.id, l.lead_code);
+            if (l.observacoes) leadObsMap.set(l.id, l.observacoes);
+          });
 
           const { data: orcs } = await supabase
             .from("orcamentos")
-            .select("id, orc_code, lead_id, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, estado, cidade, status_id, created_at")
+            .select("id, orc_code, lead_id, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, estado, cidade, status_id, created_at, observacoes")
             .in("lead_id", leadIds)
             .order("created_at", { ascending: false })
             .limit(20);
