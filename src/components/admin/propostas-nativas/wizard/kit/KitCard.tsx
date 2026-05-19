@@ -77,12 +77,36 @@ export function KitCard({ kit, onSelect, onCompare, isComparing, isBestMatch, vi
   }
 
   return (
-    <div className="rounded-xl border-2 border-border/40 hover:border-primary/30 transition-all bg-card p-4 space-y-3">
+    <div className={cn(
+      "rounded-xl border-2 transition-all bg-card p-4 space-y-3 relative overflow-hidden group",
+      isBestMatch ? "border-emerald-500/50 shadow-lg shadow-emerald-500/10" : "border-border/40 hover:border-primary/30",
+      isComparing && "ring-2 ring-primary"
+    )}>
+      {isBestMatch && (
+        <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-bl-lg tracking-widest z-10">
+          Melhor Escolha
+        </div>
+      )}
+
       {/* Distributor */}
-      <div className="h-10 flex items-center">
-        <span className="text-sm font-bold text-secondary uppercase">{kit.distribuidorNome || "—"}</span>
+      <div className="h-10 flex items-center justify-between">
+        <span className="text-sm font-bold text-secondary uppercase truncate pr-4">{kit.distribuidorNome || "—"}</span>
+        {onCompare && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className={cn(
+              "h-7 px-2 text-[10px] uppercase font-bold tracking-tighter",
+              isComparing ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary"
+            )}
+            onClick={(e) => { e.stopPropagation(); onCompare(kit); }}
+          >
+            {isComparing ? "Comparando" : "Comparar"}
+          </Button>
+        )}
       </div>
       <div className="border-t border-border/30" />
+
 
       {/* Module */}
       <div className="flex items-start gap-2 text-xs">
