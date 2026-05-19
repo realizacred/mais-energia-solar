@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
 
     // Build public URL
     const baseUrl = Deno.env.get("APP_URL") || Deno.env.get("APP_URL_LOCKED") || `https://${tenant?.slug || "app"}.lovable.app`;
-    const publicUrl = `${baseUrl}/proposta/${aceiteToken.token}`;
+    const publicUrl = `${baseUrl}/pl/${aceiteToken.token}`;
 
     // ── 5b. RESOLVER MENSAGEM (template ou custom) ──────────
     const canalFinal = canal || "link";
