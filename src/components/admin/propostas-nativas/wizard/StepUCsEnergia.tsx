@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
@@ -251,7 +253,7 @@ export function StepUCsEnergia({ onNext, onBack }: StepUCsProps) {
                   </div>
                   <div className="flex justify-between items-center text-[10px] uppercase font-bold text-muted-foreground">
                     <span>Distribuidora</span>
-                    <span className="text-foreground truncate max-w-[100px]">{concessionarias.find(c => c.id === ucs[0]?.concessionaria_id)?.sigla || "—"}</span>
+                    <span className="text-foreground truncate max-w-[100px]">{concessionarias.find(c => c.id === ucs[0]?.distribuidora_id)?.sigla || "—"}</span>
                   </div>
                 </div>
               </div>
