@@ -213,7 +213,7 @@ export function StepUCsEnergia({ onNext, onBack }: StepUCsProps) {
         </div>
 
         {/* ── Sidebar Metrics (Col 3) ── */}
-        <div className="lg:col-span-3 space-y-4 lg:sticky lg:top-4">
+        <div className="xl:col-span-3 space-y-4 xl:sticky xl:top-4 xl:block hidden lg:hidden">
           <Card className="border-primary/20 shadow-sm overflow-hidden">
             <CardHeader className="bg-primary/[0.03] py-3 px-4 border-b border-primary/10">
               <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-primary flex items-center gap-2">
@@ -269,7 +269,10 @@ export function StepUCsEnergia({ onNext, onBack }: StepUCsProps) {
             </AlertDescription>
           </Alert>
         </div>
+        </div>
       </div>
+    </div>
+
 
       {/* ── Config Modal ── */}
       {configModalUC !== null && (
