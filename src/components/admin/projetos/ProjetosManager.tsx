@@ -1099,8 +1099,8 @@ export function ProjetosManager() {
                 </div>
               )}
             </div>
-          </div>
         </TabsContent>
+
 
         <TabsContent value="pendencias" className="mt-0">
           <CentralPendencias 
