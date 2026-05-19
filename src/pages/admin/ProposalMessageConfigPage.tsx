@@ -32,10 +32,11 @@ import {
   ToggleLeft, Sliders, Copy, CheckCircle, ShieldAlert,
   GripVertical, Pencil, ArrowUp, ArrowDown, Check,
   ExternalLink, ChevronRight, Wand2, Sparkles,
-  Smartphone, Mail as MailIcon, FileText, AlertTriangle, Info, Plus
+  Smartphone, Mail as MailIcon, FileText, AlertTriangle, Info, Plus,
+  Search, Filter, Layout, Zap, Database, Share2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,24 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
+
+// DND Kit
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+
 import {
   useProposalMessageConfig,
   useSaveProposalMessageConfig,
@@ -67,6 +86,9 @@ import {
   type MessageStyle,
   type ProposalMessageContext,
 } from "@/services/proposalMessageGenerator";
+
+import { BlockSortableItem } from "@/components/admin/mensagens-proposta/BlockSortableItem";
+import { LiveStructurePreview } from "@/components/admin/mensagens-proposta/LiveStructurePreview";
 
 // ─── Mock context for preview ───────────────────────
 
