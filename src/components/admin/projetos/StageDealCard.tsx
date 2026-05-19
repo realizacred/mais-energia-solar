@@ -258,17 +258,28 @@ export function StageDealCard({
             </p>
           </div>
           
-          {isBlocked ? (
-            <Badge variant="destructive" className="shrink-0 text-[9px] h-[18px] px-1.5 font-bold animate-pulse gap-1">
-              <LockIcon className="h-2.5 w-2.5" />
-              BLOQUEADO
-            </Badge>
-          ) : isPropostaAceita ? (
-            <Badge className="shrink-0 text-[9px] h-[18px] px-1.5 font-bold bg-success text-white border-none gap-1">
-              <ShieldCheck className="h-2.5 w-2.5" />
-              ACEITA
-            </Badge>
-          ) : null}
+          <div className="flex flex-col items-end gap-1">
+            {(deal as any).operational_score > 0 && (
+              <Badge variant="outline" className={cn(
+                "h-5 text-[10px] font-black tabular-nums border-none shadow-sm",
+                (deal as any).operational_score > 150 ? "bg-destructive text-white" : 
+                (deal as any).operational_score > 100 ? "bg-orange-500 text-white" : "bg-primary text-white"
+              )}>
+                {(deal as any).operational_score}
+              </Badge>
+            )}
+            {isBlocked ? (
+              <Badge variant="destructive" className="shrink-0 text-[9px] h-[18px] px-1.5 font-bold animate-pulse gap-1">
+                <LockIcon className="h-2.5 w-2.5" />
+                BLOQUEADO
+              </Badge>
+            ) : isPropostaAceita ? (
+              <Badge className="shrink-0 text-[9px] h-[18px] px-1.5 font-bold bg-success text-white border-none gap-1">
+                <ShieldCheck className="h-2.5 w-2.5" />
+                ACEITA
+              </Badge>
+            ) : null}
+          </div>
         </div>
 
         {/* OPERATIONAL EXECUTION (Phase 2C) */}
@@ -314,10 +325,12 @@ export function StageDealCard({
           </div>
         )}
 
-        {/* OPERATIONAL INFO: SLA / Time in Stage + Technician */}
+        {/* OPERATIONAL INFO: SLA / Time in Stage + Responsibility */}
         <div className="flex items-center justify-between bg-muted/30 rounded-md p-1.5 border border-border/40">
           <div className="flex flex-col gap-0.5">
-            <span className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Tempo na etapa</span>
+            <span className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">
+              {isBlocked ? "Parado há" : "Com a bola há"}
+            </span>
             <div className={cn(
               "flex items-center gap-1 text-[11px] font-bold tabular-nums",
               isCritical ? "text-destructive" :
@@ -336,12 +349,14 @@ export function StageDealCard({
           </div>
 
           <div className="flex flex-col items-end gap-0.5">
-            <span className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Consultor</span>
+            <span className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Responsável</span>
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-medium text-foreground truncate max-w-[80px]">{deal.owner_name}</span>
+              <span className="text-[10px] font-bold text-foreground truncate max-w-[80px]">
+                {deal.responsavel_operacional || deal.owner_name}
+              </span>
               <Avatar className="h-5 w-5 border border-border/60">
-                <AvatarFallback className={cn("text-[7px] font-bold", getAvatarColor(deal.owner_name))}>
-                  {getInitials(deal.owner_name)}
+                <AvatarFallback className={cn("text-[7px] font-bold", getAvatarColor(deal.responsavel_operacional || deal.owner_name))}>
+                  {getInitials(deal.responsavel_operacional || deal.owner_name)}
                 </AvatarFallback>
               </Avatar>
             </div>

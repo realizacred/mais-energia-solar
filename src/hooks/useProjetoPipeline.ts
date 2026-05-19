@@ -429,6 +429,26 @@ export function useProjetoPipeline() {
       }
     });
 
+    // Fetch pendencias for these projects
+    const pendenciasMap = new Map<string, any[]>();
+    if (projetoIds.length > 0) {
+      const chunkSize = 500;
+      for (let i = 0; i < projetoIds.length; i += chunkSize) {
+        const chunk = projetoIds.slice(i, i + chunkSize);
+        const { data: pends } = await supabase
+          .from("projeto_pendencias")
+          .select("id, projeto_id, titulo, criticidade, status, bloqueia_fluxo, sla_at")
+          .in("projeto_id", chunk)
+          .neq("status", "resolvida");
+        
+        (pends || []).forEach((p: any) => {
+          const arr = pendenciasMap.get(p.projeto_id) || [];
+          arr.push(p);
+          pendenciasMap.set(p.projeto_id, arr);
+        });
+      }
+    }
+
     let enriched: ProjetoItem[] = filteredData.map((p: any) => ({
       ...p,
       cliente: p.clientes || null,
@@ -437,6 +457,7 @@ export function useProjetoPipeline() {
       proposta_status: bestPropostaByProjeto.get(p.id)?.status || null,
       clientes: undefined,
       etiquetas: relMap.get(p.id) || [],
+      pendencias: pendenciasMap.get(p.id) || [],
     }));
 
     if (f.search) {

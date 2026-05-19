@@ -32,6 +32,9 @@ import { ProjetoPerformanceDashboard } from "./ProjetoPerformanceDashboard";
 import { EtiquetasManager } from "./EtiquetasManager";
 import { ProjetoPipelineTemplates } from "./ProjetoPipelineTemplates";
 import { CentralPendencias } from "./CentralPendencias";
+import { OperationalQueue } from "./OperationalQueue";
+import { BottleneckCenter } from "./BottleneckCenter";
+import { calculateOperationalScore } from "@/lib/operational-score";
 import { differenceInDays, differenceInHours } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast as sonnerToast } from "sonner";
@@ -191,7 +194,18 @@ export function ProjetosManager() {
   }, [validProjetos, filters.status, filters.tipo_projeto_solar, resolveProjetoStatus]);
 
   const adaptedDeals = useMemo(
-    () => statusFiltered.map(p => projetoToCard(p, etapaMap)),
+    () => statusFiltered.map(p => {
+      const stage = p.etapa_id ? etapaMap.get(p.etapa_id) : null;
+      const score = calculateOperationalScore({
+        ...p,
+        sla_days: stage?.sla_days || 0,
+        stage_name: stage?.nome || ""
+      });
+      return { 
+        ...projetoToCard(p, etapaMap), 
+        operational_score: score 
+      };
+    }).sort((a, b) => (b.operational_score || 0) - (a.operational_score || 0)),
     [statusFiltered, etapaMap]
   );
 
@@ -211,8 +225,23 @@ export function ProjetosManager() {
         if (responsavel && responsavel !== "todos" && p.responsavel_operacional !== responsavel) return false;
         return true;
       }),
-    })).map(c => consultorColumnToOwner(c, etapaMap)),
-    [consultorColumns, etapaMap, existingEtapaIds, filters.status, filters.tipo_projeto_solar, resolveProjetoStatus]
+    })).map(c => {
+      const owner = consultorColumnToOwner(c, etapaMap);
+      return {
+        ...owner,
+        deals: owner.deals.map(deal => {
+          const p = statusFiltered.find(proj => proj.id === deal.deal_id);
+          const stage = p?.etapa_id ? etapaMap.get(p.etapa_id) : null;
+          const score = calculateOperationalScore({
+            ...p,
+            sla_days: stage?.sla_days || 0,
+            stage_name: stage?.nome || ""
+          });
+          return { ...deal, operational_score: score };
+        }).sort((a, b) => (b.operational_score || 0) - (a.operational_score || 0))
+      };
+    }),
+    [consultorColumns, etapaMap, existingEtapaIds, filters.status, filters.tipo_projeto_solar, resolveProjetoStatus, statusFiltered]
   );
 
   const operationalKPIs = useMemo(() => {
@@ -879,7 +908,21 @@ export function ProjetosManager() {
         </div>
 
         <TabsContent value="kanban" className="space-y-4 mt-0">
-          <div className="flex-1 min-w-0 space-y-4">
+          <div className="flex-1 min-w-0 space-y-6">
+            {/* Operational Cockpit (Phase 2D) */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 mb-2">
+              <div className="xl:col-span-8">
+                <BottleneckCenter projetos={projetos} etapas={etapas} />
+              </div>
+              <div className="xl:col-span-4">
+                <OperationalQueue 
+                  projetos={projetos} 
+                  etapas={etapas} 
+                  onViewProjeto={(p) => setSelectedProjetoId(p.deal_id || p.id)} 
+                />
+              </div>
+            </div>
+
             <div className="rounded-xl border border-border/60 bg-card overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
               {/* Summary bar — top */}
               <div className="px-4 py-2.5 flex items-center justify-between border-b border-border/40">

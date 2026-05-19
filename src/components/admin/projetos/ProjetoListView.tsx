@@ -35,7 +35,13 @@ export function ProjetoListView({ projetos, etapas, onViewProjeto }: Props) {
 
   // Group by etapa (paginated)
   const grouped = sortedEtapas.map(etapa => {
-    const items = paginatedProjetos.filter(p => p.etapa_id === etapa.id);
+    const items = paginatedProjetos
+      .filter(p => p.etapa_id === etapa.id)
+      .map(p => ({
+        ...p,
+        operational_score: (p as any).operational_score || 0
+      }))
+      .sort((a, b) => (b.operational_score || 0) - (a.operational_score || 0));
     return { etapa, items };
   }).filter(g => g.items.length > 0);
 
@@ -127,6 +133,15 @@ function ListRow({ projeto, etapa, onView }: ListRowProps) {
           <span className="text-[10px] font-mono font-semibold text-primary/70 shrink-0">
             {formatProjetoLabel(projeto).primary}
           </span>
+          {(projeto as any).operational_score > 0 && (
+            <Badge variant="outline" className={cn(
+              "h-4 text-[9px] font-black tabular-nums border-none shadow-sm",
+              (projeto as any).operational_score > 150 ? "bg-destructive text-white" : 
+              (projeto as any).operational_score > 100 ? "bg-orange-500 text-white" : "bg-primary text-white"
+            )}>
+              {(projeto as any).operational_score}
+            </Badge>
+          )}
         </div>
         <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
           {projeto.cliente?.nome && (
