@@ -523,7 +523,7 @@ function ProposalMessageConfigPageInner() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                        <FileText className="h-3 w-3" />
-                       {(templates[activeTemplateKey] || previewText).length} caracteres
+                       {(templates[activeTemplateKey] || DEFAULT_TEMPLATES[activeTemplateKey as keyof typeof DEFAULT_TEMPLATES] || "").length} caracteres
                     </div>
                     
                     {templates[activeTemplateKey] && (
