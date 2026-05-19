@@ -710,11 +710,11 @@ a[href*="lovable.dev"][target="_blank"] {
     transform: translateY(0);
   }
   .kanban-card__top-bar {
-    width: 5px;
+    width: 3px;
     min-height: 100%;
     flex-shrink: 0;
     border-radius: 14px 0 0 14px;
-    background: linear-gradient(180deg, hsl(var(--success)), hsl(var(--success) / 0.5));
+    background: hsl(var(--muted-foreground) / 0.25);
   }
   .kanban-card--won {
     background: hsl(var(--success) / 0.06);
@@ -747,16 +747,16 @@ a[href*="lovable.dev"][target="_blank"] {
     background: linear-gradient(180deg, hsl(var(--destructive)), hsl(var(--destructive) / 0.5));
   }
   .kanban-card--stagnation-critical .kanban-card__top-bar {
-    background: linear-gradient(180deg, hsl(var(--destructive)), hsl(var(--destructive) / 0.4));
+    background: hsl(var(--destructive) / 0.85);
   }
   .kanban-card--stagnation-warning .kanban-card__top-bar {
-    background: linear-gradient(180deg, hsl(var(--warning)), hsl(var(--warning) / 0.5));
+    background: hsl(var(--warning) / 0.75);
   }
   .kanban-card--no-proposal .kanban-card__top-bar {
-    background: linear-gradient(180deg, hsl(var(--muted-foreground) / 0.4), hsl(var(--muted-foreground) / 0.15));
+    background: hsl(var(--muted-foreground) / 0.2);
   }
   .kanban-card--has-proposal .kanban-card__top-bar {
-    background: linear-gradient(180deg, hsl(var(--primary)), hsl(var(--primary) / 0.4));
+    background: hsl(var(--primary) / 0.7);
   }
   .kanban-card--etiqueta .kanban-card__top-bar {
     /* color set inline via style prop */

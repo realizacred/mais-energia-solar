@@ -243,10 +243,11 @@ function StageDealCardImpl({
         "kanban-card group transition-all duration-200",
         borderClass,
         isDragging && "kanban-card--dragging shadow-xl scale-[1.02]",
-        isBlocked && "border-l-4 border-l-destructive bg-destructive/5 animate-pulse",
-        isCritical && "border-l-4 border-l-destructive shadow-[0_0_10px_rgba(239,68,68,0.2)] animate-pulse",
-        isDelayed && "border-l-4 border-l-orange-500",
-        isAttention && "border-l-4 border-l-warning"
+        // Escalonamento de criticidade — vermelho só para CRÍTICO real:
+        isBlocked && "border-l-2 border-l-destructive bg-destructive/[0.03]",
+        isCritical && "border-l-2 border-l-destructive",
+        isDelayed && "border-l-2 border-l-warning",
+        isAttention && "border-l-2 border-l-muted-foreground/30"
       )}
     >
       {/* Left color bar */}
@@ -291,7 +292,7 @@ function StageDealCardImpl({
               </Badge>
             )}
             {isBlocked ? (
-              <Badge variant="destructive" className="shrink-0 text-[9px] h-[18px] px-1.5 font-bold animate-pulse gap-1">
+              <Badge variant="destructive" className="shrink-0 text-[9px] h-[18px] px-1.5 font-bold gap-1">
                 <LockIcon className="h-2.5 w-2.5" />
                 BLOQUEADO
               </Badge>
@@ -306,7 +307,7 @@ function StageDealCardImpl({
 
         {/* OPERATIONAL EXECUTION (Phase 2C) */}
         {(deal.proxima_acao || deal.responsavel_operacional) && (
-          <div className="bg-primary/5 rounded-md p-2 border border-primary/10 space-y-1.5">
+          <div className="bg-primary/[0.04] rounded-md p-2 space-y-1.5">
             {deal.proxima_acao && (
               <div className="flex items-start gap-1.5">
                 <div className="mt-0.5 p-0.5 bg-primary/20 rounded shadow-sm">
@@ -319,7 +320,7 @@ function StageDealCardImpl({
               </div>
             )}
             
-            <div className="flex items-center justify-between pt-1 border-t border-primary/10">
+            <div className="flex items-center justify-between pt-1">
               {deal.responsavel_operacional && (
                 <div className="flex items-center gap-1.5">
                   <UserCog className="h-3 w-3 text-primary/60" />
@@ -348,16 +349,15 @@ function StageDealCardImpl({
         )}
 
         {/* OPERATIONAL INFO: SLA / Time in Stage + Responsibility */}
-        <div className="flex items-center justify-between bg-muted/30 rounded-md p-1.5 border border-border/40">
+        <div className="flex items-center justify-between bg-muted/30 rounded-md p-1.5">
           <div className="flex flex-col gap-0.5">
             <span className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">
               {isBlocked ? "Parado há" : "Com a bola há"}
             </span>
             <div className={cn(
-              "flex items-center gap-1 text-[11px] font-bold tabular-nums",
-              isCritical ? "text-destructive" :
-              isDelayed ? "text-orange-600" :
-              isAttention ? "text-warning" :
+              "flex items-center gap-1 text-[12px] font-bold tabular-nums",
+              isCritical || isBlocked ? "text-destructive" :
+              isDelayed ? "text-warning" :
               "text-foreground"
             )}>
               <Clock className="h-3 w-3" />
@@ -388,23 +388,23 @@ function StageDealCardImpl({
         {/* PENDENCIES: Real Operational Obstacles */}
         {mainPendencia && (
           <div className={cn(
-            "flex items-start gap-1.5 border rounded p-1.5",
-            mainPendencia.criticidade === 'critica' || mainPendencia.criticidade === 'alta' 
-              ? "bg-destructive/5 border-destructive/20" 
-              : "bg-warning/5 border-warning/20"
+            "flex items-start gap-1.5 rounded p-1.5",
+            mainPendencia.criticidade === 'critica'
+              ? "bg-destructive/5 border border-destructive/20"
+              : "bg-warning/5 border border-warning/20"
           )}>
             <AlertTriangle className={cn(
               "h-3 w-3 shrink-0 mt-0.5",
-              mainPendencia.criticidade === 'critica' || mainPendencia.criticidade === 'alta' 
-                ? "text-destructive" 
+              mainPendencia.criticidade === 'critica'
+                ? "text-destructive"
                 : "text-warning"
             )} />
             <div className="flex-1 min-w-0">
               <p className={cn(
                 "text-[10px] font-bold leading-tight line-clamp-1",
-                mainPendencia.criticidade === 'critica' || mainPendencia.criticidade === 'alta' 
-                  ? "text-destructive" 
-                  : "text-amber-900"
+                mainPendencia.criticidade === 'critica'
+                  ? "text-destructive"
+                  : "text-foreground"
               )}>
                 {mainPendencia.titulo}
               </p>

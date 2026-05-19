@@ -599,7 +599,7 @@ function ResizableKanbanColumn({
   onViewProjeto, onViewProjetoTab, onNewProject, onAutomationConfig,
   getStageNameById, dynamicEtiquetas,
 }: ResizableKanbanColumnProps) {
-  const { width: resizedWidth, onMouseDown } = useResizableColumn(250);
+  const { width: resizedWidth, onMouseDown } = useResizableColumn(280);
   const hasActiveAutomation = stageAutomations.length > 0;
   const hasRestriction = permission && permission !== "todos";
   const [stageColor, setStageColor] = useState<string | null>(stage.color || null);
@@ -664,7 +664,7 @@ function ResizableKanbanColumn({
         "bg-surface-2",
         isOver && "ring-2 ring-primary/30 bg-primary/5"
       )}
-      style={{ flex: "1 0 220px", minWidth: 220, maxWidth: Math.max(360, resizedWidth > 260 ? resizedWidth : 360) }}
+      style={{ flex: `0 0 ${Math.max(280, resizedWidth)}px`, minWidth: 280, maxWidth: Math.max(420, resizedWidth) }}
       onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; onDragOver(stage.id); }}
       onDragLeave={() => onDragLeave()}
       onDrop={e => onDrop(e, stage.id)}
