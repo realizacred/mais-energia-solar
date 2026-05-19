@@ -1625,6 +1625,9 @@
         </div>
       )}
 
+      {ClientContextPanel}
+
+
       {/* Unpublished Changes Banner */}
       {hasEditsAfterRestore && officialTotal > 0 && (Math.abs(precoFinal - officialTotal) > 0.01 || (officialTemplateId && templateSelecionado !== officialTemplateId)) && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 lg:px-6 py-3 border-b border-amber-500/50 bg-amber-50 shrink-0">
