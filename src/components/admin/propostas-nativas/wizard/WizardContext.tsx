@@ -119,8 +119,10 @@ const WizardContext = createContext<WizardContextType | undefined>(undefined);
 export function WizardProvider({ children, initialData = {} }: { children: React.ReactNode; initialData?: any }) {
   // We mirror the state from ProposalWizard.tsx here
   const [selectedLead, setSelectedLead] = useState<LeadSelection | null>(null);
+  const [comercial, setComercial] = useState<ComercialData>(EMPTY_COMERCIAL);
   const [cliente, setCliente] = useState<ClienteData>(EMPTY_CLIENTE);
   const [clienteMunicipioIbgeCodigo, setClienteMunicipioIbgeCodigo] = useState<string | null>(null);
+
 
   const [locEstado, setLocEstado] = useState("");
   const [locCidade, setLocCidade] = useState("");
