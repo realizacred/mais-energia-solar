@@ -57,7 +57,7 @@ export function isProposalAccepted(p: ProposalLike | null | undefined): boolean 
   const status = normalizeStatus(p.status);
   
   // Critério CANÔNICO: Status é accepted E temos data ou via de aceite
-  if (status === "accepted" && (p.aceita_at || p.accepted_via)) {
+  if (status === "accepted" && p.aceita_at) {
     return true;
   }
 
