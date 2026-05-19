@@ -1001,12 +1001,17 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                       value={m.selectedId}
                       onValueChange={v => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, selectedId: v } : x))}
                       options={[...modulos]
-                        .sort((a, b) => a.fabricante.localeCompare(b.fabricante) || a.modelo.localeCompare(b.modelo))
+                        .sort((a, b) => 
+                          a.fabricante.localeCompare(b.fabricante) || 
+                          (a.potencia_wp || 0) - (b.potencia_wp || 0) || 
+                          a.modelo.localeCompare(b.modelo)
+                        )
                         .map(cat => ({
                           value: cat.id,
-                          label: `${cat.fabricante} ${cat.modelo}${cat.potencia_wp ? ` (${cat.potencia_wp}W)` : ""}`,
-                          searchText: `${cat.fabricante} ${cat.modelo} ${cat.potencia_wp || ""}`,
+                          label: `${cat.fabricante.toUpperCase()} - ${cat.potencia_wp}W - ${cat.modelo}`,
+                          searchText: `${cat.fabricante} ${cat.potencia_wp} ${cat.modelo}`,
                         }))}
+
                       placeholder="Buscar módulo..."
                       emptyText="Nenhum módulo encontrado"
                       className="flex-1"
