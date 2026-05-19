@@ -376,67 +376,123 @@ function ProposalMessageConfigPageInner() {
                   </Select>
                 </div>
 
-                <div className="space-y-2 pt-2">
+                <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Conteúdo do template</Label>
                     <div className="flex items-center gap-2">
-                      <Select 
-                        onValueChange={(val) => {
-                          const current = templates[activeTemplateKey] || "";
-                          setTemplates(prev => ({ ...prev, [activeTemplateKey]: current + val }));
-                        }}
-                      >
-                        <SelectTrigger className="h-7 text-[10px] w-auto gap-1 border-primary/30 text-primary hover:bg-primary/5">
-                          <Variable className="h-3 w-3" />
-                          <span>Inserir Variável</span>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <ScrollArea className="h-[200px]">
-                            {PLACEHOLDER_CATALOG.map(v => (
-                              <SelectItem key={v.key} value={`{{${v.key}}}`} title={v.example}>
-                                <div className="flex flex-col gap-0.5">
-                                  <span className="text-[11px] font-mono">{`{{${v.key}}}`}</span>
-                                  <span className="text-[9px] text-muted-foreground">{v.label}</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </ScrollArea>
-                        </SelectContent>
-                      </Select>
+                      {templates[activeTemplateKey] && (
+                        <Select 
+                          onValueChange={(val) => {
+                            const current = templates[activeTemplateKey] || "";
+                            setTemplates(prev => ({ ...prev, [activeTemplateKey]: current + val }));
+                          }}
+                        >
+                          <SelectTrigger className="h-7 text-[10px] w-auto gap-1 border-primary/30 text-primary hover:bg-primary/5">
+                            <Variable className="h-3 w-3" />
+                            <span>Variável</span>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <ScrollArea className="h-[200px]">
+                              {PLACEHOLDER_CATALOG.map(v => (
+                                <SelectItem key={v.key} value={`{{${v.key}}}`} title={v.example}>
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-[11px] font-mono">{`{{${v.key}}}`}</span>
+                                    <span className="text-[9px] text-muted-foreground">{v.label}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </ScrollArea>
+                          </SelectContent>
+                        </Select>
+                      )}
+                      
                       {templates[activeTemplateKey] ? (
-                        <Badge className="text-[10px] bg-amber-500 hover:bg-amber-600">Customizado</Badge>
+                        <Badge className="text-[10px] bg-amber-500 hover:bg-amber-600 gap-1">
+                          <Pencil className="h-2.5 w-2.5" />
+                          Customizado
+                        </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[10px] bg-muted/50">Padrão do Sistema</Badge>
+                        <Badge variant="soft-success" className="text-[10px] gap-1">
+                          <Sparkles className="h-2.5 w-2.5" />
+                          Gerado automaticamente
+                        </Badge>
                       )}
                     </div>
                   </div>
-                  <Textarea
-                    value={templates[activeTemplateKey] || ""}
-                    onChange={(e) => setTemplates(prev => ({ ...prev, [activeTemplateKey]: e.target.value }))}
-                    placeholder="Deixe vazio para usar o gerador automático baseado em blocos. Use {{variavel}} para inserir dados dinâmicos."
-                    className="min-h-[320px] text-sm font-mono leading-relaxed resize-y focus-visible:ring-primary border-muted-foreground/20"
-                  />
-                  <div className="bg-muted/30 p-2 rounded border border-dashed border-muted-foreground/30">
-                    <p className="text-[10px] text-muted-foreground italic">
-                      Dica: Deixe este campo <strong>vazio</strong> se quiser que o sistema monte a mensagem sozinho usando os botões de ligar/desligar na aba <strong>Blocos</strong>.
-                    </p>
+
+                  <div className="relative group">
+                    <Textarea
+                      value={templates[activeTemplateKey] || previewText}
+                      onChange={(e) => {
+                        if (!templates[activeTemplateKey]) return; // Readonly if not custom
+                        setTemplates(prev => ({ ...prev, [activeTemplateKey]: e.target.value }));
+                      }}
+                      readOnly={!templates[activeTemplateKey]}
+                      placeholder="Este conteúdo é gerado automaticamente. Clique em 'Editar manualmente' para customizar."
+                      className={cn(
+                        "min-h-[350px] text-sm font-mono leading-relaxed resize-y focus-visible:ring-primary border-muted-foreground/20 transition-all",
+                        !templates[activeTemplateKey] && "bg-muted/40 cursor-default opacity-80 select-none grayscale-[0.5]"
+                      )}
+                    />
+                    
+                    {!templates[activeTemplateKey] && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        <Button 
+                          variant="secondary" 
+                          size="sm" 
+                          className="shadow-xl border border-primary/20 pointer-events-auto"
+                          onClick={() => setTemplates(prev => ({ ...prev, [activeTemplateKey]: previewText }))}
+                        >
+                          <Pencil className="h-3.5 w-3.5 mr-2 text-primary" />
+                          Editar manualmente
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                       <FileText className="h-3 w-3" />
+                       {(templates[activeTemplateKey] || previewText).length} caracteres
+                    </div>
+                    
+                    {templates[activeTemplateKey] && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-[10px] text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setTemplates(prev => {
+                          const next = { ...prev };
+                          delete next[activeTemplateKey];
+                          return next;
+                        })}
+                      >
+                        <RotateCcw className="h-3 w-3 mr-1" />
+                        Voltar para automático
+                      </Button>
+                    )}
                   </div>
                 </div>
 
-                {templates[activeTemplateKey] && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-destructive"
-                    onClick={() => setTemplates(prev => {
-                      const next = { ...prev };
-                      delete next[activeTemplateKey];
-                      return next;
-                    })}
-                  >
-                    Limpar customização (usar padrão)
-                  </Button>
-                )}
+                <Separator className="my-4" />
+                
+                {/* AI Preparation Section */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest flex items-center gap-1.5">
+                      <Wand2 className="h-3 w-3 text-primary" />
+                      Sugestões de IA (Experimental)
+                    </Label>
+                    <Badge variant="outline" className="text-[9px] opacity-70">Em breve</Badge>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {["Mais persuasivo", "Mais técnico", "Mais curto", "Foco economia"].map(sug => (
+                      <Button key={sug} variant="outline" size="sm" className="h-7 text-[10px] opacity-60 cursor-not-allowed">
+                        {sug}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
