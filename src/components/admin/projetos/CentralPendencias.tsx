@@ -133,6 +133,7 @@ export function CentralPendencias({ projetos, onViewProjeto, loading }: Props) {
             }}
             isSubmitting={isCreating}
             vendedores={vendedores || []}
+            projetos={projetos}
           />
         </div>
       </div>
