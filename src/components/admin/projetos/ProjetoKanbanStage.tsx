@@ -675,15 +675,15 @@ function ResizableKanbanColumn({
         onMouseDown={onMouseDown}
       />
 
-      <div className="px-3 pt-3 pb-2 border-b-2 bg-muted/20" style={{ borderColor: stageColor || "hsl(var(--primary) / 0.2)" }}>
+      <div className="px-3 pt-3 pb-2 border-b bg-muted/10" style={{ borderColor: stageColor || "hsl(var(--border) / 0.6)" }}>
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-2 min-w-0">
-            <h3 className="text-[11px] font-black text-foreground leading-tight truncate uppercase tracking-widest">
+            <h3 className="text-[11px] font-semibold text-foreground leading-tight truncate uppercase tracking-wider">
               {stage.name}
             </h3>
             {overdueCount > 0 && (
-              <Badge variant="destructive" className="h-4 px-1 text-[8px] font-black animate-pulse">
-                {overdueCount} ATRASADO(S)
+              <Badge variant="outline" className="h-4 px-1.5 text-[9px] font-semibold border-warning/40 text-warning bg-warning/5">
+                {overdueCount} atrasado{overdueCount > 1 ? "s" : ""}
               </Badge>
             )}
             {hasActiveAutomation && (
