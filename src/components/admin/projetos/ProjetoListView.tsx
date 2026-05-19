@@ -35,7 +35,13 @@ export function ProjetoListView({ projetos, etapas, onViewProjeto }: Props) {
 
   // Group by etapa (paginated)
   const grouped = sortedEtapas.map(etapa => {
-    const items = paginatedProjetos.filter(p => p.etapa_id === etapa.id);
+    const items = paginatedProjetos
+      .filter(p => p.etapa_id === etapa.id)
+      .map(p => ({
+        ...p,
+        operational_score: (p as any).operational_score || 0
+      }))
+      .sort((a, b) => (b.operational_score || 0) - (a.operational_score || 0));
     return { etapa, items };
   }).filter(g => g.items.length > 0);
 
