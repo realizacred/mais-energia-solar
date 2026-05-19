@@ -337,14 +337,14 @@ export function OrcamentosTable({
                           <UserCheck className="w-4 h-4" />
                         </span>
                       )}
-                      {onDelete && (
+                      {onDelete && !isConverted && (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => onDelete(orc)}>
                               <Archive className="w-4 h-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Arquivar</TooltipContent>
+                          <TooltipContent>Arquivar orçamento</TooltipContent>
                         </Tooltip>
                       )}
                     </div>
