@@ -243,11 +243,10 @@ function StageDealCardImpl({
         "kanban-card group transition-all duration-200",
         borderClass,
         isDragging && "kanban-card--dragging shadow-xl scale-[1.02]",
-        // Escalonamento de criticidade — vermelho só para CRÍTICO real:
-        isBlocked && "border-l-2 border-l-destructive bg-destructive/[0.03]",
-        isCritical && "border-l-2 border-l-destructive",
-        isDelayed && "border-l-2 border-l-warning",
-        isAttention && "border-l-2 border-l-muted-foreground/30"
+        // Escalonamento de criticidade — vermelho APENAS para bloqueio/crítico real.
+        // Atenção/atraso já são comunicados pela top-bar colorida + cor do tempo.
+        isBlocked && "border-l-2 border-l-destructive",
+        isCritical && !isBlocked && "border-l-2 border-l-destructive/70"
       )}
     >
       {/* Left color bar */}
@@ -284,57 +283,41 @@ function StageDealCardImpl({
           <div className="flex flex-col items-end gap-1">
             {(deal as any).operational_score > 0 && (
               <Badge variant="outline" className={cn(
-                "h-5 text-[10px] font-black tabular-nums border-none shadow-sm",
-                (deal as any).operational_score > 150 ? "bg-destructive text-white" : 
-                (deal as any).operational_score > 100 ? "bg-orange-500 text-white" : "bg-primary text-white"
+                "h-5 text-[10px] font-bold tabular-nums border",
+                (deal as any).operational_score > 150 ? "border-destructive/40 text-destructive bg-destructive/5" :
+                (deal as any).operational_score > 100 ? "border-warning/40 text-warning bg-warning/5" :
+                "border-border text-muted-foreground bg-muted/30"
               )}>
                 {(deal as any).operational_score}
               </Badge>
             )}
             {isBlocked ? (
-              <Badge variant="destructive" className="shrink-0 text-[9px] h-[18px] px-1.5 font-bold gap-1">
+              <Badge variant="outline" className="shrink-0 text-[9px] h-[18px] px-1.5 font-semibold gap-1 border-destructive/40 text-destructive bg-destructive/5">
                 <LockIcon className="h-2.5 w-2.5" />
-                BLOQUEADO
+                Bloqueado
               </Badge>
             ) : isPropostaAceita ? (
-              <Badge className="shrink-0 text-[9px] h-[18px] px-1.5 font-bold bg-success text-white border-none gap-1">
+              <Badge variant="outline" className="shrink-0 text-[9px] h-[18px] px-1.5 font-semibold gap-1 border-success/40 text-success bg-success/5">
                 <ShieldCheck className="h-2.5 w-2.5" />
-                ACEITA
+                Aceita
               </Badge>
             ) : null}
           </div>
         </div>
 
-        {/* OPERATIONAL EXECUTION (Phase 2C) */}
-        {(deal.proxima_acao || deal.responsavel_operacional) && (
-          <div className="bg-primary/[0.04] rounded-md p-2 space-y-1.5">
-            {deal.proxima_acao && (
-              <div className="flex items-start gap-1.5">
-                <div className="mt-0.5 p-0.5 bg-primary/20 rounded shadow-sm">
-                  <Zap className="h-2.5 w-2.5 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-[8px] uppercase font-bold text-primary/70 tracking-tighter block leading-none mb-0.5">Próxima Ação</span>
-                  <p className="text-[10px] font-bold text-foreground leading-tight line-clamp-1">{deal.proxima_acao}</p>
-                </div>
-              </div>
-            )}
-            
-            <div className="flex items-center justify-between pt-1">
-              {deal.responsavel_operacional && (
-                <div className="flex items-center gap-1.5">
-                  <UserCog className="h-3 w-3 text-primary/60" />
-                  <span className="text-[9px] font-bold text-muted-foreground uppercase">{deal.responsavel_operacional}</span>
-                </div>
-              )}
+        {/* OPERATIONAL EXECUTION (Phase 2C) — compacto, sem cartão dentro do cartão */}
+        {(deal.proxima_acao || deal.responsavel_operacional) && deal.proxima_acao && (
+          <div className="flex items-start gap-1.5">
+            <Zap className="h-3 w-3 text-primary/70 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0 flex items-center gap-1.5">
+              <p className="text-[10px] font-medium text-foreground/90 leading-tight line-clamp-1 flex-1">{deal.proxima_acao}</p>
               {deal.prazo_acao && (
-                <div className={cn(
-                  "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold",
-                  new Date(deal.prazo_acao) < new Date() ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
+                <span className={cn(
+                  "text-[9px] font-semibold tabular-nums shrink-0",
+                  new Date(deal.prazo_acao) < new Date() ? "text-destructive" : "text-muted-foreground"
                 )}>
-                  <Calendar className="h-2.5 w-2.5" />
                   {formatDate(deal.prazo_acao)}
-                </div>
+                </span>
               )}
             </div>
           </div>
@@ -342,105 +325,88 @@ function StageDealCardImpl({
 
         {/* DEPENDENCY INDICATOR */}
         {deal.dependencia_tipo && (
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-500/10 border border-amber-500/20 rounded-md">
-            <AlertCircle className="h-3 w-3 text-amber-600" />
-            <span className="text-[9px] font-bold text-amber-700 uppercase">Aguardando: {deal.dependencia_tipo}</span>
+          <div className="flex items-center gap-1.5 text-[10px] text-amber-700/80">
+            <AlertCircle className="h-3 w-3 shrink-0" />
+            <span className="font-medium truncate">Aguardando: {deal.dependencia_tipo}</span>
           </div>
         )}
 
-        {/* OPERATIONAL INFO: SLA / Time in Stage + Responsibility */}
-        <div className="flex items-center justify-between bg-muted/30 rounded-md p-1.5">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">
-              {isBlocked ? "Parado há" : "Com a bola há"}
-            </span>
-            <div className={cn(
-              "flex items-center gap-1 text-[12px] font-bold tabular-nums",
-              isCritical || isBlocked ? "text-destructive" :
-              isDelayed ? "text-warning" :
-              "text-foreground"
-            )}>
-              <Clock className="h-3 w-3" />
-              {formatTimeInStage(deal.last_stage_change)}
-              {slaDays > 0 && (
-                <span className="text-[8px] font-normal text-muted-foreground ml-1">
-                  / {slaDays}d
-                </span>
-              )}
-            </div>
+        {/* OPERATIONAL INFO: tempo na etapa + responsável (sem rótulos repetitivos) */}
+        <div className="flex items-center justify-between gap-2 px-0.5">
+          <div className={cn(
+            "flex items-center gap-1 text-[11px] font-semibold tabular-nums",
+            isCritical || isBlocked ? "text-destructive" :
+            isDelayed ? "text-warning" :
+            isAttention ? "text-foreground" :
+            "text-muted-foreground"
+          )}>
+            <Clock className="h-3 w-3 opacity-70" />
+            {formatTimeInStage(deal.last_stage_change)}
+            {slaDays > 0 && (
+              <span className="text-[9px] font-normal text-muted-foreground/70 ml-0.5">
+                / {slaDays}d
+              </span>
+            )}
           </div>
 
-          <div className="flex flex-col items-end gap-0.5">
-            <span className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Responsável</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-bold text-foreground truncate max-w-[80px]">
-                {deal.responsavel_operacional || deal.owner_name}
-              </span>
-              <Avatar className="h-5 w-5 border border-border/60">
-                <AvatarFallback className={cn("text-[7px] font-bold", getAvatarColor(deal.responsavel_operacional || deal.owner_name))}>
-                  {getInitials(deal.responsavel_operacional || deal.owner_name)}
-                </AvatarFallback>
-              </Avatar>
-            </div>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-[10px] font-medium text-muted-foreground truncate max-w-[90px]">
+              {deal.responsavel_operacional || deal.owner_name}
+            </span>
+            <Avatar className="h-5 w-5">
+              <AvatarFallback className={cn("text-[8px] font-semibold", getAvatarColor(deal.responsavel_operacional || deal.owner_name))}>
+                {getInitials(deal.responsavel_operacional || deal.owner_name)}
+              </AvatarFallback>
+            </Avatar>
           </div>
         </div>
 
         {/* PENDENCIES: Real Operational Obstacles */}
         {mainPendencia && (
-          <div className={cn(
-            "flex items-start gap-1.5 rounded p-1.5",
-            mainPendencia.criticidade === 'critica'
-              ? "bg-destructive/5 border border-destructive/20"
-              : "bg-warning/5 border border-warning/20"
-          )}>
+          <div className="flex items-start gap-1.5">
             <AlertTriangle className={cn(
               "h-3 w-3 shrink-0 mt-0.5",
-              mainPendencia.criticidade === 'critica'
-                ? "text-destructive"
-                : "text-warning"
+              mainPendencia.criticidade === 'critica' ? "text-destructive" : "text-warning"
             )} />
             <div className="flex-1 min-w-0">
               <p className={cn(
-                "text-[10px] font-bold leading-tight line-clamp-1",
-                mainPendencia.criticidade === 'critica'
-                  ? "text-destructive"
-                  : "text-foreground"
+                "text-[10px] font-medium leading-tight line-clamp-1",
+                mainPendencia.criticidade === 'critica' ? "text-destructive" : "text-foreground/90"
               )}>
                 {mainPendencia.titulo}
               </p>
               {mainPendencia.sla_at && (
-                <span className="text-[8px] text-muted-foreground block mt-0.5">
+                <span className="text-[9px] text-muted-foreground/70 block">
                   SLA: {formatDate(mainPendencia.sla_at)}
                 </span>
               )}
             </div>
             {mainPendencia.bloqueia_fluxo && (
-              <LockIcon className="h-2.5 w-2.5 text-destructive shrink-0" />
+              <LockIcon className="h-2.5 w-2.5 text-destructive shrink-0 mt-0.5" />
             )}
           </div>
         )}
 
         {/* FALLBACK NOTE: If no formal pendency exists */}
         {!mainPendencia && deal.notas?.trim() && (
-          <div className="flex items-start gap-1.5 bg-warning/5 border border-warning/20 rounded p-1.5">
-            <StickyNote className="h-3 w-3 text-warning shrink-0 mt-0.5" />
-            <p className="text-[10px] text-amber-900/80 leading-tight line-clamp-2 italic">
+          <div className="flex items-start gap-1.5">
+            <StickyNote className="h-3 w-3 text-muted-foreground/60 shrink-0 mt-0.5" />
+            <p className="text-[10px] text-muted-foreground leading-tight line-clamp-2">
               {deal.notas}
             </p>
           </div>
         )}
 
         {/* METRICS & ETIQUETAS (Commercial Data - Secondary) */}
-        <div className="flex items-center justify-between pt-1 border-t border-border/20 mt-1">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 text-[10px] font-mono">
-              <Zap className="h-2.5 w-2.5 text-success" />
-              <span className="font-bold">{hasKwp ? deal.deal_kwp.toFixed(1).replace(".", ",") : "—"}</span>
-              <span className="text-muted-foreground text-[8px]">kWp</span>
+        <div className="flex items-center justify-between pt-1.5 border-t border-border/30 mt-1">
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
+              <Zap className="h-2.5 w-2.5 opacity-60" />
+              <span className="font-semibold text-foreground/80">{hasKwp ? deal.deal_kwp.toFixed(1).replace(".", ",") : "—"}</span>
+              <span className="text-[8px] opacity-70">kWp</span>
             </div>
-            <div className="flex items-center gap-1 text-[10px] font-mono">
-              <DollarSign className="h-2.5 w-2.5 text-warning" />
-              <span className="font-bold">{hasValue ? formatBRL(deal.deal_value) : "—"}</span>
+            <div className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
+              <span className="font-semibold text-foreground/80">{hasValue ? formatBRL(deal.deal_value) : "—"}</span>
             </div>
           </div>
 

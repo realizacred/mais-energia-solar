@@ -494,9 +494,9 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                       />
                     )}
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      className="w-full h-8 text-xs font-medium border-dashed border-primary/40 text-primary hover:bg-primary/5"
+                      className="w-full h-8 text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/5"
                       onClick={() => onNewProject?.({
                         pipelineId: stage.pipeline_id,
                         stageId: stage.id,
@@ -660,11 +660,11 @@ function ResizableKanbanColumn({
   return (
     <div
       className={cn(
-        "rounded-xl border border-border/60 transition-all flex flex-col relative",
-        "bg-surface-2",
+        "rounded-xl border border-border/50 transition-all flex flex-col relative",
+        "bg-surface-2/60",
         isOver && "ring-2 ring-primary/30 bg-primary/5"
       )}
-      style={{ flex: `0 0 ${Math.max(280, resizedWidth)}px`, minWidth: 280, maxWidth: Math.max(420, resizedWidth) }}
+      style={{ flex: `0 0 ${Math.max(308, resizedWidth)}px`, minWidth: 308, maxWidth: Math.max(440, resizedWidth) }}
       onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; onDragOver(stage.id); }}
       onDragLeave={() => onDragLeave()}
       onDrop={e => onDrop(e, stage.id)}
@@ -675,15 +675,15 @@ function ResizableKanbanColumn({
         onMouseDown={onMouseDown}
       />
 
-      <div className="px-3 pt-3 pb-2 border-b-2 bg-muted/20" style={{ borderColor: stageColor || "hsl(var(--primary) / 0.2)" }}>
+      <div className="px-3 pt-3 pb-2 border-b bg-muted/10" style={{ borderColor: stageColor || "hsl(var(--border) / 0.6)" }}>
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-2 min-w-0">
-            <h3 className="text-[11px] font-black text-foreground leading-tight truncate uppercase tracking-widest">
+            <h3 className="text-[11px] font-semibold text-foreground leading-tight truncate uppercase tracking-wider">
               {stage.name}
             </h3>
             {overdueCount > 0 && (
-              <Badge variant="destructive" className="h-4 px-1 text-[8px] font-black animate-pulse">
-                {overdueCount} ATRASADO(S)
+              <Badge variant="outline" className="h-4 px-1.5 text-[9px] font-semibold border-warning/40 text-warning bg-warning/5">
+                {overdueCount} atrasado{overdueCount > 1 ? "s" : ""}
               </Badge>
             )}
             {hasActiveAutomation && (
@@ -816,13 +816,13 @@ function ResizableKanbanColumn({
       {/* ── New Project Button ── */}
       <div className="px-2.5 py-1.5">
         <Button
-          variant="outline"
+          variant="ghost"
           onClick={() => onNewProject?.({
             pipelineId: stage.pipeline_id,
             stageId: stage.id,
             stageName: stage.name,
           })}
-          className="w-full h-7 rounded-lg border-dashed border-primary/40 text-[10px] font-semibold text-primary hover:bg-primary/5 hover:border-primary transition-all duration-200"
+          className="w-full h-7 rounded-md text-[10px] font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
         >
           <Plus className="h-3 w-3 mr-1" />
           Novo projeto
