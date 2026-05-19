@@ -126,6 +126,32 @@ export function StepDocumento({
     () => Array.isArray(pagamentoOpcoes) && pagamentoOpcoes.some((o: any) => o?.tipo === "financiamento"),
     [pagamentoOpcoes],
   );
+  
+  const isWebReady = !!result?.proposta_id && !!result?.versao_id;
+  const isBusy = generating || (rendering && !isWebReady);
+  const hasArtifact = !!outputPdfPath || !!externalPdfUrl || !!outputDocxPath;
+  const isReady = !generating && (generationStatus === "ready" || generationStatus === "ready_web" || hasArtifact || isWebReady);
+
+  const statusLabel = isReady
+    ? (rendering && !hasArtifact ? "Web pronta (PDF pendente)" : "Proposta pronta")
+    : generationStatus === "rendering_pdf" || rendering
+      ? "PDF sendo processado..."
+      : generationStatus === "ready_web" || generationStatus === "published"
+        ? "Versão publicada"
+        : isBusy
+          ? "Gerando proposta..."
+          : generationStatus === "error"
+            ? "Erro na geração"
+            : "Proposta desatualizada";
+
+  const statusTone = isReady
+    ? (rendering && !hasArtifact ? "info" : "success")
+    : (isBusy || generationStatus === "published" || generationStatus === "rendering_pdf" || rendering)
+      ? "info"
+      : generationStatus === "error"
+        ? "destructive"
+        : "warning";
+
   // Calculate areaUtilM2 and precoFinal if needed, or get from context
   const areaUtilM2 = 0; 
   const precoFinal = 0;
