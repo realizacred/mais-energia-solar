@@ -402,6 +402,7 @@ export function useDealPipeline() {
           customer_id: custId || null,
           proposta_id: proposta?.id || null,
           proposta_status: proposta?.status || null,
+          proposta_aceita_at: proposta?.aceita_at || null,
           proposta_economia_mensal: proposta ? (economiaMap.get(proposta.id) || null) : null,
           proposta_draft_total: proposta?.draft_total || null,
           proposta_has_unpublished_changes: proposta?.has_unpublished_changes || false,
