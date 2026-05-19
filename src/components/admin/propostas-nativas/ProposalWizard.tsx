@@ -2588,9 +2588,16 @@ function ProposalWizardContent() {
           }
         })();
       } else if (!isDocxTemplate) {
+        setSavedVersaoId(genResult.versao_id); // Ensure polling logic uses the new version ID
         // HTML templates are fast, but let's follow the same pattern for consistency
         setRendering(true);
         setGenerationStatus("rendering_pdf");
+
+        // Mark version as generating in DB so we can pick it up if user leaves
+        await supabase
+          .from("proposta_versoes")
+          .update({ generation_status: "rendering_pdf" } as any)
+          .eq("id", genResult.versao_id);
         (async () => {
           try {
             const renderResult = await renderProposal(genResult.versao_id);
