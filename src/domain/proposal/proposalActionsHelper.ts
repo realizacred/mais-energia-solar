@@ -64,14 +64,16 @@ export function getAvailableProposalActions(status: string | null | undefined): 
     // Viewing/Details: allowed after generation
     canView: ["generated", "sent", "viewed", "accepted", "rejected"].includes(canonical),
     
-    // Core state machine transitions (Mirroring proposal-transition Edge Function)
+    // Core state machine transitions
+    // GOVERNANCE: accepted -> rejected is now restricted in StateMachine
     canAccept: canTransition(canonical, "accepted"),
     canReject: canTransition(canonical, "rejected"),
     
     // Cancellation: can cancel any time EXCEPT when already terminal/accepted
     canCancel: canTransition(canonical, "cancelled") && !["accepted", "rejected", "cancelled"].includes(canonical),
     
-    // Reversions: only from their respective terminal states
+    // Reversions (Administrative/Formal): 
+    // From terminal states back to a non-terminal 'ready for action' state
     canRevertAccept: canonical === "accepted",
     canRevertReject: canonical === "rejected",
     
