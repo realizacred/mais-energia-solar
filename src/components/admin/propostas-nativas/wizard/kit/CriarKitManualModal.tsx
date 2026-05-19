@@ -513,6 +513,8 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
     setCusto(initialCardData?.custo || initCusto);
     if (initialCardData) {
       setDistribuidorNome(initialCardData.distribuidorNome || "");
+      setFornecedorId(initialCardData.fornecedorId);
+
       setNomeKit(initialCardData.nomeKit || "");
       setCodigoKit(initialCardData.codigoKit || "");
       if (initialCardData.topologia) {
