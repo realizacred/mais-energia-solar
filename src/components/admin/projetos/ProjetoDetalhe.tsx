@@ -80,7 +80,7 @@ import { TipoProjetoSolarAlert } from "./TipoProjetoSolarAlert";
 import { ProjetoRecibosTab } from "./ProjetoRecibosTab";
 import { EmitirReciboModal } from "@/components/admin/documentos/EmitirReciboModal";
 import { useRecibos } from "@/hooks/useRecibos";
-
+import { ProjetoExecucaoTab } from "./ProjetoExecucaoTab";
 
 import { useOperationalStatus } from "@/hooks/useOperationalStatus";
 import { useFinancialSummary } from "@/hooks/useFinancialSummary";
