@@ -237,8 +237,8 @@ function StageDealCardImpl({
   const cardContent = (
     <div
       draggable
-      onDragStart={e => onDragStart(e, deal.deal_id)}
-      onClick={onClick}
+      onDragStart={handleDragStart}
+      onClick={handleClick}
       className={cn(
         "kanban-card group transition-all duration-200",
         borderClass,
