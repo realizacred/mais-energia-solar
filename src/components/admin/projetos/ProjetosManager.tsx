@@ -1101,6 +1101,7 @@ export function ProjetosManager() {
             </div>
           </div>
         </TabsContent>
+
         <TabsContent value="pendencias" className="mt-0">
           <CentralPendencias 
             projetos={projetos} 
