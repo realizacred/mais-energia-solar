@@ -326,7 +326,7 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
   const [editingName, setEditingName] = useState(false);
   const [tempName, setTempName] = useState(uc.nome);
   return (
-    <div className="border rounded-xl bg-card p-4 min-w-[320px] w-full space-y-4 relative">
+    <div className="border rounded-xl bg-card p-4 min-w-[320px] w-full min-h-[350px] space-y-4 relative shadow-sm hover:shadow-md transition-shadow">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
