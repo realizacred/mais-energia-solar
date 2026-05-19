@@ -479,9 +479,34 @@ function StepConsumptionIntelligenceImpl({
   );
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      <div className="lg:col-span-3 space-y-6">
+    <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      <div className="xl:col-span-9 space-y-6">
+
         <LeadBriefingPanel />
+
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 relative overflow-hidden group">
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+              <Zap className="h-6 w-6 text-primary" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-sm font-black uppercase tracking-widest text-primary">Assistente de Dimensionamento</h4>
+              <p className="text-xs text-muted-foreground max-w-xl">
+                Baseado no consumo de <strong>{formatNumberBR(consumoTotal)} kWh</strong> e na irradiação local, 
+                recomendo um sistema de <span className="text-primary font-bold">{potenciaIdeal.toFixed(2)} kWp</span>.
+              </p>
+            </div>
+            <Button 
+              className="ml-auto bg-primary text-primary-foreground font-black text-[10px] uppercase tracking-widest h-9"
+              onClick={applyPotIdeal}
+              disabled={Math.abs(potenciaKwp - potenciaIdeal) < 0.1}
+            >
+              {Math.abs(potenciaKwp - potenciaIdeal) < 0.1 ? "Potência Aplicada" : "Aplicar Recomendação"}
+            </Button>
+          </div>
+          <Target className="h-24 w-24 text-primary/5 absolute -right-4 -bottom-4 group-hover:scale-110 transition-transform" />
+        </div>
+
 
         {/* ─── Metric Cockpit Summary */}
         <div className="flex flex-wrap items-center gap-6 text-[11px] text-muted-foreground bg-muted/30 p-3 rounded-lg border border-border/40">
@@ -594,7 +619,8 @@ function StepConsumptionIntelligenceImpl({
       </div>
 
       {/* ─── RIGHT SIDEBAR (Col 1) */}
-      <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-4 h-fit">
+      <div className="xl:col-span-3 space-y-4 xl:sticky xl:top-4 h-fit xl:block hidden lg:hidden">
+
         <Card className="border-secondary/20 shadow-sm overflow-hidden bg-secondary/[0.02]">
           <CardHeader className="bg-secondary/5 py-2 px-3 border-b border-secondary/10">
             <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-secondary flex items-center gap-2">

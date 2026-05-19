@@ -1,7 +1,10 @@
-import { Sun, Cpu, Plus } from "lucide-react";
+import { Sun, Cpu, Plus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatBRL } from "../types";
+import { cn } from "@/lib/utils";
+
+
 
 export interface KitCardData {
   id: string;
@@ -24,10 +27,14 @@ export interface KitCardData {
 interface KitCardProps {
   kit: KitCardData;
   onSelect: (kit: KitCardData) => void;
+  onCompare?: (kit: KitCardData) => void;
+  isComparing?: boolean;
+  isBestMatch?: boolean;
   viewMode: "grid" | "list";
 }
 
-export function KitCard({ kit, onSelect, viewMode }: KitCardProps) {
+export function KitCard({ kit, onSelect, onCompare, isComparing, isBestMatch, viewMode }: KitCardProps) {
+
   if (viewMode === "list") {
     return (
       <div className="flex items-center gap-4 p-4 rounded-xl border-2 border-border/40 hover:border-primary/30 transition-all bg-card">
@@ -73,12 +80,36 @@ export function KitCard({ kit, onSelect, viewMode }: KitCardProps) {
   }
 
   return (
-    <div className="rounded-xl border-2 border-border/40 hover:border-primary/30 transition-all bg-card p-4 space-y-3">
+    <div className={cn(
+      "rounded-xl border-2 transition-all bg-card p-4 space-y-3 relative overflow-hidden group",
+      isBestMatch ? "border-emerald-500/50 shadow-lg shadow-emerald-500/10" : "border-border/40 hover:border-primary/30",
+      isComparing && "ring-2 ring-primary"
+    )}>
+      {isBestMatch && (
+        <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-bl-lg tracking-widest z-10">
+          Melhor Escolha
+        </div>
+      )}
+
       {/* Distributor */}
-      <div className="h-10 flex items-center">
-        <span className="text-sm font-bold text-secondary uppercase">{kit.distribuidorNome || "—"}</span>
+      <div className="h-10 flex items-center justify-between">
+        <span className="text-sm font-bold text-secondary uppercase truncate pr-4">{kit.distribuidorNome || "—"}</span>
+        {onCompare && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className={cn(
+              "h-7 px-2 text-[10px] uppercase font-bold tracking-tighter",
+              isComparing ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary"
+            )}
+            onClick={(e) => { e.stopPropagation(); onCompare(kit); }}
+          >
+            {isComparing ? "Comparando" : "Comparar"}
+          </Button>
+        )}
       </div>
       <div className="border-t border-border/30" />
+
 
       {/* Module */}
       <div className="flex items-start gap-2 text-xs">

@@ -134,9 +134,11 @@ export function StepUCsEnergia({ onNext, onBack }: StepUCsProps) {
       {/* ── Briefing Operational & Cockpit ── */}
       <LeadBriefingPanel />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         {/* ── Main UC Area (Col 9) ── */}
-        <div className="lg:col-span-9 space-y-4">
+        <div className="xl:col-span-9 space-y-4">
+
+
           {/* ── Sub-tabs ── */}
           <div className="flex gap-2">
             <Button
@@ -211,7 +213,8 @@ export function StepUCsEnergia({ onNext, onBack }: StepUCsProps) {
         </div>
 
         {/* ── Sidebar Metrics (Col 3) ── */}
-        <div className="lg:col-span-3 space-y-4 lg:sticky lg:top-4">
+
+        <div className="xl:col-span-3 space-y-4 xl:sticky xl:top-4 xl:block hidden lg:hidden">
           <Card className="border-primary/20 shadow-sm overflow-hidden">
             <CardHeader className="bg-primary/[0.03] py-3 px-4 border-b border-primary/10">
               <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-primary flex items-center gap-2">
@@ -301,6 +304,7 @@ export function StepUCsEnergia({ onNext, onBack }: StepUCsProps) {
     </div>
   );
 }
+
 
 // ─── UC Card ───────────────────────────────────────────────
 interface UCCardProps {

@@ -12,7 +12,9 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+
 import {
   type KitItemRow, type LayoutArranjo, type PreDimensionamentoData, type TopologiaConfig,
   SOMBREAMENTO_OPTIONS, DESVIO_AZIMUTAL_OPTIONS, INCLINACAO_OPTIONS,
@@ -179,9 +181,13 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
   const catalogLoaded = useRef(false);
   const [selectedSolaryumKitId, setSelectedSolaryumKitId] = useState<number | null>(null);
   const [hasRemovedAutoFilter, setHasNewRemovedAutoFilter] = useState(false);
+  const [comparingKitIds, setComparingKitIds] = useState<string[]>([]);
+  const [showComparison, setShowComparison] = useState(false);
   const [page, setPage] = useState(0);
+
   const [totalCount, setTotalCount] = useState(0);
   const pageSize = 20;
+
 
   // Derive selected catalog kit ID from manualKits meta
   const selectedCatalogKitId = useMemo(() => {
@@ -347,7 +353,33 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
     }
   };
 
+  // Identify Best Match (closest to potenciaIdeal)
+  const bestMatchKitId = useMemo(() => {
+    if (potenciaIdeal <= 0 || catalogKits.length === 0) return null;
+    let bestId = null;
+    let minDiff = Infinity;
+    
+    catalogKits.forEach(kit => {
+      const diff = Math.abs((kit.estimated_kwp || 0) - potenciaIdeal);
+      if (diff < minDiff) {
+        minDiff = diff;
+        bestId = kit.id;
+      }
+    });
+    
+    return minDiff < potenciaIdeal * 0.3 ? bestId : null; // Only suggest if within 30%
+  }, [catalogKits, potenciaIdeal]);
+
+  const toggleCompare = (kitId: string) => {
+    setComparingKitIds(prev => {
+      if (prev.includes(kitId)) return prev.filter(id => id !== kitId);
+      if (prev.length >= 2) return [prev[1], kitId];
+      return [...prev, kitId];
+    });
+  };
+
   const consumoTotal = 0; // Simplified as it was before
+
 
   // Build KitCardData from current itens for the Edit Kit Fechado modal
   const currentKitCards = useMemo(() => {
@@ -794,184 +826,40 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
                   {filteredCatalogKits.map(kit => {
                     const summary = catalogSummaries.get(kit.id);
                     const isSelected = selectedCatalogKitId === kit.id;
+                    const isComparing = comparingKitIds.includes(kit.id);
+                    const isBestMatch = bestMatchKitId === kit.id;
 
                     const kitPrice = kit.fixed_price || summary?.custoTotal || 0;
-
-                    if (viewMode === "list") {
-                      return (
-                        <div
-                          key={kit.id}
-                          className={cn(
-                            "flex items-center gap-4 p-4 rounded-xl border-2 transition-all bg-card cursor-pointer",
-                            isSelected
-                              ? "border-primary shadow-md ring-2 ring-primary/20"
-                              : "border-border/40 hover:border-primary/30"
-                          )}
-                          onClick={() => handleSelectCatalogKit(kit.id, kit.name)}
-                        >
-                          <div className="flex-1 min-w-0 space-y-1.5">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-bold truncate">{kit.name}</p>
-                              {kit.fabricante && <span className="text-[10px] text-muted-foreground">({kit.fabricante})</span>}
-                            </div>
-                            <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
-                              {kit.estimated_kwp != null && <span><Sun className="h-3 w-3 inline mr-0.5" />{kit.estimated_kwp} kWp</span>}
-                              {kit.potencia_inversor != null && kit.potencia_inversor > 0 && <span><Cpu className="h-3 w-3 inline mr-0.5" />{kit.potencia_inversor}kW</span>}
-                              {kit.fase && <span>{kit.fase}</span>}
-                              {kit.tensao && <span>{kit.tensao}</span>}
-                              {kit.estrutura && <span>{kit.estrutura}</span>}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {!!kit.fornecedor_id && (
-                                kit.disponivel ? (
-                                  <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/20">Em estoque</Badge>
-                                ) : kit.permite_compra_sem_estoque ? (
-                                  <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning border-warning/20">Sob encomenda</Badge>
-                                ) : (
-                                  <Badge variant="outline" className="text-[10px] bg-destructive/10 text-destructive border-destructive/20">Indisponível</Badge>
-                                )
-                              )}
-                              {!!kit.fornecedor_id && kit.source && (
-                                <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/30">{kit.source.charAt(0).toUpperCase() + kit.source.slice(1)}</Badge>
-                              )}
-                              {kit.preco_por_kwp != null && kit.preco_por_kwp > 0 && (
-                                <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-primary">
-                                  {formatBRL(kit.preco_por_kwp)} / kWp
-                                </Badge>
-                              )}
-                              {kitPrice > 0 && (
-                                <span className="text-sm font-bold text-primary">{formatBRL(kitPrice)}</span>
-                              )}
-                            </div>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant={isSelected ? "outline" : "default"}
-                            className={cn("gap-1.5 h-8 text-xs shrink-0", isSelected && "border-primary text-primary")}
-                            disabled={snapshotLoading === kit.id}
-                            onClick={(e) => { e.stopPropagation(); handleSelectCatalogKit(kit.id, kit.name); }}
-                          >
-                            {snapshotLoading === kit.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : isSelected ? (
-                              <Check className="h-3.5 w-3.5" />
-                            ) : (
-                              <Plus className="h-3.5 w-3.5" />
-                            )}
-                            {isSelected ? "Selecionado" : "Selecionar"}
-                          </Button>
-                        </div>
-                      );
-                    }
-
-                    // Availability badge helper
-                    const availBadge = !!kit.fornecedor_id ? (
-                      kit.disponivel ? (
-                        <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/20">Em estoque</Badge>
-                      ) : kit.permite_compra_sem_estoque ? (
-                        <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning border-warning/20">Sob encomenda</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-[10px] bg-destructive/10 text-destructive border-destructive/20">Indisponível</Badge>
-                      )
-                    ) : null;
+                    
+                    const cardData: KitCardData = {
+                      id: kit.id,
+                      distribuidorNome: kit.fornecedor_nome || kit.source || "—",
+                      moduloDescricao: summary?.moduloDescricao || (kit.potencia_modulo ? `Módulo ${kit.potencia_modulo}W` : "—"),
+                      moduloQtd: summary?.moduloQtd || 0,
+                      moduloPotenciaKwp: kit.estimated_kwp || 0,
+                      inversorDescricao: summary?.inversorDescricao || (kit.potencia_inversor ? `Inversor ${kit.potencia_inversor}kW` : "—"),
+                      inversorQtd: summary?.inversorQtd || 1,
+                      inversorPotenciaKw: kit.potencia_inversor || 0,
+                      topologia: kit.external_data?.topologia || "Tradicional",
+                      precoTotal: kitPrice,
+                      precoWp: kit.estimated_kwp ? kitPrice / (kit.estimated_kwp * 1000) : 0,
+                      tipoEstrutura: kit.estrutura || undefined,
+                    };
 
                     return (
-                      <div
+                      <KitCard 
                         key={kit.id}
-                        className={cn(
-                          "rounded-xl border-2 bg-card p-4 hover:shadow-md transition-all flex flex-col justify-between h-auto cursor-pointer relative",
-                          isSelected
-                            ? "border-primary shadow-md ring-2 ring-primary/20"
-                            : "border-border/40 hover:border-primary/30"
-                        )}
-                        onClick={() => handleSelectCatalogKit(kit.id, kit.name)}
-                      >
-                        {isSelected && (
-                          <div className="absolute top-2 right-2">
-                            <Badge className="bg-primary text-primary-foreground text-[10px] gap-1">
-                              <Check className="h-3 w-3" /> Selecionado
-                            </Badge>
-                          </div>
-                        )}
-
-                        <div className="space-y-2.5">
-                          {/* Name + fabricante */}
-                          <div>
-                            <p className="text-sm font-bold truncate pr-20">{kit.name}</p>
-                            {kit.fabricante && (
-                              <p className="text-[11px] text-muted-foreground font-medium">{kit.fabricante}</p>
-                            )}
-                          </div>
-
-                          {/* Potência + Inversor */}
-                          <div className="flex items-start gap-2 text-xs">
-                            <Sun className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                            <div>
-                              <p className="font-medium">{kit.estimated_kwp ?? 0} kWp</p>
-                              {kit.potencia_modulo != null && kit.potencia_modulo > 0 && (
-                                <p className="text-[10px] text-muted-foreground">Módulo {kit.potencia_modulo}W</p>
-                              )}
-                            </div>
-                          </div>
-
-                          {kit.potencia_inversor != null && kit.potencia_inversor > 0 && (
-                            <div className="flex items-start gap-2 text-xs">
-                              <Cpu className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                              <p className="font-medium">Inversor {kit.potencia_inversor}kW</p>
-                            </div>
-                          )}
-
-                          {/* Technical details */}
-                          <div className="flex items-center gap-2 flex-wrap text-[10px] text-muted-foreground">
-                            {kit.fase && <span>{kit.fase}</span>}
-                            {kit.tensao && <span>• {kit.tensao}</span>}
-                            {kit.estrutura && <span>• {kit.estrutura}</span>}
-                          </div>
-
-                          {/* Badges */}
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {availBadge}
-                            {!!kit.fornecedor_id && kit.source && (
-                              <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/30">
-                                {kit.source.charAt(0).toUpperCase() + kit.source.slice(1)}
-                              </Badge>
-                            )}
-                            {kit.preco_por_kwp != null && kit.preco_por_kwp > 0 && (
-                              <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-primary">
-                                {formatBRL(kit.preco_por_kwp)} / kWp
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Footer: price + action */}
-                        <div className="border-t border-border/40 pt-3 mt-2 flex items-center justify-between">
-                          <div>
-                            {kitPrice > 0 && (
-                              <p className="text-sm font-bold text-primary">{formatBRL(kitPrice)}</p>
-                            )}
-                          </div>
-                          <Button
-                            size="sm"
-                            variant={isSelected ? "outline" : "default"}
-                            className={cn("gap-1.5 h-8 text-xs", isSelected && "border-primary text-primary")}
-                            disabled={snapshotLoading === kit.id}
-                            onClick={(e) => { e.stopPropagation(); handleSelectCatalogKit(kit.id, kit.name); }}
-                          >
-                            {snapshotLoading === kit.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : isSelected ? (
-                              <Check className="h-3.5 w-3.5" />
-                            ) : (
-                              <Plus className="h-3.5 w-3.5" />
-                            )}
-                            {isSelected ? "Selecionado" : "Selecionar"}
-                          </Button>
-                        </div>
-                      </div>
+                        kit={cardData}
+                        onSelect={() => handleSelectCatalogKit(kit.id, kit.name)}
+                        onCompare={() => toggleCompare(kit.id)}
+                        isComparing={isComparing}
+                        isBestMatch={isBestMatch}
+                        viewMode={viewMode}
+                      />
                     );
                   })}
                 </div>
+
               )}
             </div>
           ) : tab === "customizado" ? (
@@ -1264,6 +1152,49 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Kit Comparison Bar */}
+      {comparingKitIds.length > 0 && (
+        <div className="fixed bottom-20 right-8 z-[100] animate-in slide-in-from-right duration-300">
+          <Card className="border-primary/20 shadow-2xl bg-card/95 backdrop-blur-xl p-4 w-72 space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Comparar ({comparingKitIds.length}/2)</h4>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setComparingKitIds([])}>
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {comparingKitIds.map(id => {
+                const kit = catalogKits.find(k => k.id === id);
+                return (
+                  <div key={id} className="text-xs font-medium border-b pb-2 flex justify-between items-center last:border-0">
+                    <span className="truncate pr-2">{kit?.name}</span>
+                    <Button variant="ghost" size="icon" className="h-4 w-4 shrink-0" onClick={() => toggleCompare(id)}>
+                      <Plus className="h-3 w-3 rotate-45" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+            <Button 
+              className="w-full h-8 text-xs font-bold uppercase" 
+              disabled={comparingKitIds.length < 2}
+              onClick={() => setShowComparison(true)}
+            >
+              Comparar Agora
+            </Button>
+          </Card>
+        </div>
+      )}
+
+      {/* Kit Comparison Modal */}
+      <KitComparisonModal 
+        isOpen={showComparison}
+        onClose={() => setShowComparison(false)}
+        onSelect={handleSelectCatalogKit}
+        kits={catalogKits.filter(k => comparingKitIds.includes(k.id))}
+      />
+
       <div className="flex items-center justify-center gap-3 py-3 border-t text-sm">
         <button onClick={() => setPage(p => p - 1)} disabled={page === 0} className="px-3 py-1 border rounded disabled:opacity-40">← Anterior</button>
         <span className="font-medium">Página {page + 1} de {Math.max(1, Math.ceil(totalCount / pageSize))}</span>
@@ -1410,7 +1341,66 @@ function ManualKitCard({ entry, viewMode, isSelected, onSelect, onEdit, onDelete
   );
 }
 
+
+function KitComparisonModal({
+  kits,
+  isOpen,
+  onClose,
+  onSelect
+}: {
+  kits: CatalogKit[];
+  isOpen: boolean;
+  onClose: () => void;
+  onSelect: (id: string, name: string) => void;
+}) {
+  if (kits.length < 2) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold flex items-center gap-2">
+            <LayoutGrid className="h-5 w-5 text-primary" />
+            Comparativo de Kits
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="grid grid-cols-3 gap-6 pt-6">
+          <div className="space-y-6 pt-12">
+            <div className="h-10 font-bold text-xs uppercase text-muted-foreground flex items-center">Fabricante</div>
+            <div className="h-10 font-bold text-xs uppercase text-muted-foreground flex items-center">Potência</div>
+            <div className="h-10 font-bold text-xs uppercase text-muted-foreground flex items-center">Inversor</div>
+            <div className="h-10 font-bold text-xs uppercase text-muted-foreground flex items-center">Estrutura</div>
+            <div className="h-10 font-bold text-xs uppercase text-muted-foreground flex items-center">Preço Total</div>
+            <div className="h-10 font-bold text-xs uppercase text-muted-foreground flex items-center">R$ / Wp</div>
+          </div>
+
+          {kits.map(kit => (
+            <div key={kit.id} className="space-y-6 border rounded-xl p-4 bg-muted/5">
+              <div className="font-bold text-sm truncate mb-4">{kit.name}</div>
+              
+              <div className="h-10 text-sm flex items-center">{kit.fabricante || "—"}</div>
+              <div className="h-10 text-sm flex items-center font-bold text-primary">{kit.estimated_kwp?.toFixed(2)} kWp</div>
+              <div className="h-10 text-sm flex items-center">{kit.potencia_inversor} kW</div>
+              <div className="h-10 text-sm flex items-center">{kit.estrutura || "—"}</div>
+              <div className="h-10 text-sm flex items-center font-black">{formatBRL(kit.fixed_price || 0)}</div>
+              <div className="h-10 text-sm flex items-center italic text-muted-foreground">
+                {formatBRL((kit.fixed_price || 0) / ((kit.estimated_kwp || 1) * 1000))} / Wp
+              </div>
+              
+              <Button className="w-full mt-4" onClick={() => { onSelect(kit.id, kit.name); onClose(); }}>
+                Selecionar este Kit
+              </Button>
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /* ── Premissas Modal ── */
+
 
 const MONTH_LABELS: Record<string, string> = {
   jan: "Janeiro",
