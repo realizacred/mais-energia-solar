@@ -822,21 +822,39 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
                   {filteredCatalogKits.map(kit => {
                     const summary = catalogSummaries.get(kit.id);
                     const isSelected = selectedCatalogKitId === kit.id;
+                    const isComparing = comparingKitIds.includes(kit.id);
+                    const isBestMatch = bestMatchKitId === kit.id;
 
                     const kitPrice = kit.fixed_price || summary?.custoTotal || 0;
+                    
+                    const cardData: KitCardData = {
+                      id: kit.id,
+                      distribuidorNome: kit.fornecedor_nome || kit.source || "—",
+                      moduloDescricao: summary?.moduloDescricao || (kit.potencia_modulo ? `Módulo ${kit.potencia_modulo}W` : "—"),
+                      moduloQtd: summary?.moduloQtd || 0,
+                      moduloPotenciaKwp: kit.estimated_kwp || 0,
+                      inversorDescricao: summary?.inversorDescricao || (kit.potencia_inversor ? `Inversor ${kit.potencia_inversor}kW` : "—"),
+                      inversorQtd: summary?.inversorQtd || 1,
+                      inversorPotenciaKw: kit.potencia_inversor || 0,
+                      topologia: kit.external_data?.topologia || "Tradicional",
+                      precoTotal: kitPrice,
+                      precoWp: kit.estimated_kwp ? kitPrice / (kit.estimated_kwp * 1000) : 0,
+                      tipoEstrutura: kit.estrutura || undefined,
+                    };
 
-                    if (viewMode === "list") {
-                      return (
-                        <div
-                          key={kit.id}
-                          className={cn(
-                            "flex items-center gap-4 p-4 rounded-xl border-2 transition-all bg-card cursor-pointer",
-                            isSelected
-                              ? "border-primary shadow-md ring-2 ring-primary/20"
-                              : "border-border/40 hover:border-primary/30"
-                          )}
-                          onClick={() => handleSelectCatalogKit(kit.id, kit.name)}
-                        >
+                    return (
+                      <KitCard 
+                        key={kit.id}
+                        kit={cardData}
+                        onSelect={() => handleSelectCatalogKit(kit.id, kit.name)}
+                        onCompare={() => toggleCompare(kit.id)}
+                        isComparing={isComparing}
+                        isBestMatch={isBestMatch}
+                        viewMode={viewMode}
+                      />
+                    );
+                  })}
+
                           <div className="flex-1 min-w-0 space-y-1.5">
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-bold truncate">{kit.name}</p>
