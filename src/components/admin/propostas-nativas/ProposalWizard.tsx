@@ -2222,7 +2222,7 @@ function ProposalWizardContent() {
         if (orc.lead_id) {
           const { data: lead } = await supabase
             .from("leads")
-            .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, tipo_telhado, municipio_ibge_codigo")
+            .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, tipo_telhado, municipio_ibge_codigo, observacoes")
             .eq("id", orc.lead_id)
             .maybeSingle();
           if (!cancelled && lead) {
