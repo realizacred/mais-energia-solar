@@ -258,17 +258,28 @@ export function StageDealCard({
             </p>
           </div>
           
-          {isBlocked ? (
-            <Badge variant="destructive" className="shrink-0 text-[9px] h-[18px] px-1.5 font-bold animate-pulse gap-1">
-              <LockIcon className="h-2.5 w-2.5" />
-              BLOQUEADO
-            </Badge>
-          ) : isPropostaAceita ? (
-            <Badge className="shrink-0 text-[9px] h-[18px] px-1.5 font-bold bg-success text-white border-none gap-1">
-              <ShieldCheck className="h-2.5 w-2.5" />
-              ACEITA
-            </Badge>
-          ) : null}
+          <div className="flex flex-col items-end gap-1">
+            {(deal as any).operational_score > 0 && (
+              <Badge variant="outline" className={cn(
+                "h-5 text-[10px] font-black tabular-nums border-none shadow-sm",
+                (deal as any).operational_score > 150 ? "bg-destructive text-white" : 
+                (deal as any).operational_score > 100 ? "bg-orange-500 text-white" : "bg-primary text-white"
+              )}>
+                {(deal as any).operational_score}
+              </Badge>
+            )}
+            {isBlocked ? (
+              <Badge variant="destructive" className="shrink-0 text-[9px] h-[18px] px-1.5 font-bold animate-pulse gap-1">
+                <LockIcon className="h-2.5 w-2.5" />
+                BLOQUEADO
+              </Badge>
+            ) : isPropostaAceita ? (
+              <Badge className="shrink-0 text-[9px] h-[18px] px-1.5 font-bold bg-success text-white border-none gap-1">
+                <ShieldCheck className="h-2.5 w-2.5" />
+                ACEITA
+              </Badge>
+            ) : null}
+          </div>
         </div>
 
         {/* OPERATIONAL EXECUTION (Phase 2C) */}
