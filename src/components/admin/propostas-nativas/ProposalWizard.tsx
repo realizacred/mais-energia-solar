@@ -170,17 +170,22 @@ function ProposalWizardContent() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const invalidateProposalCaches = useCallback((dealId?: string | null, projetoId?: string | null) => {
+    // Queries ativas para atualização imediata
     queryClient.refetchQueries({ queryKey: ["propostas-projeto-tab"], type: "active" });
     queryClient.refetchQueries({ queryKey: ["projeto-detalhe"], type: "active" });
+    
+    // Invalidação completa para evitar cache stale após retorno ou F5
     queryClient.invalidateQueries({ queryKey: ["propostas-projeto-tab"] });
     queryClient.invalidateQueries({ queryKey: ["proposal-detail"] });
     queryClient.invalidateQueries({ queryKey: ["proposta-expanded-snapshot"] });
     queryClient.invalidateQueries({ queryKey: ["proposta-expanded-ucs"] });
     queryClient.invalidateQueries({ queryKey: ["proposta-expanded-kit-items"] });
-    queryClient.invalidateQueries({ queryKey: ["proposal-version-snapshot"] });
+    queryClient.invalidateQueries({ queryKey: ["proposal-version-snapshot"] }); // CRITICAL
     queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] });
     queryClient.invalidateQueries({ queryKey: ["deal-proposals-count"] });
     queryClient.invalidateQueries({ queryKey: ["projetos"] });
+    queryClient.invalidateQueries({ queryKey: ["proposal-message-config"] });
+
     if (dealId) {
       queryClient.invalidateQueries({ queryKey: ["projeto-detalhe", dealId] });
       queryClient.invalidateQueries({ queryKey: ["deal-proposals-count", dealId] });
