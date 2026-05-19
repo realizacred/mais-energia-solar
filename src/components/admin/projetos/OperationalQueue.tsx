@@ -34,6 +34,7 @@ export function OperationalQueue({ projetos, etapas, onViewProjeto }: Props) {
         const stage = p.etapa_id ? etapaMap.get(p.etapa_id) : null;
         return !isProjetoTerminalForOperationalQueue({
           ...p,
+          is_terminal: stage?.is_terminal,
           stage_name: stage?.nome || "",
           categoria: (stage as any)?.categoria,
         });
@@ -45,6 +46,7 @@ export function OperationalQueue({ projetos, etapas, onViewProjeto }: Props) {
           sla_days: stage?.sla_days || 0,
           stage_name: stage?.nome || "",
           categoria: (stage as any)?.categoria,
+          is_terminal: stage?.is_terminal,
         });
         return { ...p, operational_score: score };
       })
