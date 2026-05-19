@@ -331,7 +331,7 @@ function StatusBadge({ status, aceita_at, enviada_at, recusada_at, created_at }:
     const normalized = normalizeStatus(status);
     if (normalized === "accepted") {
       // GOVERNANÇA: Se é aceito mas não tem evidência, o badge deve refletir isso
-      if (!aceita_at && !accepted_via) return "aguardando_aceite";
+      if (!aceita_at) return "aguardando_aceite";
       return "aceita";
     }
     if (["sent", "viewed"].includes(normalized)) return "enviada";
