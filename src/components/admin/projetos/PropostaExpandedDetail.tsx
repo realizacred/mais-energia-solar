@@ -1527,7 +1527,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 </TooltipProvider>
 
                 {p.status === 'accepted' && (
-                  <Badge className="bg-green-600 text-white hover:bg-green-600 border-none h-4 px-1.5 text-[10px] font-bold">Proposta aceita</Badge>
+                  <Badge 
+                    className={cn(
+                      "border-none h-4 px-1.5 text-[10px] font-bold",
+                      p.aceita_at ? "bg-green-600 text-white hover:bg-green-600" : "bg-destructive text-white hover:bg-destructive animate-pulse"
+                    )}
+                  >
+                    {p.aceita_at ? "Proposta aceita" : "Aceite sem evidência"}
+                  </Badge>
                 )}
                 {p.status === 'generated' && (
                   <Badge className="bg-blue-600 text-white hover:bg-blue-600 border-none h-4 px-1.5 text-[10px] font-bold">Proposta gerada</Badge>
@@ -1538,6 +1545,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 {p.status === 'sent' && (
                   <Badge className="bg-blue-500 text-white hover:bg-blue-500 border-none h-4 px-1.5 text-[10px] font-bold">Proposta enviada</Badge>
                 )}
+
 
                 {p.versoes.length > 1 && (
                   <Badge variant="secondary" className="h-4 px-1.5 text-[11px] font-medium bg-muted text-muted-foreground border-none">
@@ -1558,6 +1566,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
           <div className="flex items-center gap-3 shrink-0 ml-auto">
             {(() => {
               const actions = getAvailableProposalActions(p.status);
+              const isInconsistent = p.status === 'accepted' && !p.aceita_at;
               
               return (
                 <div className="hidden sm:flex items-center gap-2 mr-2">
@@ -1575,7 +1584,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                       <CheckCircle className="h-3 w-3" /> Aceitar
                     </Button>
                   )}
-                  {actions.canReject && (
+                  {actions.canReject && !isInconsistent && (
                     <Button 
                       size="sm" 
                       variant="outline" 
@@ -1589,7 +1598,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                       <AlertCircle className="h-3 w-3" /> Recusar
                     </Button>
                   )}
-                  {actions.canRevertAccept && (
+                  {(actions.canRevertAccept || isInconsistent) && (
                     <Button 
                       size="sm" 
                       variant="outline" 
@@ -1597,11 +1606,10 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                       disabled={updatingStatus}
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Administrative Reversion
                         setAceiteRevertDialogOpen(true);
                       }}
                     >
-                      <RotateCcw className="h-3 w-3" /> Cancelar aceite
+                      <RotateCcw className="h-3 w-3" /> {isInconsistent ? "Reverter status" : "Cancelar aceite"}
                     </Button>
                   )}
                 </div>
@@ -1973,10 +1981,11 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
               <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
                 <RotateCcw className="w-5 h-5 text-warning" />
               </div>
-              <AlertDialogTitle>Cancelar aceite formal?</AlertDialogTitle>
+              <AlertDialogTitle>{p.aceita_at ? "Cancelar aceite formal?" : "Reverter status de aceite?"}</AlertDialogTitle>
             </div>
             <AlertDialogDescription className="space-y-3">
-              <p>Esta é uma ação administrativa crítica. O aceite será removido e a proposta voltará ao estado de negociação.</p>
+              <p>{p.aceita_at ? "Esta é uma ação administrativa crítica. O aceite será removido e a proposta voltará ao estado de negociação." : "Esta proposta possui status 'Aceito' mas não tem evidência formal (data de aceite). Ao reverter, ela voltará para o estado de negociação."}</p>
+
               <div className="space-y-1.5 pt-2">
                 <Label className="text-xs font-bold text-foreground">Motivo do cancelamento (obrigatório) *</Label>
                 <Textarea 
