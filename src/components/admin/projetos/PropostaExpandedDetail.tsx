@@ -313,7 +313,7 @@ function getStatusDateLabel(
   recusada_at: string | null,
   created_at: string | null,
 ): string {
-  if (["accepted", "aceita", "aprovada", "ganha"].includes(status) && aceita_at) {
+  if (["accepted", "aceita"].includes(status) && aceita_at) {
     return `Aceita em ${formatDateTime(aceita_at)}`;
   }
   if (["rejected", "rejected", "rejeitada", "perdida"].includes(status) && recusada_at) {
