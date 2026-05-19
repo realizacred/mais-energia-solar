@@ -152,7 +152,7 @@ export function ComissoesManager() {
   });
 
   const { data: allComissoes = [] } = useAllComissoes();
-  const { data: vendedores = [] } = useConsultoresAtivos();
+  const { data: consultores = [] } = useConsultoresAtivos();
   const { data: clientes = [] } = useClientesAtivos();
 
   const salvarComissao = useSalvarComissao();
@@ -617,21 +617,21 @@ export function ComissoesManager() {
         <TabsContent value="lista" className="mt-0">
           <SectionCard icon={DollarSign} title="Comissões" variant="neutral">
               {/* Filters */}
-              <ComissoesFilters
-                filterMes={filterMes}
-                setFilterMes={setFilterMes}
-                filterAno={filterAno}
-                setFilterAno={setFilterAno}
-                filterVendedor={filterVendedor}
-                setFilterVendedor={setFilterVendedor}
-                filterStatus={filterStatus}
-                setFilterStatus={setFilterStatus}
-                filterCliente={filterCliente}
-                setFilterCliente={setFilterCliente}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                vendedores={vendedores}
-                clientes={clientes}
+            <ComissoesFilters
+              filterMes={filterMes}
+              setFilterMes={setFilterMes}
+              filterAno={filterAno}
+              setFilterAno={setFilterAno}
+              filterConsultor={filterConsultor}
+              setFilterConsultor={setFilterConsultor}
+              filterStatus={filterStatus}
+              setFilterStatus={setFilterStatus}
+              filterCliente={filterCliente}
+              setFilterCliente={setFilterCliente}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              consultores={consultores}
+              clientes={clientes}
                 anos={anos}
                 onClearFilters={clearFilters}
               />

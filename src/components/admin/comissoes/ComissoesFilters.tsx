@@ -48,7 +48,7 @@ interface ComissoesFiltersProps {
   setFilterCliente: (cliente: string) => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
-  vendedores: Vendedor[];
+  consultores: Vendedor[];
   clientes: Cliente[];
   anos: number[];
   onClearFilters: () => void;
