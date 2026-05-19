@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useKanbanAutomations, useKanbanStagePermissions } from "@/hooks/useProjetoKanbanStage";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Zap, Plus, Settings2, Clock, Eye, Lock, Palette, ChevronDown, DollarSign, Filter, Search, Check, MoreVertical, ArrowUpDown, Type, Calendar } from "lucide-react";
+import { Zap, Plus, Settings2, Clock, Eye, Lock as LockIcon, Palette, ChevronDown, DollarSign, Filter, Search, Check, MoreVertical, ArrowUpDown, Type, Calendar } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { DealKanbanCard, PipelineStage } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
