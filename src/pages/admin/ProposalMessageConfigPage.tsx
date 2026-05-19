@@ -282,9 +282,23 @@ function ProposalMessageConfigPageInner() {
 
         {/* ═══ TEMPLATES TAB ═══ */}
         <TabsContent value="templates" className="space-y-4">
+          <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/10 mb-2">
+            <div className="mt-0.5">
+              <MessageCircle className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-primary">Templates de Envio</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Aqui você define o <strong>corpo da mensagem</strong> que será enviada via WhatsApp ou E-mail. 
+                Se você não escrever nada, o sistema usará o gerador automático baseado nos <strong>Blocos</strong> (aba ao lado).
+                Customizar aqui sobrescreve completamente a estrutura automática para este template específico.
+              </p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Editor */}
-            <Card className="border-l-4 border-l-primary">
+            <Card className="border-l-4 border-l-primary shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Settings2 className="h-4 w-4 text-primary" />
@@ -293,35 +307,48 @@ function ProposalMessageConfigPageInner() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-xs">Selecione o template</Label>
+                  <Label className="text-xs font-medium">Selecione o template para editar</Label>
                   <Select value={activeTemplateKey} onValueChange={setActiveTemplateKey}>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {TEMPLATE_KEYS.map(tk => (
-                        <SelectItem key={tk.key} value={tk.key}>{tk.label}</SelectItem>
+                        <SelectItem key={tk.key} value={tk.key}>
+                          <div className="flex items-center justify-between w-full gap-4">
+                            <span>{tk.label}</span>
+                            {templates[tk.key] ? (
+                              <Badge variant="secondary" className="text-[9px] bg-amber-100 text-amber-700 hover:bg-amber-100 border-amber-200">Customizado</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[9px] text-muted-foreground opacity-60">Padrão</Badge>
+                            )}
+                          </div>
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 pt-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs">Conteúdo do template</Label>
-                    <Badge variant="outline" className="text-[9px]">
-                      {templates[activeTemplateKey] ? "Customizado" : "Padrão do sistema"}
-                    </Badge>
+                    <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Conteúdo do template</Label>
+                    {templates[activeTemplateKey] ? (
+                      <Badge className="text-[10px] bg-amber-500 hover:bg-amber-600">Customizado</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px] bg-muted/50">Padrão do Sistema</Badge>
+                    )}
                   </div>
                   <Textarea
                     value={templates[activeTemplateKey] || ""}
                     onChange={(e) => setTemplates(prev => ({ ...prev, [activeTemplateKey]: e.target.value }))}
-                    placeholder="Deixe vazio para usar o template padrão do sistema. Use {{variavel}} para inserir dados dinâmicos."
-                    className="min-h-[300px] text-sm font-mono leading-relaxed resize-y"
+                    placeholder="Deixe vazio para usar o gerador automático baseado em blocos. Use {{variavel}} para inserir dados dinâmicos."
+                    className="min-h-[320px] text-sm font-mono leading-relaxed resize-y focus-visible:ring-primary border-muted-foreground/20"
                   />
-                  <p className="text-[10px] text-muted-foreground">
-                    Deixe vazio para usar o template padrão. Use as variáveis da aba "Variáveis" para dados dinâmicos.
-                  </p>
+                  <div className="bg-muted/30 p-2 rounded border border-dashed border-muted-foreground/30">
+                    <p className="text-[10px] text-muted-foreground italic">
+                      Dica: Deixe este campo <strong>vazio</strong> se quiser que o sistema monte a mensagem sozinho usando os botões de ligar/desligar na aba <strong>Blocos</strong>.
+                    </p>
+                  </div>
                 </div>
 
                 {templates[activeTemplateKey] && (
@@ -404,14 +431,28 @@ function ProposalMessageConfigPageInner() {
 
         {/* ═══ BLOCKS TAB ═══ */}
         <TabsContent value="blocks" className="space-y-4">
-          <Card className="border-l-4 border-l-primary">
+          <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/10 mb-2">
+            <div className="mt-0.5">
+              <ToggleLeft className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-primary">Configuração Estrutural (Blocos)</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Estes blocos definem a <strong>estrutura automática</strong> da mensagem. 
+                Se você <strong>não</strong> customizou um template na aba anterior, o sistema montará a mensagem ativando ou desativando os itens abaixo. 
+                Isso garante um padrão visual consistente mesmo sem escrever templates manuais.
+              </p>
+            </div>
+          </div>
+
+          <Card className="border-l-4 border-l-primary shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <ToggleLeft className="h-4 w-4 text-primary" />
-                Blocos Configuráveis
+                Gerenciar Visibilidade dos Blocos
               </CardTitle>
               <p className="text-xs text-muted-foreground mt-1">
-                Habilite ou desabilite seções que aparecem na mensagem gerada
+                Habilite ou desabilite seções que aparecem na mensagem automática (gerada por blocos)
               </p>
             </CardHeader>
             <CardContent>
