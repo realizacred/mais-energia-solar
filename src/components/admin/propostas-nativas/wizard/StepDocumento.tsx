@@ -46,8 +46,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import { getOrCreateProposalToken } from "@/services/proposal/proposalDetail.service";
 import {
   getProposalWebUrl,
-  getTrackedPdfUrl,
-  getDirectPdfUrl,
+  getMaskedPdfUrl,
   getSimulationUrl,
 } from "@/services/proposal/proposalLinks";
 
