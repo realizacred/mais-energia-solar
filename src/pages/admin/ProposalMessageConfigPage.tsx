@@ -712,30 +712,6 @@ function ProposalMessageConfigPageInner() {
                           </div>
                         </div>
 
-                        <div className="space-y-3">
-                          <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-widest flex items-center gap-2">
-                            <Variable className="h-3.5 w-3.5" />
-                            Variáveis Resolvidas
-                          </Label>
-                          <div className="rounded-xl border border-border/80 bg-card overflow-hidden shadow-sm">
-                            <table className="w-full text-xs border-collapse">
-                              <thead className="bg-muted/50 border-b">
-                                <tr>
-                                  <th className="text-left p-3 font-semibold text-muted-foreground">Variável</th>
-                                  <th className="text-left p-3 font-semibold text-muted-foreground">Valor Resolvido</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {Object.entries(structureAnalysis.variables).map(([k, v]) => (
-                                  <tr key={k} className="hover:bg-muted/30 border-b last:border-0 transition-colors">
-                                    <td className="p-3 font-mono text-[10px] text-primary bg-primary/5">{"{{"}{k}{"}}"}</td>
-                                    <td className="p-3 text-muted-foreground/90 font-medium truncate max-w-[180px]" title={v}>{v}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
                       </div>
                     </ScrollArea>
                   </TabsContent>
@@ -743,7 +719,100 @@ function ProposalMessageConfigPageInner() {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+
+          {/* Used Variables */}
+          <div className="xl:col-span-4">
+            <Card className="border-l-4 border-l-primary h-full shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Variable className="h-4 w-4 text-primary" />
+                  Variáveis usadas neste template
+                </CardTitle>
+                <p className="text-[10px] text-muted-foreground leading-tight">
+                  Abaixo listamos as variáveis detectadas no texto atual e como elas estão sendo resolvidas no preview.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[calc(100vh-450px)] min-h-[500px] pr-4">
+                  <div className="space-y-3">
+                    {usedVariablesAnalysis.variables.length > 0 ? (
+                      usedVariablesAnalysis.variables.map((v) => (
+                        <div 
+                          key={v.key} 
+                          className={cn(
+                            "p-3 rounded-lg border transition-all animate-in fade-in zoom-in-95 duration-200",
+                            v.status === 'invalid' ? "bg-destructive/5 border-destructive/20" : 
+                            v.status === 'no_value' ? "bg-amber-50/50 border-amber-200" : 
+                            "bg-card border-border hover:border-primary/30"
+                          )}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <code className="text-[11px] font-mono font-bold text-primary">{"{{"}{v.key}{"}}"}</code>
+                            <div className="flex items-center gap-1.5">
+                              {v.status === 'resolved' && (
+                                <Badge variant="outline" className="text-[9px] h-4 bg-emerald-50 text-emerald-700 border-emerald-200">Resolvida</Badge>
+                              )}
+                              {v.status === 'no_value' && (
+                                <Badge variant="outline" className="text-[9px] h-4 bg-amber-50 text-amber-700 border-amber-200">Sem valor</Badge>
+                              )}
+                              {v.status === 'invalid' && (
+                                <Badge variant="destructive" className="text-[9px] h-4">Inválida</Badge>
+                              )}
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6 hover:bg-primary/10" 
+                                onClick={() => handleCopyPlaceholder(v.key)}
+                              >
+                                {copiedPlaceholder === v.key ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold shrink-0">Descrição:</span>
+                              <span className="text-[10px] font-medium text-foreground truncate">{v.label}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold shrink-0">Preview:</span>
+                              <span className={cn(
+                                "text-[11px] font-medium truncate max-w-[140px]",
+                                v.status === 'no_value' ? "text-amber-600 italic" : "text-foreground"
+                              )}>
+                                {v.resolvedValue}
+                              </span>
+                            </div>
+                          </div>
+
+                          {v.status === 'invalid' && (
+                            <div className="mt-2 flex items-center gap-1.5 text-[9px] text-destructive font-medium bg-destructive/10 p-1.5 rounded">
+                              <AlertTriangle className="h-3 w-3 shrink-0" />
+                              Placeholder não reconhecido pelo catálogo.
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 border-2 border-dashed rounded-xl border-muted bg-muted/20">
+                         <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                           <Info className="h-5 w-5 text-muted-foreground/40" />
+                         </div>
+                         <div className="space-y-1">
+                           <p className="text-xs font-semibold text-muted-foreground">Nenhuma variável detectada</p>
+                           <p className="text-[10px] text-muted-foreground/60 max-w-[180px]">
+                             O texto atual não utiliza placeholders {"{{...}}"} do sistema.
+                           </p>
+                         </div>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </TabsContent>
 
         {/* ═══ BLOCKS TAB ═══ */}
         <TabsContent value="blocks" className="space-y-4">
