@@ -127,7 +127,7 @@ export function ComissoesManager() {
   const currentDate = new Date();
   const [filterMes, setFilterMes] = useState(currentDate.getMonth() + 1);
   const [filterAno, setFilterAno] = useState(currentDate.getFullYear());
-  const [filterVendedor, setFilterVendedor] = useState<string>("all");
+  const [filterConsultor, setFilterConsultor] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterCliente, setFilterCliente] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -146,13 +146,13 @@ export function ComissoesManager() {
   const { data: comissoes = [], isLoading: loadingComissoes } = useComissoes({
     mes: filterMes,
     ano: filterAno,
-    consultor_id: filterVendedor,
+    consultor_id: filterConsultor,
     status: filterStatus,
     cliente_id: filterCliente,
   });
 
   const { data: allComissoes = [] } = useAllComissoes();
-  const { data: vendedores = [] } = useConsultoresAtivos();
+  const { data: consultores = [] } = useConsultoresAtivos();
   const { data: clientes = [] } = useClientesAtivos();
 
   const salvarComissao = useSalvarComissao();
@@ -195,7 +195,7 @@ export function ComissoesManager() {
   }, [comissoes, searchTerm]);
 
   // Reset page on filter change
-  useEffect(() => { setPage(1); }, [searchTerm, filterMes, filterAno, filterVendedor, filterStatus, filterCliente]);
+  useEffect(() => { setPage(1); }, [searchTerm, filterMes, filterAno, filterConsultor, filterStatus, filterCliente]);
 
   const paginatedComissoes = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -259,7 +259,7 @@ export function ComissoesManager() {
   };
 
   const clearFilters = () => {
-    setFilterVendedor("all");
+    setFilterConsultor("all");
     setFilterStatus("all");
     setFilterCliente("all");
     setSearchTerm("");
@@ -403,7 +403,7 @@ export function ComissoesManager() {
   }).length;
 
   // Calculate vendor balances
-  const vendorBalances = vendedores
+  const vendorBalances = consultores
     .map((v) => {
       const vendorComissoes = filteredComissoes.filter((c) => c.consultor_id === v.id);
       const totalVendorComissoes = vendorComissoes.reduce((acc, c) => acc + c.valor_comissao, 0);
@@ -494,7 +494,7 @@ export function ComissoesManager() {
                         <SelectValue placeholder="Selecione o consultor" />
                       </SelectTrigger>
                       <SelectContent>
-                        {vendedores.map((v) => (
+                        {consultores.map((v) => (
                           <SelectItem key={v.id} value={v.id}>
                             {v.nome}
                           </SelectItem>
@@ -617,21 +617,21 @@ export function ComissoesManager() {
         <TabsContent value="lista" className="mt-0">
           <SectionCard icon={DollarSign} title="Comissões" variant="neutral">
               {/* Filters */}
-              <ComissoesFilters
-                filterMes={filterMes}
-                setFilterMes={setFilterMes}
-                filterAno={filterAno}
-                setFilterAno={setFilterAno}
-                filterVendedor={filterVendedor}
-                setFilterVendedor={setFilterVendedor}
-                filterStatus={filterStatus}
-                setFilterStatus={setFilterStatus}
-                filterCliente={filterCliente}
-                setFilterCliente={setFilterCliente}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                vendedores={vendedores}
-                clientes={clientes}
+            <ComissoesFilters
+              filterMes={filterMes}
+              setFilterMes={setFilterMes}
+              filterAno={filterAno}
+              setFilterAno={setFilterAno}
+              filterConsultor={filterConsultor}
+              setFilterConsultor={setFilterConsultor}
+              filterStatus={filterStatus}
+              setFilterStatus={setFilterStatus}
+              filterCliente={filterCliente}
+              setFilterCliente={setFilterCliente}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              consultores={consultores}
+              clientes={clientes}
                 anos={anos}
                 onClearFilters={clearFilters}
               />
@@ -852,7 +852,7 @@ export function ComissoesManager() {
           <ComissoesReports
             comissoes={filteredComissoes}
             allComissoes={allComissoes as Comissao[]}
-            vendedores={vendedores}
+            vendedores={consultores}
             formatCurrency={formatCurrency}
           />
         </TabsContent>

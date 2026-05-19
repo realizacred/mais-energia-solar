@@ -260,7 +260,7 @@ export function VendedorMetasIndividuais() {
                Metas de {editingVendedor?.nome}
              </DialogTitle>
              <DialogDescription>
-               Configure metas personalizadas para este vendedor no mês atual.
+                Configure metas personalizadas para este consultor no mês atual.
              </DialogDescription>
            </DialogHeader>
  

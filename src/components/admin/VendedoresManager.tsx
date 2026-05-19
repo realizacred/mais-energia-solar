@@ -56,7 +56,7 @@ interface VendedoresManagerProps {
   leads?: { consultor: string | null }[];
 }
 
-export default function VendedoresManager({ leads: propLeads }: VendedoresManagerProps = {}) {
+export default function ConsultoresManager({ leads: propLeads }: VendedoresManagerProps = {}) {
   const { data: vendedoresData = [], isLoading: loadingVendedores, refetch: refetchVendedores } = useVendedoresList();
   const { data: userProfilesData = [] } = useUserProfiles();
   const refreshVendedores = useRefreshVendedores();

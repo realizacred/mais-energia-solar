@@ -40,15 +40,15 @@ interface ComissoesFiltersProps {
   setFilterMes: (mes: number) => void;
   filterAno: number;
   setFilterAno: (ano: number) => void;
-  filterVendedor: string;
-  setFilterVendedor: (vendedor: string) => void;
+  filterConsultor: string;
+  setFilterConsultor: (consultor: string) => void;
   filterStatus: string;
   setFilterStatus: (status: string) => void;
   filterCliente: string;
   setFilterCliente: (cliente: string) => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
-  vendedores: Vendedor[];
+  consultores: Vendedor[];
   clientes: Cliente[];
   anos: number[];
   onClearFilters: () => void;
@@ -59,21 +59,21 @@ export function ComissoesFilters({
   setFilterMes,
   filterAno,
   setFilterAno,
-  filterVendedor,
-  setFilterVendedor,
+  filterConsultor,
+  setFilterConsultor,
   filterStatus,
   setFilterStatus,
   filterCliente,
   setFilterCliente,
   searchTerm,
   setSearchTerm,
-  vendedores,
+  consultores,
   clientes,
   anos,
   onClearFilters,
 }: ComissoesFiltersProps) {
   const hasActiveFilters = 
-    filterVendedor !== "all" || 
+    filterConsultor !== "all" || 
     filterStatus !== "all" || 
     filterCliente !== "all" ||
     searchTerm !== "";
@@ -137,13 +137,15 @@ export function ComissoesFilters({
 
         <div className="space-y-2">
           <Label className="text-xs text-muted-foreground">Consultor</Label>
-          <Select value={filterVendedor} onValueChange={setFilterVendedor}>
+          <Select value={filterConsultor} onValueChange={setFilterConsultor}>
+
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              {vendedores.map((v) => (
+              {consultores.map((v) => (
+
                 <SelectItem key={v.id} value={v.id}>
                   {v.nome}
                 </SelectItem>
