@@ -301,6 +301,7 @@ export function useProjetoDetalheData(dealId: string) {
         projetoNum,
         projetoDescricao,
         history: historyData,
+        operacoesHistory: (rpcData.operacoes_history || []) as ProjetoOperacaoEvento[],
         stages: (rpcData.stages || []) as StageInfo[],
         customerName,
         customerPhone,
