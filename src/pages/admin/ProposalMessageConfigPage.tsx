@@ -394,9 +394,23 @@ function ProposalMessageConfigPageInner() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {usedVariablesAnalysis.hasInvalid && (
+            <div className="flex items-start gap-3 p-3 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive animate-in fade-in slide-in-from-top-2 duration-300 mb-4">
+              <AlertTriangle className="h-5 w-5 shrink-0" />
+              <div className="space-y-1">
+                <p className="text-xs font-bold uppercase tracking-wider">Atenção: Variáveis Inválidas</p>
+                <p className="text-[11px] opacity-90 leading-relaxed">
+                  Detectamos placeholders no seu texto que não pertencem ao catálogo oficial. 
+                  Isso pode causar o envio de códigos brutos (ex: {"{{erro}}"}) para o cliente. 
+                  Verifique a ortografia ou use o catálogo de variáveis.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-12 gap-6">
             {/* Editor */}
-            <Card className="border-l-4 border-l-primary shadow-sm">
+            <div className="xl:col-span-4">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Settings2 className="h-4 w-4 text-primary" />
