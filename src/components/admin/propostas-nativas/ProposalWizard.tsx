@@ -599,6 +599,8 @@ function ProposalWizardContent() {
       kits_custo_total: venda.custo_kit ?? 0,
       // QW11 — Financial series (25-year), payback, TIR, VPL, economia
       ...financialFields,
+      // Fase 1: Snapshot visual da proposta WEB para imutabilidade (RB-F1)
+      web_template_snapshot: templates.find(t => t.id === templateSelecionado)?.template_html || null,
     };
   }, [
     locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
