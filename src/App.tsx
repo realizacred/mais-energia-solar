@@ -116,6 +116,7 @@ const App = () => (
               <Route path="/aguardando-aprovacao" element={<PublicLeadShell><PendingApproval /></PublicLeadShell>} />
               <Route path="/proposta/:token" element={<PublicLeadShell><PublicErrorBoundary><PropostaPublica /></PublicErrorBoundary></PublicLeadShell>} />
               <Route path="/pl/:token" element={<PublicLeadShell><PublicErrorBoundary><PropostaLanding /></PublicErrorBoundary></PublicLeadShell>} />
+              <Route path="/p/pdf/:token" element={<PropostaPdfRedirect />} />
               <Route path="/kits/:token" element={<PublicLeadShell><KitsLanding /></PublicLeadShell>} />
               <Route path="/oauth/google/callback" element={<PublicLeadShell><OAuthGoogleCallback /></PublicLeadShell>} />
               <Route path="/oauth/google-contacts/callback" element={<PublicLeadShell><GoogleContactsCallbackPage /></PublicLeadShell>} />
