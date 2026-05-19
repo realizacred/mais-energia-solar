@@ -96,6 +96,7 @@ interface Props {
 
 export interface KitMeta {
   distribuidorNome?: string;
+  fornecedorId?: string;
   nomeKit?: string;
   codigoKit?: string;
   catalogKitId?: string;
@@ -119,6 +120,7 @@ export interface KitMeta {
   external_data?: Record<string, any> | null;
   selected_at?: string;
 }
+
 
 /** Searchable equipment combo with highlight, keyboard nav, badge */
 interface SearchableOption { value: string; label: string; searchText: string }
