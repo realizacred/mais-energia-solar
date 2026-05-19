@@ -2550,8 +2550,15 @@ function ProposalWizardContent() {
       });
 
       if (isDocxTemplate && genResult.proposta_id) {
+        setSavedVersaoId(genResult.versao_id); // Ensure polling logic uses the new version ID
         setRendering(true);
         setGenerationStatus("rendering_pdf");
+        
+        // Mark version as generating in DB so we can pick it up if user leaves
+        await supabase
+          .from("proposta_versoes")
+          .update({ generation_status: "rendering_pdf" } as any)
+          .eq("id", genResult.versao_id);
         
         // Trigger Edge Function in background without awaiting its completion for the UI
         (async () => {
