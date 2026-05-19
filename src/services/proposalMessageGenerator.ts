@@ -286,7 +286,14 @@ export function generateProposalMessage(
 
   // Render blocks
   const blockResults: Record<string, string> = {};
-  const blockKeys = Object.keys(SYSTEM_DEFAULT_BLOCKS);
+  
+  // Sort blocks by order if provided, fallback to default order or key order
+  const blockKeys = Object.keys(SYSTEM_DEFAULT_BLOCKS).sort((a, b) => {
+    const orderA = blocksConfig?.[a]?.order ?? 100;
+    const orderB = blocksConfig?.[b]?.order ?? 100;
+    if (orderA !== orderB) return orderA - orderB;
+    return 0; // maintain original relative order if no order defined
+  });
 
   for (const blockKey of blockKeys) {
     if (isBlockEnabled(blockKey, mode, style, blocksConfig)) {
