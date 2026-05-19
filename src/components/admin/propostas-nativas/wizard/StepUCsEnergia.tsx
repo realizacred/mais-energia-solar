@@ -269,10 +269,7 @@ export function StepUCsEnergia({ onNext, onBack }: StepUCsProps) {
             </AlertDescription>
           </Alert>
         </div>
-        </div>
       </div>
-    </div>
-
 
       {/* ── Config Modal ── */}
       {configModalUC !== null && (
@@ -306,6 +303,7 @@ export function StepUCsEnergia({ onNext, onBack }: StepUCsProps) {
     </div>
   );
 }
+
 
 // ─── UC Card ───────────────────────────────────────────────
 interface UCCardProps {
