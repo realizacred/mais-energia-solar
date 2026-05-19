@@ -292,7 +292,7 @@ function StageDealCardImpl({
               </Badge>
             )}
             {isBlocked ? (
-              <Badge variant="destructive" className="shrink-0 text-[9px] h-[18px] px-1.5 font-bold animate-pulse gap-1">
+              <Badge variant="destructive" className="shrink-0 text-[9px] h-[18px] px-1.5 font-bold gap-1">
                 <LockIcon className="h-2.5 w-2.5" />
                 BLOQUEADO
               </Badge>
