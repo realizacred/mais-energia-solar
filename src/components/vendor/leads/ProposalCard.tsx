@@ -1,3 +1,4 @@
+import { getProposalWebUrl } from "@/services/proposal/proposalLinks";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";

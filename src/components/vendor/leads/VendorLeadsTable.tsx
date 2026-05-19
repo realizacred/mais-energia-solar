@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getProposalWebUrl } from "@/services/proposal/proposalLinks";
 import { Phone, Eye, MapPin, Calendar, Trash2, ShoppingCart, UserCheck, MessageSquare, RotateCcw, ExternalLink } from "lucide-react";
 import { useReopenLead } from "@/hooks/useReopenLead";
 // ... keep existing code

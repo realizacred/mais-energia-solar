@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getProposalWebUrl } from "@/services/proposal/proposalLinks";
 import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, Pencil, ExternalLink, CreditCard } from "lucide-react";
 // ... keep existing code
 import { displayDate, displayPhone } from "@/lib/formatters/index";
