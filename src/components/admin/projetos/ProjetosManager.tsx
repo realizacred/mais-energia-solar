@@ -512,7 +512,17 @@ export function ProjetosManager() {
       return next;
     }, { replace: true });
   }, [setSearchParams]);
-  const [activeTab, setActiveTab] = useState<string>("kanban");
+  const [activeTab, setActiveTab] = useState<string>("operacional");
+
+  // Sync viewMode with the active tab: Kanban tab never shows "lista"; Lista tab forces "lista".
+  useEffect(() => {
+    if (activeTab === "lista" && viewMode !== "lista") {
+      setViewMode("lista");
+    } else if (activeTab === "kanban" && viewMode === "lista") {
+      setViewMode("kanban-etapa");
+    }
+     
+  }, [activeTab]);
   
   const [dynamicEtiquetas, setDynamicEtiquetas] = useState<DynamicEtiqueta[]>([]);
   const [defaultFunilApplied, setDefaultFunilApplied] = useState(false);
