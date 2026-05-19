@@ -1458,7 +1458,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
               <p className="text-sm font-semibold text-foreground truncate">
                 {p.cliente_nome || p.titulo || p.codigo || `Proposta #${p.proposta_num}`}
               </p>
-              <StatusBadge status={p.status} aceita_at={p.aceita_at} accepted_via={p.accepted_via} enviada_at={p.enviada_at} recusada_at={p.recusada_at} created_at={p.created_at} />
+              <StatusBadge status={p.status} aceita_at={p.aceita_at} enviada_at={p.enviada_at} recusada_at={p.recusada_at} created_at={p.created_at} />
               {isMigrated && <PropostaBadge type="migrada" />}
               {isPrincipal && <PropostaBadge type="principal" />}
               {isOutdated && <PropostaBadge type="desatualizada" />}
