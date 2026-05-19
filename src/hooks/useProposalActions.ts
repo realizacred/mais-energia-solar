@@ -12,7 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { formatBRL } from "@/lib/formatters";
 import { renderProposal, sendProposal } from "@/services/proposalApi";
 import { invalidatePropostaCaches } from "@/lib/invalidatePropostaCaches";
-import { getProposalWebUrl } from "@/services/proposal/proposalLinks";
+import { getProposalWebUrl, getMaskedPdfUrl } from "@/services/proposal/proposalLinks";
 import {
   transitionProposalStatus,
   generateOs as svcGenerateOs,
