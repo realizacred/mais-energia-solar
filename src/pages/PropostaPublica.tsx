@@ -15,6 +15,7 @@
 import { formatBRL } from "@/lib/formatters";
 import { formatTaxaMensal } from "@/services/paymentComposition/financingMath";
 import { getCanonicalProposalTotal } from "@/services/proposal/proposalTotals";
+import { getMaskedPdfUrl } from "@/services/proposal/proposalLinks";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useSearchParams, Navigate } from "react-router-dom";
 import { CheckCircle2, Loader2, AlertTriangle, Pencil, Sun, Zap, TrendingUp, Clock, XCircle, ThumbsDown, CreditCard, Smartphone, FileText, Banknote, Wallet, DollarSign, Building2, MessageCircle } from "lucide-react";
