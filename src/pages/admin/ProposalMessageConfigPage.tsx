@@ -489,7 +489,7 @@ function ProposalMessageConfigPageInner() {
 
                   <div className="relative group">
                     <Textarea
-                      value={templates[activeTemplateKey] || previewText}
+                      value={templates[activeTemplateKey] || DEFAULT_TEMPLATES[activeTemplateKey as keyof typeof DEFAULT_TEMPLATES]}
                       onChange={(e) => {
                         if (!templates[activeTemplateKey]) return; // Readonly if not custom
                         setTemplates(prev => ({ ...prev, [activeTemplateKey]: e.target.value }));
