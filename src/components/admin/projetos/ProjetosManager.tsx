@@ -152,15 +152,19 @@ export function ProjetosManager() {
 
   // Status do projeto considera categoria da etapa + status da proposta.
   // Proposta aceita (verde) é tratada como "ganho", não pode aparecer em "Abertos".
-  const ACEITA_STATUSES = ["aceita", "accepted", "aprovada", "ganha"];
+  const ACEITA_STATUSES = ["aceita", "accepted"];
   const RECUSADA_STATUSES = ["recusada", "rejeitada", "perdida", "rejected"];
   const resolveProjetoStatus = useCallback((p: ProjetoItem): string => {
     const proposta = (p.proposta_status || "").toLowerCase();
+    
+    // GOVERNANÇA: Apenas se o status da proposta for REALMENTE aceita/accepted
     if (ACEITA_STATUSES.includes(proposta)) return "ganho";
     if (RECUSADA_STATUSES.includes(proposta)) return "perdido";
+    
     const etapa = p.etapa_id ? etapaMap.get(p.etapa_id) : null;
     return etapa?.categoria || "aberto";
   }, [etapaMap]);
+
 
   const statusFiltered = useMemo(() => {
     const status = filters.status;
