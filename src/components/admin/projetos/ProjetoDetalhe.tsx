@@ -2858,6 +2858,8 @@ interface LinkedOrcamento {
   status_id: string | null;
   status_nome?: string;
   created_at: string;
+  observacoes?: string | null;
+  lead_observacoes?: string | null;
 }
 
 function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealStatus, projetoId }: { customerId: string | null; dealId: string; dealTitle: string; navigate: any; isClosed?: boolean; dealStatus?: string; projetoId?: string | null }) {
