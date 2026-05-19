@@ -1131,61 +1131,118 @@ function ProposalMessageConfigPageInner() {
 
       {/* Block Editor Dialog */}
       <Dialog open={!!editingBlock} onOpenChange={(open) => !open && setEditingBlock(null)}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Settings2 className="h-5 w-5 text-primary" />
-              Configurar Bloco: {editingBlock && (BLOCK_LABELS[editingBlock]?.label || editingBlock)}
+              Builder de Bloco: {editingBlock && (BLOCK_LABELS[editingBlock]?.label || editingBlock)}
             </DialogTitle>
             <DialogDescription>
-              Personalize o título, ícone e visibilidade deste bloco na mensagem automática.
+              Personalize o template e variáveis deste bloco para a mensagem automática.
             </DialogDescription>
           </DialogHeader>
 
           {editingBlock && (
             <div className="space-y-6 py-4">
-              <div className="space-y-3">
-                <Label className="text-sm font-semibold">Título do Bloco</Label>
-                <Input 
-                  value={blocks[editingBlock]?.title || ""} 
-                  onChange={(e) => setBlocks(prev => ({
-                    ...prev,
-                    [editingBlock]: { ...(prev[editingBlock] || SYSTEM_DEFAULT_BLOCKS[editingBlock]), title: e.target.value }
-                  }))}
-                  placeholder={BLOCK_LABELS[editingBlock]?.label}
-                />
-                <p className="text-[10px] text-muted-foreground italic">
-                  Este título aparecerá em destaque no WhatsApp (ex: ━━━ *{blocks[editingBlock]?.title || BLOCK_LABELS[editingBlock]?.label}* ━━━)
-                </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold">Título do Bloco</Label>
+                  <Input 
+                    value={blocks[editingBlock]?.title || ""} 
+                    onChange={(e) => setBlocks(prev => ({
+                      ...prev,
+                      [editingBlock]: { ...(prev[editingBlock] || SYSTEM_DEFAULT_BLOCKS[editingBlock]), title: e.target.value }
+                    }))}
+                    placeholder={BLOCK_LABELS[editingBlock]?.label}
+                  />
+                </div>
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold">Prefixo / Emoji</Label>
+                  <Input 
+                    value={blocks[editingBlock]?.prefix || ""} 
+                    onChange={(e) => setBlocks(prev => ({
+                      ...prev,
+                      [editingBlock]: { ...(prev[editingBlock] || SYSTEM_DEFAULT_BLOCKS[editingBlock]), prefix: e.target.value }
+                    }))}
+                    placeholder="Ex: ☀️, ⚡, 💰"
+                  />
+                </div>
               </div>
 
               <div className="space-y-3">
-                <Label className="text-sm font-semibold">Prefixo / Emoji</Label>
-                <Input 
-                  value={blocks[editingBlock]?.prefix || ""} 
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    Template Bruto do Bloco
+                  </Label>
+                  <Badge variant="outline" className="text-[10px] font-mono">
+                    {editingBlock}
+                  </Badge>
+                </div>
+                <Textarea 
+                  value={blocks[editingBlock]?.template ?? SYSTEM_DEFAULT_BLOCKS[editingBlock]?.template ?? ""} 
                   onChange={(e) => setBlocks(prev => ({
                     ...prev,
-                    [editingBlock]: { ...(prev[editingBlock] || SYSTEM_DEFAULT_BLOCKS[editingBlock]), prefix: e.target.value }
+                    [editingBlock]: { ...(prev[editingBlock] || SYSTEM_DEFAULT_BLOCKS[editingBlock]), template: e.target.value }
                   }))}
-                  placeholder="Ex: ☀️, ⚡, 💰"
+                  placeholder="Escreva o template do bloco aqui..."
+                  className="min-h-[120px] font-mono text-sm resize-y"
                 />
               </div>
 
-              <div className="p-4 rounded-lg bg-primary/5 border border-primary/10 flex items-start gap-3">
-                <Sparkles className="h-5 w-5 text-primary shrink-0" />
-                <div className="space-y-1">
-                  <h5 className="text-xs font-bold text-primary uppercase tracking-wider">Dica Enterprise</h5>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Personalizar os títulos dos blocos ajuda a criar uma identidade visual única para sua empresa no WhatsApp, aumentando a percepção de profissionalismo.
-                  </p>
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold flex items-center gap-2">
+                  <Variable className="h-4 w-4 text-primary" />
+                  Variáveis Sugeridas
+                </Label>
+                <div className="flex flex-wrap gap-2 p-3 rounded-lg border bg-muted/30">
+                  {BLOCK_VARS[editingBlock]?.map(vKey => (
+                    <button
+                      key={vKey}
+                      onClick={() => {
+                        const currentTemplate = blocks[editingBlock]?.template ?? SYSTEM_DEFAULT_BLOCKS[editingBlock]?.template ?? "";
+                        setBlocks(prev => ({
+                          ...prev,
+                          [editingBlock]: { 
+                            ...(prev[editingBlock] || SYSTEM_DEFAULT_BLOCKS[editingBlock]), 
+                            template: currentTemplate + ` {{${vKey}}}`
+                          }
+                        }));
+                      }}
+                      className="px-2 py-1 rounded border bg-background hover:bg-primary/5 hover:border-primary/30 transition-colors text-[10px] font-mono text-primary flex items-center gap-1.5"
+                    >
+                      <Plus className="h-3 w-3" />
+                      {`{{${vKey}}}`}
+                    </button>
+                  )) || (
+                    <p className="text-[10px] text-muted-foreground italic">Use as variáveis do catálogo geral.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold flex items-center gap-2 text-primary">
+                  <Eye className="h-4 w-4" />
+                  Preview do Bloco
+                </Label>
+                <div className="p-4 rounded-xl border border-primary/20 bg-primary/[0.02] dark:bg-primary/[0.05] shadow-inner font-sans text-sm whitespace-pre-wrap leading-relaxed">
+                  {(() => {
+                    const blockCfg = blocks[editingBlock] || SYSTEM_DEFAULT_BLOCKS[editingBlock];
+                    const bTemplate = blockCfg.template || SYSTEM_DEFAULT_BLOCKS[editingBlock].template || "";
+                    
+                    // Simple render for preview
+                    const rendered = bTemplate.replace(/\{\{(\w+)\}\}/g, (_match, key) => structureAnalysis.variables[key] ?? "");
+                    return (blockCfg.prefix ? `${blockCfg.prefix} ` : "") + rendered;
+                  })()}
                 </div>
               </div>
             </div>
           )}
 
           <DialogFooter>
-            <Button onClick={() => setEditingBlock(null)} className="w-full sm:w-auto">
-              Confirmar Alterações
+            <Button onClick={() => setEditingBlock(null)} className="w-full sm:w-auto shadow-sm">
+              <Check className="h-4 w-4 mr-2" />
+              Salvar Configuração do Bloco
             </Button>
           </DialogFooter>
         </DialogContent>
