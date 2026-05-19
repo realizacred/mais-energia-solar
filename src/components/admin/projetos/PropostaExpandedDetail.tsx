@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { invalidatePropostaCaches } from "@/lib/invalidatePropostaCaches";
-import { getProposalWebUrl } from "@/services/proposal/proposalLinks";
+import { getProposalWebUrl, getMaskedPdfUrl } from "@/services/proposal/proposalLinks";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 
 import { useNavigate } from "react-router-dom";
@@ -1306,6 +1306,23 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
       toast({ title: "Erro ao gerar link", description: e.message, variant: "destructive" });
     }
   };
+
+  const handleCopyPdfLink = async () => {
+    try {
+      // PDF masking sempre usa token rastreável para garantir que resolvemos o path correto
+      const { token } = await resolvePublicProposalUrl(true);
+      const url = getMaskedPdfUrl(token);
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        window.prompt("Copie o link do PDF abaixo:", url);
+      }
+      toast({ title: "Link do PDF (mascarado) copiado! 📄" });
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar link do PDF", description: e.message, variant: "destructive" });
+    }
+  };
+
   const copyPublicLink = () => handleCopyLink(false);
   const copyTrackedLink = () => handleCopyLink(true);
 
@@ -1637,6 +1654,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={copyPublicLink}>
                           <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link público
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleCopyPdfLink}>
+                          <FileText className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link PDF (mascarado)
                         </DropdownMenuItem>
                       </>
                     )}

@@ -87,6 +87,24 @@ Deno.serve(async (req) => {
 
     // 3. Serve the PDF
     if (versao.output_pdf_path) {
+      // Check if file exists (best effort)
+      const { data: fileExists } = await adminClient.storage
+        .from("proposta-documentos")
+        .list(versao.output_pdf_path.split('/').slice(0, -1).join('/'), {
+          search: versao.output_pdf_path.split('/').pop()
+        });
+
+      if (!fileExists || fileExists.length === 0) {
+        console.warn("[proposal-pdf-serve] PDF path exists in DB but file not found in storage:", versao.output_pdf_path);
+        return new Response(JSON.stringify({ 
+          error: "Documento em processamento", 
+          code: "PENDING" 
+        }), {
+          status: 202,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const { data: signed, error: signErr } = await adminClient.storage
         .from("proposta-documentos")
         .createSignedUrl(versao.output_pdf_path, 60);
@@ -113,8 +131,11 @@ Deno.serve(async (req) => {
       return Response.redirect(versao.link_pdf, 302);
     }
 
-    return new Response(JSON.stringify({ error: "PDF ainda não gerado" }), {
-      status: 404,
+    return new Response(JSON.stringify({ 
+      error: "Documento em preparação", 
+      code: "PENDING" 
+    }), {
+      status: 202,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
