@@ -561,9 +561,11 @@ function ProposalMessageConfigPageInner() {
                 </div>
               </CardContent>
             </Card>
+          </div>
 
-            {/* Preview */}
-            <Card className="border-l-4 border-l-primary">
+          {/* Preview */}
+          <div className="xl:col-span-4">
+            <Card className="border-l-4 border-l-primary h-full">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Eye className="h-4 w-4 text-primary" />
