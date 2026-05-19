@@ -220,6 +220,9 @@ export function StageDealCard({
                 {[deal.customer_city, deal.customer_state].filter(Boolean).join(", ")}
               </p>
             )}
+            <p className="text-[9px] text-primary/70 font-semibold uppercase mt-0.5 tracking-tight line-clamp-1">
+              {deal.stage_name}
+            </p>
           </div>
           
           {isBlocked ? (
