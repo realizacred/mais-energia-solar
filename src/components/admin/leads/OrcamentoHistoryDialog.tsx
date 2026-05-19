@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
-import { Phone, Clock, FileText, Eye, MessageSquare, MapPin, Zap, ShoppingCart } from "lucide-react";
+import { Phone, Clock, FileText, Eye, MessageSquare, MapPin, Zap, ShoppingCart, Archive } from "lucide-react";
 import {
   Dialog,
   DialogContent,
