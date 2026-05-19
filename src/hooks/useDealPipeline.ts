@@ -267,8 +267,8 @@ export function useDealPipeline() {
 
     const dealIds = results.map(d => d.deal_id);
 
-    // ── Batch large IN queries to avoid silently emptying big kanban datasets ──
-    const [etiquetaRels, dealsData] = await Promise.all([
+    // ── PARALLEL batch: etiquetas + deals + pendencias ──
+    const [etiquetaRels, dealsData, pendenciasRes] = await Promise.all([
       fetchRowsInBatches<any>(
         "projeto_etiqueta_rel",
         "projeto_id, etiqueta_id",
@@ -281,7 +281,20 @@ export function useDealPipeline() {
         "id",
         dealIds,
       ),
+      fetchRowsInBatches<any>(
+        "projeto_pendencias",
+        "id, projeto_id, titulo, criticidade, status, bloqueia_fluxo, sla_at",
+        "projeto_id",
+        dealIds,
+      ),
     ]);
+
+    const pendenciasMap = new Map<string, any[]>();
+    (pendenciasRes || []).forEach((p: any) => {
+      const arr = pendenciasMap.get(p.projeto_id) || [];
+      arr.push(p);
+      pendenciasMap.set(p.projeto_id, arr);
+    });
 
     // Apply etiquetas
     const etiquetaRelMap = new Map<string, string[]>();
