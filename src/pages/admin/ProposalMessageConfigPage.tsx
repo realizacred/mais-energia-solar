@@ -411,7 +411,8 @@ function ProposalMessageConfigPageInner() {
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-12 gap-6">
             {/* Editor */}
             <div className="xl:col-span-4">
-              <CardHeader className="pb-3">
+              <Card className="border-l-4 border-l-primary shadow-sm h-full">
+                <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Settings2 className="h-4 w-4 text-primary" />
                   Editor de Template
