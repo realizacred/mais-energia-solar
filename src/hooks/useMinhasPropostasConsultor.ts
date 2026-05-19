@@ -29,7 +29,6 @@ export interface PropostaConsultor {
   ultimo_acesso_em: string | null;
   total_aberturas: number | null;
   aceita_at: string | null;
-  accepted_via: string | null;
   recusada_at: string | null;
   validade_dias: number | null;
   public_token: string | null;
