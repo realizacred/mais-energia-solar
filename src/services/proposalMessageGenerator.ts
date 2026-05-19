@@ -430,6 +430,7 @@ export function generateProposalMessage(
     status: ctx.propostaStatus || "—",
     consultor_nome: ctx.consultorNome || "",
     empresa_nome: ctx.empresaNome || "",
+    validade_dias: ctx.validadeDias?.toString() || "—",
     // Custom Titles (Enterprise)
     titulo_sistema_solar: blocksConfig?.resumo_tecnico?.title || "Sistema Solar",
     titulo_consumo_geracao: blocksConfig?.consumo_geracao?.title || "Consumo e Geração",
