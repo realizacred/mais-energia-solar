@@ -21,7 +21,9 @@ export const orcamentoService = {
           telefone_normalized
         )
       `)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false });
+
 
     if (leadId) {
       query = query.eq("lead_id", leadId);
@@ -64,11 +66,19 @@ export const orcamentoService = {
     if (error) throw error;
   },
 
-  async delete(id: string) {
+  async delete(id: string, motivo?: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // Soft delete by updating deleted_at
     const { error } = await supabase
       .from("orcamentos")
-      .delete()
+      .update({ 
+        deleted_at: new Date().toISOString(),
+        deleted_by: user?.id,
+        motivo_arquivamento: motivo || null
+      })
       .eq("id", id);
+      
     if (error) throw error;
   }
 };

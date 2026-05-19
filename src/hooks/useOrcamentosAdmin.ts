@@ -69,7 +69,9 @@ export function useOrcamentosAdmin({
       let query = supabase
         .from("orcamentos")
         .select(ORC_ADMIN_SELECT, { count: "exact" })
+        .is("deleted_at", null)
         .is("leads.deleted_at", null);
+
 
       // Apply standard filters
       // Phase 1: search uses telefone_normalized (canonical digits) + cidade.
@@ -314,39 +316,56 @@ export function useOrcamentosAdmin({
     }
   }, [toast]);
 
-  const deleteOrcamento = useCallback(async (orcamentoId: string) => {
+  const deleteOrcamento = useCallback(async (orcamentoId: string, motivo?: string) => {
     try {
-      // Busca o lead pai
+      // 1) Busca os dados do orçamento para validações
       const { data: orc, error: orcErr } = await supabase
         .from("orcamentos")
-        .select("lead_id, leads(nome)")
+        .select(`
+          id, 
+          orc_code,
+          lead_id, 
+          leads(nome),
+          vw:vw_orcamentos_comercial(matched_projeto_id)
+        `)
         .eq("id", orcamentoId)
         .maybeSingle();
+        
       if (orcErr) throw orcErr;
+      if (!orc) throw new Error("Orçamento não encontrado");
 
-      if (!orc?.lead_id) {
-        throw new Error("Lead não encontrado");
-      }
-
-      const { data, error } = await supabase.rpc("archive_lead", { p_lead_id: orc.lead_id });
-      if (error) throw error;
-      
-      const res = data as any;
-      if (res && res.success === false) {
+      // 2) REGRA DE BLOQUEIO: Orçamento já convertido em projeto/venda
+      const matchedProjetoId = (orc as any).vw?.[0]?.matched_projeto_id;
+      if (matchedProjetoId) {
         toast({
           title: "Não é possível arquivar",
-          description: res.error || "Este lead possui vínculos que impedem o arquivamento.",
+          description: "Este orçamento já foi convertido em projeto e não pode ser arquivado individualmente.",
           variant: "destructive",
         });
         return false;
       }
 
+      // 3) SOFT DELETE: Arquiva apenas este orçamento
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("orcamentos")
+        .update({ 
+          deleted_at: new Date().toISOString(),
+          deleted_by: user?.id,
+          motivo_arquivamento: motivo || null
+        })
+        .eq("id", orcamentoId);
+
+      if (error) throw error;
+      
       setOrcamentos((prev) => prev.filter((o) => o.id !== orcamentoId));
-      setTotalCount((prev) => prev - 1);
+      setTotalCount((prev) => Math.max(0, prev - 1));
+      
       toast({
-        title: "Lead arquivado",
-        description: `O lead ${orc.leads?.nome || ""} foi arquivado com sucesso.`,
+        title: "Orçamento arquivado",
+        description: `O orçamento ${orc.orc_code || ""} foi removido da listagem principal.`,
       });
+      
       return true;
     } catch (error) {
       const appError = handleSupabaseError(error, "delete_orcamento", { entityId: orcamentoId });
@@ -358,6 +377,7 @@ export function useOrcamentosAdmin({
       return false;
     }
   }, [toast]);
+
 
   useEffect(() => {
     if (autoFetch) {

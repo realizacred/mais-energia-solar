@@ -462,7 +462,12 @@ export function OrcamentosTable({
         onViewOrcamento={onView}
         onWhatsApp={handleWhatsAppFromHistory}
         onConvertOrcamento={onConvert}
+        onArchiveOrcamento={(orc) => {
+          setHistoryOpen(false);
+          if (onDelete) onDelete(orc);
+        }}
       />
+
 
       {/* Assign Vendor Dialog */}
       {assignOrcamento && (

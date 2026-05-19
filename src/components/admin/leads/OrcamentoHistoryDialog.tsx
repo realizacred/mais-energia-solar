@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
-import { Phone, Clock, FileText, Eye, MessageSquare, MapPin, Zap, ShoppingCart } from "lucide-react";
+import { Phone, Clock, FileText, Eye, MessageSquare, MapPin, Zap, ShoppingCart, Archive } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +25,10 @@ interface OrcamentoHistoryDialogProps {
   onWhatsApp?: (telefone: string, nome: string, leadId: string) => void;
   /** Callback para converter um orçamento específico em venda */
   onConvertOrcamento?: (orcamento: OrcamentoDisplayItem) => void;
+  /** Callback para arquivar um orçamento individual */
+  onArchiveOrcamento?: (orcamento: OrcamentoDisplayItem) => void;
 }
+
 
 export function OrcamentoHistoryDialog({
   group,
@@ -35,6 +38,8 @@ export function OrcamentoHistoryDialog({
   onViewOrcamento,
   onWhatsApp,
   onConvertOrcamento,
+  onArchiveOrcamento,
+
 }: OrcamentoHistoryDialogProps) {
   if (!group) return null;
 
@@ -160,11 +165,24 @@ export function OrcamentoHistoryDialog({
                       Converter
                     </Button>
                   )}
-                  {isOrcamentoConverted(latestOrcamento.status_id) && (
+                  {isOrcamentoConverted(latestOrcamento.status_id) ? (
                     <Badge variant="outline" className="text-primary border-primary/30">
                       Convertido
                     </Badge>
+                  ) : (
+                    onArchiveOrcamento && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                        onClick={() => onArchiveOrcamento(latestOrcamento)}
+                      >
+                        <Archive className="h-4 w-4 mr-1" />
+                        Arquivar
+                      </Button>
+                    )
                   )}
+
                 </div>
               </div>
             </div>
@@ -257,11 +275,24 @@ export function OrcamentoHistoryDialog({
                                 Converter
                               </Button>
                             )}
-                            {isConverted && (
+                            {isConverted ? (
                               <Badge variant="outline" className="text-primary border-primary/30">
                                 Convertido
                               </Badge>
+                            ) : (
+                              onArchiveOrcamento && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                  onClick={() => onArchiveOrcamento(orcamento)}
+                                >
+                                  <Archive className="h-4 w-4 mr-1" />
+                                  Arquivar
+                                </Button>
+                              )
                             )}
+
                           </div>
                         </div>
                       </div>

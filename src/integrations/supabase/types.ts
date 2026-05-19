@@ -15192,10 +15192,13 @@ export type Database = {
           consumo_previsto: number
           created_at: string
           data_proxima_acao: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           estado: string
           id: string
           lead_id: string
           media_consumo: number
+          motivo_arquivamento: string | null
           numero: string | null
           observacoes: string | null
           orc_code: string | null
@@ -15225,10 +15228,13 @@ export type Database = {
           consumo_previsto: number
           created_at?: string
           data_proxima_acao?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           estado: string
           id?: string
           lead_id: string
           media_consumo: number
+          motivo_arquivamento?: string | null
           numero?: string | null
           observacoes?: string | null
           orc_code?: string | null
@@ -15258,10 +15264,13 @@ export type Database = {
           consumo_previsto?: number
           created_at?: string
           data_proxima_acao?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           estado?: string
           id?: string
           lead_id?: string
           media_consumo?: number
+          motivo_arquivamento?: string | null
           numero?: string | null
           observacoes?: string | null
           orc_code?: string | null
