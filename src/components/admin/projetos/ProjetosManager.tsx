@@ -34,6 +34,7 @@ import { ProjetoPipelineTemplates } from "./ProjetoPipelineTemplates";
 import { CentralPendencias } from "./CentralPendencias";
 import { OperationalQueue } from "./OperationalQueue";
 import { BottleneckCenter } from "./BottleneckCenter";
+import { OperationalCockpitKpis } from "./OperationalCockpitKpis";
 import { calculateOperationalScore } from "@/lib/operational-score";
 import { differenceInDays, differenceInHours } from "date-fns";
 import { cn } from "@/lib/utils";
