@@ -595,7 +595,8 @@ function StepConsumptionIntelligenceImpl({
       </div>
 
       {/* ─── RIGHT SIDEBAR (Col 1) */}
-      <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-4 h-fit">
+      <div className="xl:col-span-3 space-y-4 xl:sticky xl:top-4 h-fit xl:block hidden lg:hidden">
+
         <Card className="border-secondary/20 shadow-sm overflow-hidden bg-secondary/[0.02]">
           <CardHeader className="bg-secondary/5 py-2 px-3 border-b border-secondary/10">
             <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-secondary flex items-center gap-2">
