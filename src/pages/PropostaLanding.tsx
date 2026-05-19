@@ -40,11 +40,28 @@ export default function PropostaLanding() {
 
   useEffect(() => {
     if (token) loadData();
-    return () => { if (heartbeatRef.current) clearInterval(heartbeatRef.current); };
+    return () => { 
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
   }, [token]);
 
-  const loadData = async () => {
-    setLoading(true);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Auto-polling when generating
+  useEffect(() => {
+    if (resolution?.mode === "generating" && !pollingRef.current) {
+      pollingRef.current = setInterval(() => {
+        loadData(false); // background reload
+      }, 3000);
+    } else if (resolution?.mode !== "generating" && pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }, [resolution?.mode]);
+
+  const loadData = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       const res = await resolvePublicProposal(token!);
       setResolution(res);
@@ -184,20 +201,57 @@ export default function PropostaLanding() {
     </div>
   );
 
-  if (resolution?.mode === "pending") return (
+  if (resolution?.mode === "generating") return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
       <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full border border-slate-100">
         <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
           <FileText className="h-8 w-8 text-primary animate-bounce" />
         </div>
-        <h2 className="text-xl font-bold text-slate-900 mb-2">Documento em preparação</h2>
+        <h2 className="text-xl font-bold text-slate-900 mb-2">Preparando sua proposta</h2>
         <p className="text-slate-500 text-sm mb-6">
-          Estamos gerando os arquivos finais da sua proposta solar. Isso leva apenas alguns segundos.
+          Estamos preparando os arquivos finais e configurando sua experiência solar. Isso leva apenas alguns segundos.
         </p>
-        <button onClick={() => window.location.reload()} className="w-full bg-primary text-white py-3 rounded-xl font-bold hover:bg-primary/90 transition-all flex items-center justify-center gap-2">
+        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-6">
+          <div className="bg-primary h-full animate-progress-loading" />
+        </div>
+        <button onClick={() => loadData()} className="w-full bg-primary text-white py-3 rounded-xl font-bold hover:bg-primary/90 transition-all flex items-center justify-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin" />
           Atualizar agora
         </button>
+      </div>
+    </div>
+  );
+
+  if (resolution?.mode === "failed") return (
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+      <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full border border-slate-100">
+        <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <AlertTriangle className="h-8 w-8 text-amber-500" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900 mb-2">Quase pronto!</h2>
+        <p className="text-slate-500 text-sm mb-6">
+          Houve um pequeno atraso na geração do documento PDF, mas não se preocupe: você já pode visualizar a proposta web ou tentar regenerar o PDF agora.
+        </p>
+        <div className="flex flex-col gap-3">
+          {resolution.templateType === "html" && (
+             <button 
+              onClick={() => setResolution({ ...resolution, mode: "web" })}
+              className="w-full bg-primary text-white py-3 rounded-xl font-bold hover:bg-primary/90 transition-all"
+             >
+               Ver Proposta Digital
+             </button>
+          )}
+          <button 
+            onClick={async () => {
+              setLoading(true);
+              await supabase.functions.invoke("proposal-render", { body: { versao_id: resolution.versaoId, force: true } });
+              loadData();
+            }} 
+            className="w-full bg-slate-100 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
+          >
+            Regenerar PDF
+          </button>
+        </div>
       </div>
     </div>
   );
