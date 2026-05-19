@@ -1963,6 +1963,45 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Aceite Reversion Dialog */}
+      <AlertDialog open={aceiteRevertDialogOpen} onOpenChange={setAceiteRevertDialogOpen}>
+        <AlertDialogContent className="w-[90vw] max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+                <RotateCcw className="w-5 h-5 text-warning" />
+              </div>
+              <AlertDialogTitle>Cancelar aceite formal?</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="space-y-3">
+              <p>Esta é uma ação administrativa crítica. O aceite será removido e a proposta voltará ao estado de negociação.</p>
+              <div className="space-y-1.5 pt-2">
+                <Label className="text-xs font-bold text-foreground">Motivo do cancelamento (obrigatório) *</Label>
+                <Textarea 
+                  value={revertReason} 
+                  onChange={(e) => setRevertReason(e.target.value)}
+                  placeholder="Ex: cliente desistiu, erro operacional, renegociação..."
+                  className="resize-none min-h-[80px] text-xs"
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setRevertReason("")}>Voltar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                updatePropostaStatus("generated", { motivo: revertReason });
+                setAceiteRevertDialogOpen(false);
+                setRevertReason("");
+              }} 
+              disabled={updatingStatus || !revertReason.trim()} 
+              className="bg-warning text-warning-foreground hover:bg-warning/90"
+            >
+              Confirmar cancelamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
