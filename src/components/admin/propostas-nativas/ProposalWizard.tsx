@@ -83,42 +83,56 @@ function WizardContent() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[1400px] mx-auto p-4 md:p-6 lg:p-8 pb-24">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentStep}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              {renderStep()}
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Navigation - Footer fixed or at end of content */}
-          <div className="fixed bottom-0 right-0 left-0 lg:left-72 bg-background/80 backdrop-blur-md border-t border-border/40 p-4 z-50">
-            <div className="max-w-[1400px] mx-auto flex justify-between items-center px-4 md:px-8">
-              <Button 
-                variant="ghost"
-                size="sm"
-                onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
-                className="text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
-                disabled={currentStep === 0}
-              >
-                Voltar
-              </Button>
-
-              <div className="flex gap-2">
-                <Button 
-                  onClick={() => setCurrentStep(prev => Math.min(STEPS.length - 1, prev + 1))}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 h-10 font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20"
-                  disabled={currentStep === STEPS.length - 1}
-                >
-                  Próximo Passo
-                </Button>
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 pb-32">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+              {/* Step Content */}
+              <div className="xl:col-span-8 2xl:col-span-9 w-full">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentStep}
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {renderStep()}
+                  </motion.div>
+                </AnimatePresence>
               </div>
+
+              {/* Live Summary Sidebar - Visible from Step 2 onwards (when calculation starts to matter) */}
+              {currentStep >= 2 && (
+                <div className="hidden xl:block xl:col-span-4 2xl:col-span-3 sticky top-8">
+                  <ProposalLiveSummary />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation - Footer fixed */}
+        <div className="fixed bottom-0 right-0 left-0 lg:left-72 bg-background/80 backdrop-blur-md border-t border-border/40 p-4 z-50">
+          <div className="max-w-7xl mx-auto flex justify-between items-center px-4 md:px-8">
+            <Button 
+              variant="ghost"
+              size="sm"
+              onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
+              className="text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
+              disabled={currentStep === 0}
+            >
+              Voltar
+            </Button>
+
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => setCurrentStep(prev => Math.min(STEPS.length - 1, prev + 1))}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 h-10 font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20"
+                disabled={currentStep === STEPS.length - 1}
+              >
+                Próximo Passo
+              </Button>
             </div>
           </div>
         </div>
@@ -126,6 +140,7 @@ function WizardContent() {
     </div>
   );
 }
+
 
 export function ProposalWizard() {
   return (
