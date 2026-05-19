@@ -370,7 +370,8 @@ export function useDealPipeline() {
             id: best.id, 
             status: best.status,
             draft_total: best.draft_total,
-            has_unpublished_changes: best.has_unpublished_changes
+            has_unpublished_changes: best.has_unpublished_changes,
+            aceita_at: best.aceita_at
           });
         }
       });
