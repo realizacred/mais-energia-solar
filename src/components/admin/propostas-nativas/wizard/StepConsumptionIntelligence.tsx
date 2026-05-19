@@ -24,6 +24,8 @@ import { UCCard } from "./uc/UCCard";
 import { UCConfigModal, RateioCreditsModal, MesAMesDialog } from "./uc/UCModals";
 import { useTiposTelhado } from "@/hooks/useTiposTelhado";
 import { getRoofLabel, type RoofAreaFactor } from "@/hooks/useTenantPremises";
+import { LeadBriefingPanel } from "./LeadBriefingPanel";
+
 
 interface Props {
   ucs: UCData[];
