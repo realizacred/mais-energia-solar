@@ -368,37 +368,27 @@ export function StepDocumento({
     }
     const propostaId = result?.proposta_id as string | undefined;
     const versaoId = result?.versao_id as string | undefined;
-    const directPdfUrl = outputPdfPath
-      ? null
-      : (externalPdfUrl || pdfBlobUrl || null);
 
-    if (withTracker && (!propostaId || !versaoId)) {
-      toast({ title: "Gere a proposta primeiro para copiar o link rastreável", variant: "destructive" });
-      return;
-    }
-
-    if (!withTracker && !outputPdfPath && !directPdfUrl) {
-      toast({ title: "Gere a proposta primeiro para copiar o link do PDF", variant: "destructive" });
+    if (!propostaId || !versaoId) {
+      toast({ title: "Gere a proposta primeiro para copiar os links", variant: "destructive" });
       return;
     }
 
     try {
       let url: string | null = null;
+      const token = await getOrCreateProposalToken(propostaId, versaoId, "tracked");
 
       if (withTracker) {
-        const token = await getOrCreateProposalToken(propostaId!, versaoId!, "tracked");
-        url = getTrackedPdfUrl(token);
+        // Link Web canônico (/pl/:token)
+        url = getProposalWebUrl(token);
         setResolvedPublicUrl(url);
       } else {
-        url = await getDirectPdfUrl(outputPdfPath, directPdfUrl);
-        if (!url) {
-          toast({ title: "Erro ao gerar link do PDF", variant: "destructive" });
-          return;
-        }
+        // Link PDF mascarado (/p/pdf/:token)
+        url = getMaskedPdfUrl(token);
       }
 
       if (!url) {
-        toast({ title: "Link do PDF indisponível", variant: "destructive" });
+        toast({ title: "Link indisponível", variant: "destructive" });
         return;
       }
 
