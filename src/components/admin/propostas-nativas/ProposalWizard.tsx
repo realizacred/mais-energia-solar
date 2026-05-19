@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { WizardProvider, useWizardContext } from "./wizard/WizardContext";
 import { WizardSidebar } from "./wizard/WizardSidebar";
+import { ProposalLiveSummary } from "./wizard/ProposalLiveSummary";
 import { StepCliente } from "./wizard/StepCliente";
 import { StepLocalizacao } from "./wizard/StepLocalizacao";
 import { StepUCsEnergia } from "./wizard/StepUCsEnergia";
@@ -12,6 +13,7 @@ import { StepPagamento } from "./wizard/StepPagamento";
 import { StepDocumento } from "./wizard/StepDocumento";
 import { StepComercial } from "./wizard/StepComercial";
 import { Button } from "@/components/ui/button";
+
 import { 
   User, 
   MapPin, 
