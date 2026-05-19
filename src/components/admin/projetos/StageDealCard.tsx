@@ -348,40 +348,33 @@ function StageDealCardImpl({
           </div>
         )}
 
-        {/* OPERATIONAL INFO: SLA / Time in Stage + Responsibility */}
-        <div className="flex items-center justify-between bg-muted/30 rounded-md p-1.5">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">
-              {isBlocked ? "Parado há" : "Com a bola há"}
-            </span>
-            <div className={cn(
-              "flex items-center gap-1 text-[12px] font-bold tabular-nums",
-              isCritical || isBlocked ? "text-destructive" :
-              isDelayed ? "text-warning" :
-              "text-foreground"
-            )}>
-              <Clock className="h-3 w-3" />
-              {formatTimeInStage(deal.last_stage_change)}
-              {slaDays > 0 && (
-                <span className="text-[8px] font-normal text-muted-foreground ml-1">
-                  / {slaDays}d
-                </span>
-              )}
-            </div>
+        {/* OPERATIONAL INFO: tempo na etapa + responsável (sem rótulos repetitivos) */}
+        <div className="flex items-center justify-between gap-2 px-0.5">
+          <div className={cn(
+            "flex items-center gap-1 text-[11px] font-semibold tabular-nums",
+            isCritical || isBlocked ? "text-destructive" :
+            isDelayed ? "text-warning" :
+            isAttention ? "text-foreground" :
+            "text-muted-foreground"
+          )}>
+            <Clock className="h-3 w-3 opacity-70" />
+            {formatTimeInStage(deal.last_stage_change)}
+            {slaDays > 0 && (
+              <span className="text-[9px] font-normal text-muted-foreground/70 ml-0.5">
+                / {slaDays}d
+              </span>
+            )}
           </div>
 
-          <div className="flex flex-col items-end gap-0.5">
-            <span className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Responsável</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-bold text-foreground truncate max-w-[80px]">
-                {deal.responsavel_operacional || deal.owner_name}
-              </span>
-              <Avatar className="h-5 w-5 border border-border/60">
-                <AvatarFallback className={cn("text-[7px] font-bold", getAvatarColor(deal.responsavel_operacional || deal.owner_name))}>
-                  {getInitials(deal.responsavel_operacional || deal.owner_name)}
-                </AvatarFallback>
-              </Avatar>
-            </div>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-[10px] font-medium text-muted-foreground truncate max-w-[90px]">
+              {deal.responsavel_operacional || deal.owner_name}
+            </span>
+            <Avatar className="h-5 w-5">
+              <AvatarFallback className={cn("text-[8px] font-semibold", getAvatarColor(deal.responsavel_operacional || deal.owner_name))}>
+                {getInitials(deal.responsavel_operacional || deal.owner_name)}
+              </AvatarFallback>
+            </Avatar>
           </div>
         </div>
 
