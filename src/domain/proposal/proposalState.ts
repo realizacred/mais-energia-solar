@@ -79,8 +79,9 @@ export {
 
 export function isActionableStatus(status: string): boolean {
   const actionable = [
-    "enviada", "gerada", "vista", "aceita", "recusada",
-    "sent", "generated", "viewed", "accepted", "rejected"
+    "enviada", "gerada", "vista", "aceita", "recusada", "cancelada",
+    "sent", "generated", "viewed", "accepted", "rejected", "cancelled"
+
   ];
   return actionable.includes(status);
 }
