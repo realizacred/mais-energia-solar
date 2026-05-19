@@ -489,3 +489,27 @@ function StageDealCardImpl({
     </>
   );
 }
+
+/**
+ * Memoized export — RB-176 / AP-54 compliance.
+ *
+ * Stability contract: re-render apenas quando dados visíveis do card mudarem.
+ * Callbacks (onClick, onDragStart, onProposalClick, onArchive, onTransfer, onTag,
+ * onSchedule) são intencionalmente IGNORADOS na equality:
+ *  - Eles são recriados a cada render do pai (arrow inline);
+ *  - Comportamento é estável (delegam para setters/handlers estáveis do parent);
+ *  - Só disparam em gesto do usuário, sem closure stale relevante.
+ *
+ * Re-renderiza quando: `deal` muda por referência (React Query structural sharing
+ * já garante referência estável quando o conteúdo não muda), drag state muda,
+ * automação muda, etiquetas dinâmicas mudam, ou conjunto de campos visíveis muda.
+ */
+export const StageDealCard = memo(StageDealCardImpl, (prev, next) => {
+  if (prev.deal !== next.deal) return false;
+  if (prev.isDragging !== next.isDragging) return false;
+  if (prev.hasAutomation !== next.hasAutomation) return false;
+  if (prev.dynamicEtiquetas !== next.dynamicEtiquetas) return false;
+  if (prev.cardVisibleFields !== next.cardVisibleFields) return false;
+  return true;
+});
+
