@@ -210,6 +210,11 @@ export default {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.85" },
         },
+        "progress-loading": {
+          "0%": { transform: "translateX(-100%)" },
+          "50%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(100%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -226,6 +231,7 @@ export default {
         "slide-in-top": "slide-in-top 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards",
         "shimmer": "shimmer 1.5s infinite",
         "pulse-soft": "pulse-soft 2s ease-in-out infinite",
+        "progress-loading": "progress-loading 2s ease-in-out infinite",
       },
       transitionDuration: {
         "250": "250ms",
