@@ -286,7 +286,7 @@ function useMergedTimeline(
         dotClass: "border-success/40 bg-success/10 text-success",
         badgeClass: "bg-success/10 text-success",
         userName: "COMERCIAL",
-        created_at: new Date().toISOString(), // Idealmente seria a data real do status_change do deal
+        created_at: propostaUpdatedAt || new Date().toISOString(), // Idealmente seria a data real do status_change do deal
       });
     }
 
