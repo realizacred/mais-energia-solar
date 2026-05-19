@@ -320,7 +320,7 @@ function StageDealCardImpl({
               </div>
             )}
             
-            <div className="flex items-center justify-between pt-1 border-t border-primary/10">
+            <div className="flex items-center justify-between pt-1">
               {deal.responsavel_operacional && (
                 <div className="flex items-center gap-1.5">
                   <UserCog className="h-3 w-3 text-primary/60" />
