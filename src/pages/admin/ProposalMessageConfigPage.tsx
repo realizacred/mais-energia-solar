@@ -485,11 +485,76 @@ function ProposalMessageConfigPageInner() {
                   </Badge>
                 </div>
 
-                <ScrollArea className="h-[350px]">
-                  <div className="bg-muted/50 rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap font-mono border border-border">
-                    {previewText}
-                  </div>
-                </ScrollArea>
+                <Tabs value={previewTab} onValueChange={(v: any) => setPreviewTab(v)} className="w-full">
+                  <TabsList className="w-full h-8 p-1 bg-muted/50 grid grid-cols-2">
+                    <TabsTrigger value="text" className="text-[10px] h-6">Mensagem Final</TabsTrigger>
+                    <TabsTrigger value="structure" className="text-[10px] h-6">Estrutura Usada</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="text" className="mt-3">
+                    <ScrollArea className="h-[350px]">
+                      <div className="bg-muted/50 rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap font-mono border border-border">
+                        {previewText}
+                      </div>
+                    </ScrollArea>
+                  </TabsContent>
+
+                  <TabsContent value="structure" className="mt-3">
+                    <ScrollArea className="h-[350px]">
+                      <div className="space-y-4 p-1">
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Template Base</Label>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={templates[`${previewMode}_${previewStyle}`] ? "secondary" : "outline"} className="text-xs">
+                              {structureAnalysis.templateUsed}
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground font-mono">({previewMode}_{previewStyle})</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Blocos Ativos</Label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {structureAnalysis.activeBlocks.length > 0 ? (
+                              structureAnalysis.activeBlocks.map(b => (
+                                <Badge key={b} variant="soft-success" className="text-[10px] gap-1">
+                                  <CheckCircle className="h-3 w-3" />
+                                  {BLOCK_LABELS[b]?.label || b}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-xs text-muted-foreground italic">Nenhum bloco ativo para esta configuração</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Variáveis Resolvidas no Preview</Label>
+                          <div className="rounded-lg border border-border bg-card overflow-hidden">
+                            <div className="max-h-[180px] overflow-y-auto">
+                              <table className="w-full text-xs border-collapse">
+                                <thead className="bg-muted/50 sticky top-0">
+                                  <tr>
+                                    <th className="text-left p-2 font-semibold border-b">Variável</th>
+                                    <th className="text-left p-2 font-semibold border-b">Valor Resolvido</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {Object.entries(structureAnalysis.variables).map(([k, v]) => (
+                                    <tr key={k} className="hover:bg-muted/30 border-b last:border-0">
+                                      <td className="p-2 font-mono text-[10px] text-primary">{`{{${k}}}`}</td>
+                                      <td className="p-2 text-muted-foreground truncate max-w-[150px]" title={v}>{v}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </ScrollArea>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           </div>
