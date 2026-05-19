@@ -2054,7 +2054,7 @@ function GerenciamentoTab({
           });
 
           // GOVERNANÇA: Se o status for accepted mas não houver evento EXPLÍCITO de aceite
-          const hasAcceptEvent = events?.some(e => e.proposta_id === p.id && (e.tipo === "proposta_aceita" || (e.tipo === "status_change" && e.payload?.new_status === "accepted")));
+          const hasAcceptEvent = events?.some(e => e.proposta_id === p.id && (e.tipo === "proposta_aceita" || (e.tipo === "status_change" && (e.payload as any)?.new_status === "accepted")));
           if (p.status === "accepted" && !p.aceita_at && !hasAcceptEvent) {
             entries.push({
               id: `prop-inconsistent-${p.id}`,
