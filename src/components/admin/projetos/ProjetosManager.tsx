@@ -205,6 +205,51 @@ export function ProjetosManager() {
     [consultorColumns, etapaMap, existingEtapaIds, filters.status, filters.tipoProjetoSolar, resolveProjetoStatus]
   );
 
+  const operationalKPIs = useMemo(() => {
+    const now = new Date();
+    const stats = {
+      blocked: 0,
+      overdueSLA: 0,
+      attention: 0,
+      noOwner: 0,
+      criticalToday: 0,
+      awaitingClient: 0,
+      awaitingUtility: 0,
+    };
+
+    adaptedDeals.forEach(deal => {
+      const isBlocked = (deal.notas?.toLowerCase().includes("bloqueado")) || deal.pendencias?.some(p => p.bloqueia_fluxo);
+      if (isBlocked) stats.blocked++;
+
+      const slaDays = deal.sla_days || 0;
+      const daysInStage = differenceInDays(now, new Date(deal.last_stage_change));
+      
+      if (slaDays > 0) {
+        if (daysInStage > slaDays * 1.5) {
+          stats.criticalToday++;
+          stats.overdueSLA++;
+        } else if (daysInStage >= slaDays) {
+          stats.overdueSLA++;
+        } else if (daysInStage >= slaDays * 0.8) {
+          stats.attention++;
+        }
+      } else {
+        const hours = differenceInHours(now, new Date(deal.last_stage_change));
+        if (hours >= 168) stats.criticalToday++;
+        else if (hours >= 72) stats.attention++;
+      }
+
+      if (!deal.owner_id) stats.noOwner++;
+
+      const stageName = deal.stage_name.toLowerCase();
+      if (stageName.includes("cliente") || stageName.includes("documento")) stats.awaitingClient++;
+      if (stageName.includes("concessionária") || stageName.includes("vistoria")) stats.awaitingUtility++;
+    });
+
+    return stats;
+  }, [adaptedDeals]);
+
+
   // ── Persistent filter storage (per user) ──
   const STORAGE_KEY = useMemo(
     () => `projetos_kanban_prefs:${user?.id ?? "anon"}`,
