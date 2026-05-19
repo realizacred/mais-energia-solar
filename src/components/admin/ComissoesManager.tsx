@@ -852,7 +852,7 @@ export function ComissoesManager() {
           <ComissoesReports
             comissoes={filteredComissoes}
             allComissoes={allComissoes as Comissao[]}
-            vendedores={vendedores}
+            vendedores={consultores}
             formatCurrency={formatCurrency}
           />
         </TabsContent>
