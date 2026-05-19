@@ -71,6 +71,7 @@ export function TasksManager() {
           }}
           isSubmitting={isCreating}
           vendedores={vendedores || []}
+          projetos={[]} // Na aba geral não passamos lista por enquanto para evitar overhead massivo
         />
       </div>
 

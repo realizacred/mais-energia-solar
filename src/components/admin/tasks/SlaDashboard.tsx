@@ -31,7 +31,7 @@ export function SlaDashboard() {
   // Group overdue by assignee
   const overdueTasks = tasks.filter(
     (t) => (t.status === "open" || t.status === "doing") && t.due_at && isPast(new Date(t.due_at))
-  );
+  ).slice(0, 50);
 
   // Fetch vendedores
   const { data: vendedores } = useQuery({

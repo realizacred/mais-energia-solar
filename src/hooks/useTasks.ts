@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 export type TaskPriority = "P0" | "P1" | "P2";
 export type TaskStatus = "open" | "doing" | "done" | "cancelled";
 export type TaskSource = "manual" | "sla" | "ai";
-export type RelatedType = "lead" | "orcamento" | "projeto" | "servico";
+export type RelatedType = "lead" | "orcamento" | "projeto" | "servico" | "cliente";
 
 export interface Task {
   id: string;
