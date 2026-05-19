@@ -128,21 +128,21 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
           .select("id", { count: "exact", head: true })
           .eq("consultor_id", consultorId)
           .is("deleted_at", null)
-          .eq("status", "enviada"),
+          .in("status", ["sent", "enviada"]),
 
         supabase
           .from("propostas_nativas")
           .select("id", { count: "exact", head: true })
           .eq("consultor_id", consultorId)
           .is("deleted_at", null)
-          .or("primeiro_acesso_em.not.is.null,status.eq.vista,total_aberturas.gt.0"),
+          .or("primeiro_acesso_em.not.is.null,status.eq.viewed,status.eq.vista,total_aberturas.gt.0"),
 
         supabase
           .from("propostas_nativas")
           .select("id", { count: "exact", head: true })
           .eq("consultor_id", consultorId)
           .is("deleted_at", null)
-          .eq("status", "aceita")
+          .in("status", ["accepted", "aceita"])
       ]);
 
       return {

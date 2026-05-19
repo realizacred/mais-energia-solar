@@ -28,8 +28,9 @@ async function enrichWithPropostaVersao<T extends { id: string; valor_projeto: n
 
   if (!propostas || propostas.length === 0) return items;
 
-  // Agrupa por cliente. Preferência: status='aceita' > 'enviada' > demais (mais recente vence).
-  const rank = (s: string | null) => (s === "aceita" ? 3 : s === "enviada" ? 2 : 1);
+  // Agrupa por cliente. Preferência: status='accepted' > 'sent' > demais (mais recente vence).
+  const rank = (s: string | null) => (["accepted", "aceita"].includes(s || "") ? 3 : ["sent", "enviada"].includes(s || "") ? 2 : 1);
+
   const propostaPorCliente = new Map<string, { id: string; versao_atual: number | null }>();
   for (const p of propostas) {
     const cur = propostaPorCliente.get(p.cliente_id);

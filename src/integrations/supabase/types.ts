@@ -33731,6 +33731,8 @@ export type Database = {
         | "expired"
         | "excluida"
         | "arquivada"
+        | "viewed"
+        | "cancelled"
       servico_status:
         | "agendado"
         | "em_andamento"
@@ -34085,6 +34087,8 @@ export const Constants = {
         "expired",
         "excluida",
         "arquivada",
+        "viewed",
+        "cancelled",
       ],
       servico_status: [
         "agendado",

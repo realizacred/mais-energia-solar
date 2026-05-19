@@ -69,8 +69,9 @@ const ORC_SELECT = `
 
 function mapRow(orc: any): OrcamentoVendedor {
   const propostas = orc.leads?.propostas_nativas || [];
-  const propostaAtiva = propostas.find((p: any) => p.status === 'aceita') || 
-                        propostas.find((p: any) => p.status === 'enviada') || 
+  const propostaAtiva = propostas.find((p: any) => ["accepted", "aceita"].includes(p.status)) || 
+                        propostas.find((p: any) => ["sent", "enviada"].includes(p.status)) || 
+
                         propostas[0];
 
   return {

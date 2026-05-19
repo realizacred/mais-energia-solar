@@ -31,10 +31,11 @@ const STATUS_DOT: Record<string, string> = {
 export function ProposalCard({ proposta }: ProposalCardProps) {
   const status = STATUS_CONFIG[proposta.status] || { label: proposta.status, cls: "" };
   const valDate = proposta.valido_ate ? new Date(proposta.valido_ate) : null;
-  const visto = proposta.status === 'vista' || proposta.status === 'aceita' || (proposta.total_aberturas && proposta.total_aberturas > 0);
+  const visto = ["viewed", "vista"].includes(proposta.status) || ["accepted", "aceita"].includes(proposta.status) || (proposta.total_aberturas && proposta.total_aberturas > 0);
 
   return (
-    <Card className={`${visto ? "bg-success/5" : ""} ${proposta.status === 'aceita' ? "bg-primary/5" : ""} shadow-sm overflow-hidden`}>
+    <Card className={`${visto ? "bg-success/5" : ""} ${["accepted", "aceita"].includes(proposta.status) ? "bg-primary/5" : ""} shadow-sm overflow-hidden`}>
+
       <CardContent className="p-4 space-y-4">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2 flex-1 min-w-0">

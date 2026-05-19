@@ -347,22 +347,23 @@ function PropostaRow({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const valDate = proposta.valido_ate ? new Date(proposta.valido_ate) : null;
-  const isExpired = valDate && valDate < today && proposta.status !== "aceita";
-  const isNearExpiring = valDate && !isExpired && proposta.status !== "aceita" && (valDate.getTime() - today.getTime()) < (7 * 24 * 60 * 60 * 1000);
+  const isExpired = valDate && valDate < today && !["accepted", "aceita"].includes(proposta.status);
+  const isNearExpiring = valDate && !isExpired && !["accepted", "aceita"].includes(proposta.status) && (valDate.getTime() - today.getTime()) < (7 * 24 * 60 * 60 * 1000);
 
   const aberturas = proposta.total_aberturas || 0;
 
-  const visto = proposta.status === 'vista' || proposta.status === 'aceita' || (proposta.total_aberturas && proposta.total_aberturas > 0);
+  const visto = ["viewed", "vista"].includes(proposta.status) || ["accepted", "aceita"].includes(proposta.status) || (proposta.total_aberturas && proposta.total_aberturas > 0);
 
   return (
     <TableRow className={`align-middle transition-colors ${
-      proposta.status === 'aceita' ? "bg-green-50/80 border-green-100 hover:bg-green-100/60" : 
-      proposta.status === 'enviada' ? "bg-blue-50/80 border-blue-100 hover:bg-blue-100/60" :
-      proposta.status === 'expirada' || proposta.status === 'recusada' ? "bg-red-50/80 border-red-100 hover:bg-red-100/60" :
+      ["accepted", "aceita"].includes(proposta.status) ? "bg-green-50/80 border-green-100 hover:bg-green-100/60" : 
+      ["sent", "enviada"].includes(proposta.status) ? "bg-blue-50/80 border-blue-100 hover:bg-blue-100/60" :
+      ["expired", "rejected", "expirada", "recusada"].includes(proposta.status) ? "bg-red-50/80 border-red-100 hover:bg-red-100/60" :
       visto ? "bg-success/5" : 
       isSubRow ? "bg-muted/20" : 
       "hover:bg-muted/30"
     }`}>
+
       <TableCell className="py-2 align-middle">
         <Checkbox
           checked={visto}
