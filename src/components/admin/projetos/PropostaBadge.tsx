@@ -15,6 +15,7 @@ interface PropostaBadgeProps {
 const TOOLTIPS: Record<string, string> = {
   gerada: "Proposta gerada automaticamente pelo sistema",
   aceita: "Cliente aceitou esta proposta formalmente",
+  inconsistent: "ALERTA: Status aceito mas falta evidência formal (aceita_at). Auditoria necessária.",
   aguardando_aceite: "Proposta enviada, aguardando aceite formal do cliente",
   principal: "Proposta principal deste projeto — valor usado no kanban",
   gerado: "Documento gerado e disponível para envio",
@@ -27,6 +28,7 @@ const TOOLTIPS: Record<string, string> = {
 const LABELS: Record<string, string | React.ReactNode> = {
   gerada: "Gerada",
   aceita: "Aceita",
+  inconsistent: "Aceite sem evidência",
   aguardando_aceite: "Aguardando aceite",
   principal: (
     <>
@@ -44,6 +46,7 @@ const LABELS: Record<string, string | React.ReactNode> = {
 const STYLES: Record<string, string> = {
   gerada: "bg-info/10 text-info border-info/30",
   aceita: "bg-success/10 text-success border-success/30",
+  inconsistent: "bg-destructive/10 text-destructive border-destructive/30 animate-pulse",
   aguardando_aceite: "bg-warning/10 text-warning border-warning/30",
   principal: "bg-warning/10 text-warning",
   gerado: "bg-success/10 text-success border-success/30",
@@ -53,17 +56,14 @@ const STYLES: Record<string, string> = {
   desatualizada: "bg-warning/10 text-warning border-warning/20",
 };
 
-
 import { AlertTriangle } from "lucide-react";
 
 export function PropostaBadge({ type, className, inconsistent }: PropostaBadgeProps) {
-  const label = LABELS[type];
-  const tooltip = type === "aceita" && inconsistent 
-    ? "Status indica aceito mas falta evidência formal (data/token). Auditoria necessária." 
-    : TOOLTIPS[type];
-  const style = type === "aceita" && inconsistent 
-    ? "bg-destructive/10 text-destructive border-destructive/30 animate-pulse" 
-    : STYLES[type];
+  const effectiveType = (type === "aceita" && inconsistent) ? "inconsistent" : type;
+  const label = LABELS[effectiveType as any] || LABELS[type];
+  const tooltip = TOOLTIPS[effectiveType as any] || TOOLTIPS[type];
+  const style = STYLES[effectiveType as any] || STYLES[type];
+
 
   return (
     <TooltipProvider>
