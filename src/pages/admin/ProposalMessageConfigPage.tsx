@@ -508,7 +508,10 @@ function ProposalMessageConfigPageInner() {
                           variant="secondary" 
                           size="sm" 
                           className="shadow-xl border border-primary/20 pointer-events-auto"
-                          onClick={() => setTemplates(prev => ({ ...prev, [activeTemplateKey]: previewText }))}
+                          onClick={() => setTemplates(prev => ({ 
+                            ...prev, 
+                            [activeTemplateKey]: DEFAULT_TEMPLATES[activeTemplateKey as keyof typeof DEFAULT_TEMPLATES] 
+                          }))}
                         >
                           <Pencil className="h-3.5 w-3.5 mr-2 text-primary" />
                           Editar manualmente
