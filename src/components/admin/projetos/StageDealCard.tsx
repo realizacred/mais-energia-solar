@@ -180,7 +180,15 @@ export function StageDealCard({
     return `${days}d`;
   }
 
-  const isBlocked = stagnation === "critical" || (deal.notas?.toLowerCase().includes("bloqueado"));
+  const mainPendencia = deal.pendencias?.sort((a, b) => {
+    const priority = { critica: 4, alta: 3, media: 2, baixa: 1 };
+    return (priority[b.criticidade as keyof typeof priority] || 0) - (priority[a.criticidade as keyof typeof priority] || 0);
+  })[0];
+
+  const isBlocked = stagnation === "critical" || (deal.notas?.toLowerCase().includes("bloqueado")) || deal.pendencias?.some(p => p.bloqueia_fluxo);
+
+  const isOverdueSLA = deal.pendencias?.some(p => p.sla_at && new Date(p.sla_at) < new Date());
+
   
   const cardContent = (
     <div
@@ -266,8 +274,43 @@ export function StageDealCard({
           </div>
         </div>
 
-        {/* PENDENCY / NOTE: Principal obstacle or next step */}
-        {deal.notas?.trim() && (
+        {/* PENDENCIES: Real Operational Obstacles */}
+        {mainPendencia && (
+          <div className={cn(
+            "flex items-start gap-1.5 border rounded p-1.5",
+            mainPendencia.criticidade === 'critica' || mainPendencia.criticidade === 'alta' 
+              ? "bg-destructive/5 border-destructive/20" 
+              : "bg-warning/5 border-warning/20"
+          )}>
+            <AlertTriangle className={cn(
+              "h-3 w-3 shrink-0 mt-0.5",
+              mainPendencia.criticidade === 'critica' || mainPendencia.criticidade === 'alta' 
+                ? "text-destructive" 
+                : "text-warning"
+            )} />
+            <div className="flex-1 min-w-0">
+              <p className={cn(
+                "text-[10px] font-bold leading-tight line-clamp-1",
+                mainPendencia.criticidade === 'critica' || mainPendencia.criticidade === 'alta' 
+                  ? "text-destructive" 
+                  : "text-amber-900"
+              )}>
+                {mainPendencia.titulo}
+              </p>
+              {mainPendencia.sla_at && (
+                <span className="text-[8px] text-muted-foreground block mt-0.5">
+                  SLA: {formatDate(mainPendencia.sla_at)}
+                </span>
+              )}
+            </div>
+            {mainPendencia.bloqueia_fluxo && (
+              <LockIcon className="h-2.5 w-2.5 text-destructive shrink-0" />
+            )}
+          </div>
+        )}
+
+        {/* FALLBACK NOTE: If no formal pendency exists */}
+        {!mainPendencia && deal.notas?.trim() && (
           <div className="flex items-start gap-1.5 bg-warning/5 border border-warning/20 rounded p-1.5">
             <StickyNote className="h-3 w-3 text-warning shrink-0 mt-0.5" />
             <p className="text-[10px] text-amber-900/80 leading-tight line-clamp-2 italic">

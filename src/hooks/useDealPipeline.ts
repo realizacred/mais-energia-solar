@@ -71,6 +71,15 @@ export interface DealKanbanCard {
   // Enriched deal fields
   expected_close_date?: string | null;
   doc_checklist?: Record<string, boolean> | null;
+  // Operational pendencies
+  pendencias?: {
+    id: string;
+    titulo: string;
+    criticidade: 'baixa' | 'media' | 'alta' | 'critica';
+    status: string;
+    bloqueia_fluxo: boolean;
+    sla_at?: string | null;
+  }[];
 }
 
 export interface OwnerColumn {
@@ -258,8 +267,8 @@ export function useDealPipeline() {
 
     const dealIds = results.map(d => d.deal_id);
 
-    // ── Batch large IN queries to avoid silently emptying big kanban datasets ──
-    const [etiquetaRels, dealsData] = await Promise.all([
+    // ── PARALLEL batch: etiquetas + deals + pendencias ──
+    const [etiquetaRels, dealsData, pendenciasRes] = await Promise.all([
       fetchRowsInBatches<any>(
         "projeto_etiqueta_rel",
         "projeto_id, etiqueta_id",
@@ -272,7 +281,20 @@ export function useDealPipeline() {
         "id",
         dealIds,
       ),
+      fetchRowsInBatches<any>(
+        "projeto_pendencias",
+        "id, projeto_id, titulo, criticidade, status, bloqueia_fluxo, sla_at",
+        "projeto_id",
+        dealIds,
+      ),
     ]);
+
+    const pendenciasMap = new Map<string, any[]>();
+    (pendenciasRes || []).forEach((p: any) => {
+      const arr = pendenciasMap.get(p.projeto_id) || [];
+      arr.push(p);
+      pendenciasMap.set(p.projeto_id, arr);
+    });
 
     // Apply etiquetas
     const etiquetaRelMap = new Map<string, string[]>();
@@ -398,6 +420,8 @@ export function useDealPipeline() {
         const custId = customerMap.get(d.deal_id);
         const proposta = bestPropostaByDeal.get(d.deal_id) || null;
         const loc = custId ? locationMap.get(custId) : null;
+        const dealPendencias = (pendenciasMap.get(d.deal_id) || []).filter(p => p.status !== 'resolvida' && p.status !== 'cancelada');
+        
         return {
           ...d,
           notas: notasMap.get(d.deal_id) || d.notas || null,
@@ -412,6 +436,7 @@ export function useDealPipeline() {
           customer_state: loc?.state || null,
           expected_close_date: closeDateMap.get(d.deal_id) || null,
           doc_checklist: docChecklistMap.get(d.deal_id) || null,
+          pendencias: dealPendencias,
         };
       });
     } else {
@@ -421,6 +446,7 @@ export function useDealPipeline() {
         customer_id: customerMap.get(d.deal_id) || null,
         expected_close_date: closeDateMap.get(d.deal_id) || null,
         doc_checklist: docChecklistMap.get(d.deal_id) || null,
+        pendencias: (pendenciasMap.get(d.deal_id) || []).filter(p => p.status !== 'resolvida' && p.status !== 'cancelada'),
       }));
     }
 

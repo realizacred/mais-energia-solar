@@ -18694,6 +18694,84 @@ export type Database = {
           },
         ]
       }
+      projeto_pendencias: {
+        Row: {
+          bloqueia_fluxo: boolean
+          created_at: string
+          created_by: string | null
+          criticidade: Database["public"]["Enums"]["pendencia_criticidade"]
+          descricao: string | null
+          dominio: string
+          id: string
+          prazo: string | null
+          projeto_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          responsavel_id: string | null
+          sla_at: string | null
+          status: Database["public"]["Enums"]["pendencia_status"]
+          tenant_id: string
+          tipo: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          bloqueia_fluxo?: boolean
+          created_at?: string
+          created_by?: string | null
+          criticidade?: Database["public"]["Enums"]["pendencia_criticidade"]
+          descricao?: string | null
+          dominio?: string
+          id?: string
+          prazo?: string | null
+          projeto_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          responsavel_id?: string | null
+          sla_at?: string | null
+          status?: Database["public"]["Enums"]["pendencia_status"]
+          tenant_id: string
+          tipo: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          bloqueia_fluxo?: boolean
+          created_at?: string
+          created_by?: string | null
+          criticidade?: Database["public"]["Enums"]["pendencia_criticidade"]
+          descricao?: string | null
+          dominio?: string
+          id?: string
+          prazo?: string | null
+          projeto_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          responsavel_id?: string | null
+          sla_at?: string | null
+          status?: Database["public"]["Enums"]["pendencia_status"]
+          tenant_id?: string
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_pendencias_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_pendencias_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_proposta_counters: {
         Row: {
           next_value: number
@@ -33834,6 +33912,13 @@ export type Database = {
         | "pos_venda"
         | "outro"
       parcela_status_enum: "pendente" | "pago" | "atrasado" | "cancelado"
+      pendencia_criticidade: "baixa" | "media" | "alta" | "critica"
+      pendencia_status:
+        | "aberta"
+        | "em_analise"
+        | "aguardando_terceiro"
+        | "resolvida"
+        | "cancelada"
       pipeline_kind: "process" | "owner_board"
       plant_relation_type: "geradora" | "beneficiaria" | "compensacao"
       pricing_method_type: "margin_on_sale" | "margin_on_cost"
@@ -34189,6 +34274,14 @@ export const Constants = {
         "outro",
       ],
       parcela_status_enum: ["pendente", "pago", "atrasado", "cancelado"],
+      pendencia_criticidade: ["baixa", "media", "alta", "critica"],
+      pendencia_status: [
+        "aberta",
+        "em_analise",
+        "aguardando_terceiro",
+        "resolvida",
+        "cancelada",
+      ],
       pipeline_kind: ["process", "owner_board"],
       plant_relation_type: ["geradora", "beneficiaria", "compensacao"],
       pricing_method_type: ["margin_on_sale", "margin_on_cost"],

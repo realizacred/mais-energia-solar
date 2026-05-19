@@ -69,16 +69,24 @@ const formatKwp = (v: number) => {
 type StageSortOption = "default" | "nome_asc" | "nome_desc" | "valor_desc" | "valor_asc" | "data_desc" | "data_asc";
 
 function sortStageDeals(deals: DealKanbanCard[], sort: StageSortOption): DealKanbanCard[] {
-  if (sort === "default") return deals;
-  const sorted = [...deals];
+  // Always apply priority for critical pendencies first
+  const baseSorted = [...deals].sort((a, b) => {
+    const aHasCritical = a.pendencias?.some(p => p.criticidade === 'critica' || p.criticidade === 'alta') ? 1 : 0;
+    const bHasCritical = b.pendencias?.some(p => p.criticidade === 'critica' || p.criticidade === 'alta') ? 1 : 0;
+    if (aHasCritical !== bHasCritical) return bHasCritical - aHasCritical;
+    return 0;
+  });
+
+  if (sort === "default") return baseSorted;
+  
   switch (sort) {
-    case "nome_asc": return sorted.sort((a, b) => (a.customer_name || "").localeCompare(b.customer_name || ""));
-    case "nome_desc": return sorted.sort((a, b) => (b.customer_name || "").localeCompare(a.customer_name || ""));
-    case "valor_desc": return sorted.sort((a, b) => (b.deal_value || 0) - (a.deal_value || 0));
-    case "valor_asc": return sorted.sort((a, b) => (a.deal_value || 0) - (b.deal_value || 0));
-    case "data_desc": return sorted.sort((a, b) => new Date(b.last_stage_change).getTime() - new Date(a.last_stage_change).getTime());
-    case "data_asc": return sorted.sort((a, b) => new Date(a.last_stage_change).getTime() - new Date(b.last_stage_change).getTime());
-    default: return sorted;
+    case "nome_asc": return baseSorted.sort((a, b) => (a.customer_name || "").localeCompare(b.customer_name || ""));
+    case "nome_desc": return baseSorted.sort((a, b) => (b.customer_name || "").localeCompare(a.customer_name || ""));
+    case "valor_desc": return baseSorted.sort((a, b) => (b.deal_value || 0) - (a.deal_value || 0));
+    case "valor_asc": return baseSorted.sort((a, b) => (a.deal_value || 0) - (b.deal_value || 0));
+    case "data_desc": return baseSorted.sort((a, b) => new Date(b.last_stage_change).getTime() - new Date(a.last_stage_change).getTime());
+    case "data_asc": return baseSorted.sort((a, b) => new Date(a.last_stage_change).getTime() - new Date(b.last_stage_change).getTime());
+    default: return baseSorted;
   }
 }
 
