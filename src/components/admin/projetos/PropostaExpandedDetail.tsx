@@ -1553,7 +1553,6 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
           <div className="flex items-center gap-3 shrink-0 ml-auto">
             {(() => {
               const actions = getAvailableProposalActions(p.status);
-              if (!actions.canAccept && !actions.canReject) return null;
               
               return (
                 <div className="hidden sm:flex items-center gap-2 mr-2">
@@ -1583,6 +1582,21 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                       }}
                     >
                       <AlertCircle className="h-3 w-3" /> Recusar
+                    </Button>
+                  )}
+                  {actions.canRevertAccept && (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="h-7 text-[10px] md:text-xs gap-1 border-warning/50 text-warning hover:bg-warning/10 font-medium px-2" 
+                      disabled={updatingStatus}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Administrative Reversion
+                        setAceiteRevertDialogOpen(true);
+                      }}
+                    >
+                      <RotateCcw className="h-3 w-3" /> Cancelar aceite
                     </Button>
                   )}
                 </div>
