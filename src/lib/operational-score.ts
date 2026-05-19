@@ -1,4 +1,5 @@
 import { differenceInDays, differenceInHours } from "date-fns";
+import { isProjetoTerminalForOperationalQueue } from "@/lib/isProjetoTerminal";
 
 export type OperationalScoreConfig = {
   slaOverdue: number;
@@ -33,6 +34,10 @@ export const DEFAULT_SCORE_CONFIG: OperationalScoreConfig = {
 };
 
 export function calculateOperationalScore(p: any, config: OperationalScoreConfig = DEFAULT_SCORE_CONFIG): number {
+  // Early-return: projetos terminais não pertencem à fila operacional.
+  // Evita que stagnation/acceptedProposal/highValue inflem score eternamente.
+  if (isProjetoTerminalForOperationalQueue(p)) return 0;
+
   let score = 0;
   const now = new Date();
 

@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { formatBRLInteger as formatBRL } from "@/lib/formatters";
 import { calculateOperationalScore } from "@/lib/operational-score";
+import { isProjetoTerminalForOperationalQueue } from "@/lib/isProjetoTerminal";
 import type { ProjetoItem, ProjetoEtapa } from "@/hooks/useProjetoPipeline";
 import { differenceInDays } from "date-fns";
 
@@ -29,12 +30,21 @@ export function OperationalQueue({ projetos, etapas, onViewProjeto }: Props) {
 
   const prioritizedProjetos = useMemo(() => {
     return projetos
+      .filter(p => {
+        const stage = p.etapa_id ? etapaMap.get(p.etapa_id) : null;
+        return !isProjetoTerminalForOperationalQueue({
+          ...p,
+          stage_name: stage?.nome || "",
+          categoria: (stage as any)?.categoria,
+        });
+      })
       .map(p => {
         const stage = p.etapa_id ? etapaMap.get(p.etapa_id) : null;
         const score = calculateOperationalScore({
           ...p,
           sla_days: stage?.sla_days || 0,
-          stage_name: stage?.nome || ""
+          stage_name: stage?.nome || "",
+          categoria: (stage as any)?.categoria,
         });
         return { ...p, operational_score: score };
       })
