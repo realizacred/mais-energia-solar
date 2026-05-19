@@ -339,10 +339,10 @@ export default function SystemHealthPage() {
             ) : (
               <div className="space-y-3">
                 {[
-                  { label: "Jobs Pendentes", value: jobStats.pending, variant: jobStats.pending > 100 ? "warning" : "muted" },
-                  { label: "Em Processamento", value: jobStats.processing, variant: "info" },
-                  { label: "Falhas (Retrying)", value: jobStats.failed, variant: jobStats.failed > 0 ? "destructive" : "muted" },
-                  { label: "Concluídos (24h)", value: jobStats.completed, variant: "success" },
+                  { label: "Jobs Pendentes", value: jobStats?.pending ?? 0, variant: (jobStats?.pending ?? 0) > 100 ? "warning" : "muted" },
+                  { label: "Em Processamento", value: jobStats?.processing ?? 0, variant: "info" },
+                  { label: "Falhas (Retrying)", value: jobStats?.failed ?? 0, variant: (jobStats?.failed ?? 0) > 0 ? "destructive" : "muted" },
+                  { label: "Concluídos (24h)", value: jobStats?.completed ?? 0, variant: "success" },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                     <span className="text-sm text-muted-foreground">{item.label}</span>
