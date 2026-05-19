@@ -666,12 +666,14 @@ interface Props {
   isExpanded: boolean;
   onToggle: () => void;
   dealId: string;
+  dealStatus?: string;
   customerId: string | null;
   onRefresh: () => void;
   isOutdated?: boolean;
   onSetPrincipal?: () => void;
   onArchive?: () => void;
 }
+
 
 export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, onToggle, dealId, customerId, onRefresh, isOutdated, onSetPrincipal, onArchive }: Props) {
   const navigate = useNavigate();
