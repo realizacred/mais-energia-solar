@@ -409,7 +409,7 @@ export function generateProposalMessage(
 ): string {
   const { customTemplate, blocksConfig } = options || {};
   const templateKey = `${mode}_${style}` as const;
-  const template = customTemplate || TEMPLATES[templateKey];
+  const template = customTemplate || DEFAULT_TEMPLATES[templateKey];
 
   // Build variable map
   const vars: Record<string, string> = {
