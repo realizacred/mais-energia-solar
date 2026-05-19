@@ -1412,6 +1412,18 @@ export function StepDocumento({
                 />
               </div>
             </div>
+          ) : (generationStatus === "ready" || rendering) ? (
+            /* Fallback visual para quando o status já é ready mas os links ainda estão hidratando */
+            <div className="border border-border/50 rounded-xl flex flex-col items-center justify-center h-[400px] bg-muted/20 gap-4 p-6 text-center">
+              <div className="relative">
+                <FileText className="h-10 w-10 text-primary/40" />
+                <Loader2 className="h-5 w-5 text-primary absolute -bottom-1 -right-1 animate-spin" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">Carregando visualização...</p>
+                <p className="text-xs text-muted-foreground">A proposta foi gerada com sucesso e está sendo preparada.</p>
+              </div>
+            </div>
           ) : (
             <div className="border border-border/50 rounded-xl flex flex-col items-center justify-center h-[400px] bg-muted/20 gap-3">
               <Zap className="h-8 w-8 text-primary" />
