@@ -225,8 +225,23 @@ export function ProjetosManager() {
         if (responsavel && responsavel !== "todos" && p.responsavel_operacional !== responsavel) return false;
         return true;
       }),
-    })).map(c => consultorColumnToOwner(c, etapaMap)),
-    [consultorColumns, etapaMap, existingEtapaIds, filters.status, filters.tipo_projeto_solar, resolveProjetoStatus]
+    })).map(c => {
+      const owner = consultorColumnToOwner(c, etapaMap);
+      return {
+        ...owner,
+        deals: owner.deals.map(deal => {
+          const p = statusFiltered.find(proj => proj.id === deal.deal_id);
+          const stage = p?.etapa_id ? etapaMap.get(p.etapa_id) : null;
+          const score = calculateOperationalScore({
+            ...p,
+            sla_days: stage?.sla_days || 0,
+            stage_name: stage?.nome || ""
+          });
+          return { ...deal, operational_score: score };
+        }).sort((a, b) => (b.operational_score || 0) - (a.operational_score || 0))
+      };
+    }),
+    [consultorColumns, etapaMap, existingEtapaIds, filters.status, filters.tipo_projeto_solar, resolveProjetoStatus, statusFiltered]
   );
 
   const operationalKPIs = useMemo(() => {
