@@ -19,9 +19,9 @@ const corsHeaders = {
 const VALID_TRANSITIONS: Record<string, string[]> = {
   'draft':     ['generated', 'cancelled'],
   'generated': ['sent', 'cancelled', 'draft'],
-  'sent':      ['viewed', 'expired', 'cancelled', 'generated'], // Restricted: no accepted/rejected
+  'sent':      ['viewed', 'expired', 'cancelled', 'generated'], 
   'viewed':    ['accepted', 'rejected', 'expired', 'cancelled', 'generated'],
-  'accepted':  ['rejected', 'cancelled', 'generated'],
+  'accepted':  ['generated', 'cancelled'], // Proibir rejected direto (exige revert formal)
   'rejected':  ['draft', 'generated'],
   'expired':   ['generated', 'draft'],
   'cancelled': ['draft'],
