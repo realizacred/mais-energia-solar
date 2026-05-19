@@ -550,10 +550,10 @@ function StepLocalizacaoImpl({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-[1fr_1fr] gap-2.5">
-      {/* ═══ LEFT COLUMN ═══ */}
-      <div className="min-w-0 order-2 lg:order-1">
-        <Card className="border-border/40">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+      {/* ═══ LEFT COLUMN (Address & Configs) ═══ */}
+      <div className="min-w-0 order-2 lg:order-1 lg:col-span-5 space-y-3">
+        <Card className="border-border/40 shadow-sm">
           <CardHeader className="pb-0.5 pt-2 px-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-[11px] font-semibold flex items-center gap-1.5 text-foreground">
