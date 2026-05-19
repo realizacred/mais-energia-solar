@@ -1150,6 +1150,49 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Kit Comparison Bar */}
+      {comparingKitIds.length > 0 && (
+        <div className="fixed bottom-20 right-8 z-[100] animate-in slide-in-from-right duration-300">
+          <Card className="border-primary/20 shadow-2xl bg-card/95 backdrop-blur-xl p-4 w-72 space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Comparar ({comparingKitIds.length}/2)</h4>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setComparingKitIds([])}>
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {comparingKitIds.map(id => {
+                const kit = catalogKits.find(k => k.id === id);
+                return (
+                  <div key={id} className="text-xs font-medium border-b pb-2 flex justify-between items-center last:border-0">
+                    <span className="truncate pr-2">{kit?.name}</span>
+                    <Button variant="ghost" size="icon" className="h-4 w-4 shrink-0" onClick={() => toggleCompare(id)}>
+                      <Plus className="h-3 w-3 rotate-45" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+            <Button 
+              className="w-full h-8 text-xs font-bold uppercase" 
+              disabled={comparingKitIds.length < 2}
+              onClick={() => setShowComparison(true)}
+            >
+              Comparar Agora
+            </Button>
+          </Card>
+        </div>
+      )}
+
+      {/* Kit Comparison Modal */}
+      <KitComparisonModal 
+        isOpen={showComparison}
+        onClose={() => setShowComparison(false)}
+        onSelect={handleSelectCatalogKit}
+        kits={catalogKits.filter(k => comparingKitIds.includes(k.id))}
+      />
+
       <div className="flex items-center justify-center gap-3 py-3 border-t text-sm">
         <button onClick={() => setPage(p => p - 1)} disabled={page === 0} className="px-3 py-1 border rounded disabled:opacity-40">← Anterior</button>
         <span className="font-medium">Página {page + 1} de {Math.max(1, Math.ceil(totalCount / pageSize))}</span>
