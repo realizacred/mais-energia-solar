@@ -544,8 +544,8 @@ export function StepDocumento({
   // ─── TAB: TEMPLATE ──────────────────────────────────────
 
   const renderTemplateTab = () => {
-    // ── Generation in progress
-    if (generating || rendering) {
+    // ── Generation in progress (Full page loader only if NOT web ready)
+    if (generating || (rendering && !isWebReady)) {
       let statusMsg = generationStatus === "calculating" ? "Calculando dimensionamento..."
         : generationStatus === "publishing" ? "Publicando versão oficial no CRM..."
         : generationStatus === "published" ? "Versão publicada com sucesso!"
