@@ -213,7 +213,7 @@ export function VendorLeadsTable({
                             variant="ghost"
                             size="icon"
                             className="text-primary hover:text-primary hover:bg-primary/10"
-                            onClick={() => window.open(`/pl/${lead.proposta_token}`, '_blank')}
+                            onClick={() => window.open(getProposalWebUrl(lead.proposta_token), '_blank')}
                           >
                             <ExternalLink className="w-4 h-4" />
                           </Button>

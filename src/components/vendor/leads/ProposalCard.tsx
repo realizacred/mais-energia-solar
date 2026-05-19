@@ -92,7 +92,7 @@ export function ProposalCard({ proposta }: ProposalCardProps) {
         </div>
 
         <div className="flex items-center gap-2 pt-1">
-          <Button variant="outline" size="sm" className="flex-1 h-8 text-[11px] gap-1.5" onClick={() => window.open(`/pl/${proposta.public_token}`, '_blank')}>
+          <Button variant="outline" size="sm" className="flex-1 h-8 text-[11px] gap-1.5" onClick={() => window.open(getProposalWebUrl(proposta.public_token), '_blank')}>
             <ExternalLink className="h-3 w-3" /> Ver
           </Button>
           <Button variant="outline" size="sm" className="flex-1 h-8 text-[11px] gap-1.5 text-success border-success/30 hover:bg-success/5">

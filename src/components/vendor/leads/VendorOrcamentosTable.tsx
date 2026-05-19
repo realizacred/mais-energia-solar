@@ -399,7 +399,7 @@ export function VendorOrcamentosTable({
                                 variant="ghost"
                                 size="icon"
                                 className="h-9 w-9 text-primary hover:text-primary hover:bg-primary/10 transition-colors border border-transparent hover:border-primary/20"
-                                onClick={() => window.open(`/pl/${orc.proposta_token}`, '_blank')}
+                                onClick={() => window.open(getProposalWebUrl(orc.proposta_token), '_blank')}
                               >
                                 <ExternalLink className="w-4.5 h-4.5" />
                               </Button>
