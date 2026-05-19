@@ -1056,7 +1056,7 @@ export function StepDocumento({
                       disabled={!result?.proposta_id || !result?.versao_id}
                     >
                       {copiedTracker ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
-                      Copiar link com rastreio
+                       Copiar link da proposta
                     </Button>
                   </TooltipTrigger>
                   {(!result?.proposta_id || !result?.versao_id) && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
@@ -1068,10 +1068,10 @@ export function StepDocumento({
                       size="sm"
                       className="w-full justify-start gap-2 h-8 text-xs"
                       onClick={() => handleCopyLink(false)}
-                      disabled={!outputPdfPath && !externalPdfUrl && !pdfBlobUrl}
+                      disabled={!result?.proposta_id || !result?.versao_id}
                     >
                       {copiedDirect ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
-                      Copiar link direto
+                      Copiar link do PDF
                     </Button>
                   </TooltipTrigger>
                   {!outputPdfPath && !externalPdfUrl && !pdfBlobUrl && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
