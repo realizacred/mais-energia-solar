@@ -307,7 +307,7 @@ function StageDealCardImpl({
 
         {/* OPERATIONAL EXECUTION (Phase 2C) */}
         {(deal.proxima_acao || deal.responsavel_operacional) && (
-          <div className="bg-primary/5 rounded-md p-2 border border-primary/10 space-y-1.5">
+          <div className="bg-primary/[0.04] rounded-md p-2 space-y-1.5">
             {deal.proxima_acao && (
               <div className="flex items-start gap-1.5">
                 <div className="mt-0.5 p-0.5 bg-primary/20 rounded shadow-sm">
