@@ -908,7 +908,21 @@ export function ProjetosManager() {
         </div>
 
         <TabsContent value="kanban" className="space-y-4 mt-0">
-          <div className="flex-1 min-w-0 space-y-4">
+          <div className="flex-1 min-w-0 space-y-6">
+            {/* Operational Cockpit (Phase 2D) */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 mb-2">
+              <div className="xl:col-span-8">
+                <BottleneckCenter projetos={projetos} etapas={etapas} />
+              </div>
+              <div className="xl:col-span-4">
+                <OperationalQueue 
+                  projetos={projetos} 
+                  etapas={etapas} 
+                  onViewProjeto={(p) => setSelectedProjetoId(p.deal_id || p.id)} 
+                />
+              </div>
+            </div>
+
             <div className="rounded-xl border border-border/60 bg-card overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
               {/* Summary bar — top */}
               <div className="px-4 py-2.5 flex items-center justify-between border-b border-border/40">
