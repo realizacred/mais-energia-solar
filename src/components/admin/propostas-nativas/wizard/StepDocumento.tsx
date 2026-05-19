@@ -854,47 +854,6 @@ export function StepDocumento({
       }
     };
 
-    const isWebReady = !!result?.proposta_id && !!result?.versao_id;
-    const isBusy = generating || (rendering && !isWebReady);
-    // ─────────────────────────────────────────────────────────────────────────
-    // SSOT de "Proposta pronta" — NÃO ALTERAR sem auditar AMBOS os contextos:
-    //   1) ProposalWizard (fluxo nativo de criação/edição) — alimenta
-    //      generationStatus no WizardContext durante geração.
-    //   2) ProjetoDetalhe → StepDocumentoBridge (fluxo de visualização/regen
-    //      dentro do projeto) — NÃO usa WizardContext, então generationStatus
-    //      permanece "idle" mesmo após gerar/regenerar com sucesso.
-    //
-    // Por isso a fonte canônica de prontidão é o ARTEFATO PERSISTIDO na
-    // versão (output_pdf_path | external_pdf_url | output_docx_path),
-    // refletido aqui via props vindas do hook de versão ativa.
-    // generationStatus === "ready" é apenas um sinal transitório auxiliar.
-    //
-    // ❌ NUNCA voltar isReady para depender SÓ de generationStatus.
-    // ❌ NUNCA esconder QR/WhatsApp/e-mail/links/downloads quando há artefato.
-    // ❌ NUNCA criar estado paralelo de "pronta" — esta é a única regra.
-    // ─────────────────────────────────────────────────────────────────────────
-    const hasArtifact = !!outputPdfPath || !!externalPdfUrl || !!outputDocxPath;
-    const isReady = !generating && (generationStatus === "ready" || generationStatus === "ready_web" || hasArtifact || isWebReady);
-    
-    const statusLabel = isReady
-      ? (rendering && !hasArtifact ? "Web pronta (PDF pendente)" : "Proposta pronta")
-      : generationStatus === "rendering_pdf" || rendering
-        ? "PDF sendo processado..."
-        : generationStatus === "ready_web" || generationStatus === "published"
-          ? "Versão publicada"
-          : isBusy
-            ? "Gerando proposta..."
-            : generationStatus === "error"
-              ? "Erro na geração"
-              : "Proposta desatualizada";
-
-    const statusTone = isReady
-      ? (rendering && !hasArtifact ? "info" : "success")
-      : (isBusy || generationStatus === "published" || generationStatus === "rendering_pdf" || rendering)
-        ? "info"
-        : generationStatus === "error"
-          ? "destructive"
-          : "warning";
     const statusClasses: Record<string, string> = {
       success: "border-success/30 bg-success/5 text-success",
       info: "border-info/30 bg-info/5 text-info",
