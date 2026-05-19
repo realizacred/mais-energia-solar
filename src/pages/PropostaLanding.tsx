@@ -80,11 +80,12 @@ export default function PropostaLanding() {
 
       // Complementary data
       if (res.tokenData?.tenant_id) {
+        const clienteId = (res.snapshot as any)?.clienteId;
         const [brandRes, tenantRes, consultorRes, clienteRes, cenariosRes] = await Promise.all([
           supabase.rpc("get_public_brand_settings", { _tenant_id: res.tokenData.tenant_id }),
           supabase.from("tenants").select("nome").eq("id", res.tokenData.tenant_id).maybeSingle(),
           res.tokenData.consultor_id ? supabase.from("consultores").select("nome, telefone, avatar_url").eq("id", res.tokenData.consultor_id).maybeSingle() : Promise.resolve({ data: null }),
-          res.snapshot?.clienteId ? supabase.from("clientes").select("nome, cidade, estado").eq("id", res.snapshot.clienteId).maybeSingle() : Promise.resolve({ data: null }),
+          clienteId ? supabase.from("clientes").select("nome, cidade, estado").eq("id", clienteId).maybeSingle() : Promise.resolve({ data: null }),
           supabase.from("proposta_cenarios").select("*").eq("versao_id", res.versaoId).order("ordem")
         ]);
 
