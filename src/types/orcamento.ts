@@ -36,7 +36,11 @@ export interface Orcamento {
   // Timestamps
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
+  deleted_by: string | null;
+  motivo_arquivamento: string | null;
 }
+
 
 export interface OrcamentoWithLead extends Orcamento {
   lead: {
