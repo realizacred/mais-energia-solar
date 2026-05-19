@@ -314,7 +314,7 @@ function StepClienteForm({
     try {
       let query = supabase
         .from("leads")
-        .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, bairro, cep, rua, valor_estimado")
+        .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, bairro, cep, rua, valor_estimado, observacoes")
         .order("created_at", { ascending: false })
         .limit(20);
       if (q.length >= 2) {
@@ -397,7 +397,11 @@ function StepClienteForm({
   }, [cliente.celular, cliente.cnpj_cpf]);
 
   const handleSelect = (lead: any) => {
-    onSelectLead(lead);
+    onSelectLead({
+      ...lead,
+      geracao_estimada_kwh: Number(lead.consumo_previsto) > 0 ? Number(lead.consumo_previsto) : undefined,
+      source_type: "lead"
+    });
     onClienteChange({
       ...cliente,
       nome: lead.nome || cliente.nome,
@@ -411,6 +415,7 @@ function StepClienteForm({
     });
     setSearch("");
   };
+
 
   const [fetchingCep, setFetchingCep] = useState(false);
   const { lookup: lookupCep } = useCepLookup();

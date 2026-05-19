@@ -477,56 +477,8 @@ function StepConsumptionIntelligenceImpl({
   return (
     <div className="space-y-4">
       {/* ─── Banner informativo Dados do Lead (RB-76/RB-62) */}
-      {typeof geracaoDesejadaKwh === "number" && geracaoDesejadaKwh > 0 && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 shadow-sm">
-          <div className="flex items-start gap-4">
-            <div className="mt-1 rounded-full bg-blue-100 p-2 text-blue-600">
-              <Zap className="h-5 w-5 fill-current" />
-            </div>
-            <div className="flex-1 space-y-1">
-              <h4 className="text-sm font-bold text-blue-900 flex items-center gap-2">
-                Dados informados pelo cliente no cadastro
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 text-sm text-blue-800">
-                <div className="flex justify-between sm:justify-start sm:gap-4 border-b border-blue-100 sm:border-0 pb-1 sm:pb-0">
-                  <span className="opacity-80">Consumo médio atual:</span>
-                  <span className="font-semibold">{mediaConsumoLead ? `${formatNumberBR(mediaConsumoLead)} kWh/mês` : "-"}</span>
-                </div>
-                <div className="flex justify-between sm:justify-start sm:gap-4">
-                  <span className="opacity-80">Geração desejada:</span>
-                  <span className="font-bold text-blue-700">{formatNumberBR(geracaoDesejadaKwh)} kWh/mês</span>
-                </div>
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (!ucs.length) return;
-                const updated = [...ucs];
-                updated[0] = { ...updated[0], consumo_mensal: geracaoDesejadaKwh };
-                onUcsChange(updated);
-              }}
-              className="bg-white border-blue-200 text-blue-700 hover:bg-blue-100 hover:text-blue-800 shrink-0 text-xs hidden sm:flex"
-            >
-              Usar geração desejada como base
-            </Button>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (!ucs.length) return;
-              const updated = [...ucs];
-              updated[0] = { ...updated[0], consumo_mensal: geracaoDesejadaKwh };
-              onUcsChange(updated);
-            }}
-            className="w-full mt-3 bg-white border-blue-200 text-blue-700 hover:bg-blue-100 hover:text-blue-800 text-xs flex sm:hidden"
-          >
-            Usar geração desejada como base
-          </Button>
-        </div>
-      )}
+      {/* Context Panel was moved to top of Wizard */}
+
 
       {/* ─── Header metrics bar */}
       <div className="flex items-center justify-end gap-4 text-xs flex-wrap">
