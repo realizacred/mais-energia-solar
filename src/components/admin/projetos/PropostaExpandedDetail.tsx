@@ -1566,6 +1566,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
           <div className="flex items-center gap-3 shrink-0 ml-auto">
             {(() => {
               const actions = getAvailableProposalActions(p.status);
+              const isInconsistent = p.status === 'accepted' && !p.aceita_at;
               
               return (
                 <div className="hidden sm:flex items-center gap-2 mr-2">
@@ -1583,7 +1584,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                       <CheckCircle className="h-3 w-3" /> Aceitar
                     </Button>
                   )}
-                  {actions.canReject && (
+                  {actions.canReject && !isInconsistent && (
                     <Button 
                       size="sm" 
                       variant="outline" 
@@ -1597,7 +1598,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                       <AlertCircle className="h-3 w-3" /> Recusar
                     </Button>
                   )}
-                  {actions.canRevertAccept && (
+                  {(actions.canRevertAccept || isInconsistent) && (
                     <Button 
                       size="sm" 
                       variant="outline" 
@@ -1605,11 +1606,10 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                       disabled={updatingStatus}
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Administrative Reversion
                         setAceiteRevertDialogOpen(true);
                       }}
                     >
-                      <RotateCcw className="h-3 w-3" /> Cancelar aceite
+                      <RotateCcw className="h-3 w-3" /> {isInconsistent ? "Reverter status" : "Cancelar aceite"}
                     </Button>
                   )}
                 </div>
