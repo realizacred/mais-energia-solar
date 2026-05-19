@@ -21,7 +21,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ProjetoAutomacaoConfig } from "./ProjetoAutomacaoConfig";
 import { StageDealCard } from "./StageDealCard";
-import { differenceInHours } from "date-fns";
+import { differenceInHours, differenceInDays } from "date-fns";
 
 interface AutomationRule {
   id: string;
