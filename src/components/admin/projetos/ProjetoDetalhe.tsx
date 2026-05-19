@@ -1105,6 +1105,9 @@ function ProjetoDetalheContent() {
                 onEditCliente={(id) => setEditClienteId(id)}
               />
             )}
+            {activeTab === "execucao" && (
+              <ProjetoExecucaoTab />
+            )}
             {activeTab === "comunicacao" && (
               <ProjetoComunicacaoResumo customerId={deal.customer_id} customerPhone={customerPhone} />
             )}
