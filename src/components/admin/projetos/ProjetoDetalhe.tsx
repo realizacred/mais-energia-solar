@@ -2113,9 +2113,11 @@ function GerenciamentoTab({
   // Build unified timeline
   const allEntries = useMemo(() => {
     const entries: UnifiedTimelineItem[] = [];
+    
+    // 1. Histórico de Etapas (Funil Comercial)
     history.forEach(h => {
       entries.push({
-        id: h.id, type: "funil",
+        id: `h-${h.id}`, type: "funil",
         title: h.from_stage_id
           ? `Movido de "${getStageNameById(h.from_stage_id)}" para "${getStageNameById(h.to_stage_id)}"`
           : `Incluído na etapa "${getStageNameById(h.to_stage_id)}"`,
@@ -2123,7 +2125,8 @@ function GerenciamentoTab({
         date: formatDate(h.moved_at),
       });
     });
-    // Activities
+
+    // 2. Atividades
     activities.forEach(a => {
       entries.push({
         id: `act-${a.id}`, type: "atividade",
@@ -2132,7 +2135,8 @@ function GerenciamentoTab({
         date: formatDate(a.created_at),
       });
     });
-    // Notes from DB
+
+    // 3. Notas
     notes.forEach(n => {
       entries.push({
         id: `note-${n.id}`, type: "nota",
@@ -2141,16 +2145,33 @@ function GerenciamentoTab({
         date: formatDate(n.created_at),
       });
     });
+
+    // 4. Entradas unificadas (Documentos, Eventos de Projeto, Eventos de Proposta)
     entries.push(...docEntries);
     entries.push(...projectEventEntries);
     entries.push(...propostaEntries);
-    // Only add hardcoded "Projeto criado" if DB doesn't already have a 'created' event
+
+    // 5. Ganho Comercial Real (won_at do deal)
+    if (deal.status === "won" && (deal as any).won_at) {
+      entries.push({
+        id: "deal-won-official",
+        type: "funil",
+        title: "NEGOCIAÇÃO GANHA (OFICIAL)",
+        subtitle: (deal as any).won_by ? `Confirmado por: ${userNamesMap.get((deal as any).won_by) || (deal as any).won_by}` : "Marcação de ganho confirmada",
+        date: formatDate((deal as any).won_at),
+        isCurrent: true
+      });
+    }
+
+    // 6. Evento de criação
     const hasDbCreatedEvent = projectEventEntries.some(e => e.title === "Projeto criado");
     if (!hasDbCreatedEvent) {
       entries.push({ id: "criacao", type: "criacao", title: "Projeto criado", subtitle: ownerName ? `por ${ownerName}` : undefined, date: formatDate(deal.created_at), isFirst: true });
     }
+
     return entries;
   }, [history, deal, docEntries, projectEventEntries, propostaEntries, notes, activities, formatDate, getStageNameById, userNamesMap, ownerName]);
+
 
   const filteredEntries = useMemo(() => {
     if (timelineFilter === "todos") return allEntries;
