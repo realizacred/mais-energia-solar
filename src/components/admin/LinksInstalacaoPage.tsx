@@ -240,7 +240,7 @@ export function LinksInstalacaoPage({ vendedor, isAdminView = false }: LinksInst
 
               <div className="rounded-lg border border-border/50 bg-muted/30 p-3 mt-4">
                 <p className="text-xs text-muted-foreground">
-                  <strong>💡 Dica:</strong> Links de proposta (<code className="text-xs">/proposta/:token</code>) e UC pública (<code className="text-xs">/uc/:token</code>) são gerados automaticamente pelo sistema para cada cliente — não precisam ser criados manualmente.
+                  <strong>💡 Dica:</strong> Links de proposta (<code className="text-xs">/pl/:token</code>) e UC pública (<code className="text-xs">/uc/:token</code>) são gerados automaticamente pelo sistema para cada cliente — não precisam ser criados manualmente.
                 </p>
               </div>
             </CardContent>
