@@ -578,7 +578,7 @@ export function StepDocumento({
           </div>
           <div className="space-y-2 max-w-sm">
             <p className="text-sm font-semibold text-foreground">{statusMsg}</p>
-            <p className="text-xs text-muted-foreground">Gerando proposta... (pode levar até 2 minutos)</p>
+            <p className="text-xs text-muted-foreground">Isso pode levar até 2 minutos.</p>
             {elapsedTime > 0 && <p className="text-[10px] text-muted-foreground/60">{elapsedTime}s decorridos</p>}
           </div>
           <div className="flex items-center gap-2 mt-2">
