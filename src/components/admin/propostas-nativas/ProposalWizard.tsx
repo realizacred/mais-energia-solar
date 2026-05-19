@@ -170,17 +170,22 @@ function ProposalWizardContent() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const invalidateProposalCaches = useCallback((dealId?: string | null, projetoId?: string | null) => {
+    // Queries ativas para atualização imediata
     queryClient.refetchQueries({ queryKey: ["propostas-projeto-tab"], type: "active" });
     queryClient.refetchQueries({ queryKey: ["projeto-detalhe"], type: "active" });
+    
+    // Invalidação completa para evitar cache stale após retorno ou F5
     queryClient.invalidateQueries({ queryKey: ["propostas-projeto-tab"] });
     queryClient.invalidateQueries({ queryKey: ["proposal-detail"] });
     queryClient.invalidateQueries({ queryKey: ["proposta-expanded-snapshot"] });
     queryClient.invalidateQueries({ queryKey: ["proposta-expanded-ucs"] });
     queryClient.invalidateQueries({ queryKey: ["proposta-expanded-kit-items"] });
-    queryClient.invalidateQueries({ queryKey: ["proposal-version-snapshot"] });
+    queryClient.invalidateQueries({ queryKey: ["proposal-version-snapshot"] }); // CRITICAL
     queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] });
     queryClient.invalidateQueries({ queryKey: ["deal-proposals-count"] });
     queryClient.invalidateQueries({ queryKey: ["projetos"] });
+    queryClient.invalidateQueries({ queryKey: ["proposal-message-config"] });
+
     if (dealId) {
       queryClient.invalidateQueries({ queryKey: ["projeto-detalhe", dealId] });
       queryClient.invalidateQueries({ queryKey: ["deal-proposals-count", dealId] });
@@ -1638,11 +1643,24 @@ function ProposalWizardContent() {
   /** Apply result from atomic persist to local state */
   const applyPersistResult = useCallback((res: AtomicPersistResult) => {
     if (res.status === "error" || res.status === "blocked") return;
+    
+    // RB-SSOT: Hydrate identity immediately after success
     if (res.propostaId) setSavedPropostaId(res.propostaId);
     if (res.versaoId) setSavedVersaoId(res.versaoId);
     if (res.projetoId) setSavedProjetoId(res.projetoId);
     if (res.dealId) setSavedDealId(res.dealId);
     if (res.clienteId) setSavedClienteId(res.clienteId);
+    
+    // Inject identity into context immediately so StepDocumento can resolve links/preview
+    if (res.propostaId && res.versaoId) {
+      setResult((prev: any) => ({
+        ...prev,
+        proposta_id: res.propostaId,
+        versao_id: res.versaoId,
+        projeto_id: res.projetoId,
+      }));
+    }
+
     setHasEditsAfterRestore(false); // Reset draft flag after successful save
   }, []);
 

@@ -1270,12 +1270,19 @@ export function StepDocumento({
         <div className="min-w-0 min-h-[300px] sm:min-h-[400px]">
           {rendering && !(pdfBlobUrl || resolvedPdfPreviewUrl) ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <Sun className="h-10 w-10 text-primary animate-spin" style={{ animationDuration: "2s" }} />
-              <p className="text-sm text-muted-foreground animate-pulse">
-                {generationStatus === "converting_pdf" ? "Convertendo para PDF..." :
-                 generationStatus === "saving" ? "Salvando artefatos..." :
-                 "Processando documento..."}
-              </p>
+              <div className="relative">
+                <Sun className="h-10 w-10 text-primary animate-spin" style={{ animationDuration: "2s" }} />
+                <Loader2 className="h-5 w-5 text-primary absolute -bottom-1 -right-1 animate-spin" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-sm font-medium text-foreground">
+                  {generationStatus === "converting_pdf" ? "Convertendo para PDF..." :
+                   generationStatus === "saving" ? "Salvando artefatos..." :
+                   generationStatus === "ready" ? "Carregando documento gerado..." :
+                   "Processando documento..."}
+                </p>
+                <p className="text-xs text-muted-foreground animate-pulse">Isso pode levar alguns segundos</p>
+              </div>
             </div>
           ) : (pdfBlobUrl || resolvedPdfPreviewUrl) ? (
             <div className="space-y-3">
@@ -1403,6 +1410,18 @@ export function StepDocumento({
                   style={{ height: 800, background: "#fff" }}
                   onError={() => toast({ title: "Não foi possível incorporar o PDF — use 'Baixar PDF original'.", variant: "destructive" })}
                 />
+              </div>
+            </div>
+          ) : (generationStatus === "ready" || rendering) ? (
+            /* Fallback visual para quando o status já é ready mas os links ainda estão hidratando */
+            <div className="border border-border/50 rounded-xl flex flex-col items-center justify-center h-[400px] bg-muted/20 gap-4 p-6 text-center">
+              <div className="relative">
+                <FileText className="h-10 w-10 text-primary/40" />
+                <Loader2 className="h-5 w-5 text-primary absolute -bottom-1 -right-1 animate-spin" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">Carregando visualização...</p>
+                <p className="text-xs text-muted-foreground">A proposta foi gerada com sucesso e está sendo preparada.</p>
               </div>
             </div>
           ) : (
