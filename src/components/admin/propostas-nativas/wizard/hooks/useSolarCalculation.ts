@@ -70,9 +70,21 @@ export function useSolarCalculation() {
       if (totalPotenciaInversores === 0) alertas.push("Nenhum inversor selecionado");
       
       const oversizing = totalPotenciaInversores > 0 ? (potenciaKwp / totalPotenciaInversores) : 0;
-      if (oversizing > 1.5) alertas.push("Oversizing crítico (> 150%)");
-      if (oversizing < 0.8 && totalPotenciaInversores > 0) alertas.push("Inversor muito potente para os módulos");
+      if (oversizing > 1.4) alertas.push("Oversizing alto (> 140%)");
+      if (oversizing < 0.8 && totalPotenciaInversores > 0) alertas.push("Inversor subutilizado (< 80%)");
+
+      // Redes Monofásicas geralmente limitam a 7.5kW ou 10kW
+      const fase = ucs[0]?.fase || "bifasico";
+      if (fase === "monofasico" && potenciaKwp > 8) {
+        alertas.push("Potência alta para rede monofásica");
+      }
+
+      // Se a geração é muito maior que o consumo (offset > 120%)
+      if (offset > 120) {
+        alertas.push("Geração muito superior ao consumo");
+      }
     }
+
 
     return {
       consumoTotal,
