@@ -305,36 +305,19 @@ function StageDealCardImpl({
           </div>
         </div>
 
-        {/* OPERATIONAL EXECUTION (Phase 2C) */}
-        {(deal.proxima_acao || deal.responsavel_operacional) && (
-          <div className="bg-primary/[0.04] rounded-md p-2 space-y-1.5">
-            {deal.proxima_acao && (
-              <div className="flex items-start gap-1.5">
-                <div className="mt-0.5 p-0.5 bg-primary/20 rounded shadow-sm">
-                  <Zap className="h-2.5 w-2.5 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-[8px] uppercase font-bold text-primary/70 tracking-tighter block leading-none mb-0.5">Próxima Ação</span>
-                  <p className="text-[10px] font-bold text-foreground leading-tight line-clamp-1">{deal.proxima_acao}</p>
-                </div>
-              </div>
-            )}
-            
-            <div className="flex items-center justify-between pt-1">
-              {deal.responsavel_operacional && (
-                <div className="flex items-center gap-1.5">
-                  <UserCog className="h-3 w-3 text-primary/60" />
-                  <span className="text-[9px] font-bold text-muted-foreground uppercase">{deal.responsavel_operacional}</span>
-                </div>
-              )}
+        {/* OPERATIONAL EXECUTION (Phase 2C) — compacto, sem cartão dentro do cartão */}
+        {(deal.proxima_acao || deal.responsavel_operacional) && deal.proxima_acao && (
+          <div className="flex items-start gap-1.5">
+            <Zap className="h-3 w-3 text-primary/70 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0 flex items-center gap-1.5">
+              <p className="text-[10px] font-medium text-foreground/90 leading-tight line-clamp-1 flex-1">{deal.proxima_acao}</p>
               {deal.prazo_acao && (
-                <div className={cn(
-                  "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold",
-                  new Date(deal.prazo_acao) < new Date() ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
+                <span className={cn(
+                  "text-[9px] font-semibold tabular-nums shrink-0",
+                  new Date(deal.prazo_acao) < new Date() ? "text-destructive" : "text-muted-foreground"
                 )}>
-                  <Calendar className="h-2.5 w-2.5" />
                   {formatDate(deal.prazo_acao)}
-                </div>
+                </span>
               )}
             </div>
           </div>
@@ -342,9 +325,9 @@ function StageDealCardImpl({
 
         {/* DEPENDENCY INDICATOR */}
         {deal.dependencia_tipo && (
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-500/10 border border-amber-500/20 rounded-md">
-            <AlertCircle className="h-3 w-3 text-amber-600" />
-            <span className="text-[9px] font-bold text-amber-700 uppercase">Aguardando: {deal.dependencia_tipo}</span>
+          <div className="flex items-center gap-1.5 text-[10px] text-amber-700/80">
+            <AlertCircle className="h-3 w-3 shrink-0" />
+            <span className="font-medium truncate">Aguardando: {deal.dependencia_tipo}</span>
           </div>
         )}
 
