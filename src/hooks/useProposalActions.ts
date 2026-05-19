@@ -263,6 +263,7 @@ export function useProposalActions({ versaoId, propostaRaw, vm }: UseProposalAct
     render: renderMutation,
     generateOs: osMutation,
     copyLink: copyLinkMutation,
+    copyPdfLink: copyPdfLinkMutation,
     updateValidade: validadeMutation,
     downloadPdf: downloadPdfMutation,
   };
