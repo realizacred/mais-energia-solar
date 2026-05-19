@@ -1527,7 +1527,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 </TooltipProvider>
 
                 {p.status === 'accepted' && (
-                  <Badge className="bg-green-600 text-white hover:bg-green-600 border-none h-4 px-1.5 text-[10px] font-bold">Proposta aceita</Badge>
+                  <Badge 
+                    className={cn(
+                      "border-none h-4 px-1.5 text-[10px] font-bold",
+                      p.aceita_at ? "bg-green-600 text-white hover:bg-green-600" : "bg-destructive text-white hover:bg-destructive animate-pulse"
+                    )}
+                  >
+                    {p.aceita_at ? "Proposta aceita" : "Aceite sem evidência"}
+                  </Badge>
                 )}
                 {p.status === 'generated' && (
                   <Badge className="bg-blue-600 text-white hover:bg-blue-600 border-none h-4 px-1.5 text-[10px] font-bold">Proposta gerada</Badge>
@@ -1538,6 +1545,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 {p.status === 'sent' && (
                   <Badge className="bg-blue-500 text-white hover:bg-blue-500 border-none h-4 px-1.5 text-[10px] font-bold">Proposta enviada</Badge>
                 )}
+
 
                 {p.versoes.length > 1 && (
                   <Badge variant="secondary" className="h-4 px-1.5 text-[11px] font-medium bg-muted text-muted-foreground border-none">
