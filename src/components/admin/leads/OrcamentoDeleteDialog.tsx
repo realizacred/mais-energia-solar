@@ -10,7 +10,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Archive, AlertCircle } from "lucide-react";
-import { Label } from "@/components/ui-kit";
+import { Label } from "@/components/ui/label";
+
 import { Input } from "@/components/ui/input";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
 
