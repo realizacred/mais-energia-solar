@@ -41,6 +41,7 @@ export interface PropostaNativaProjetoTab {
   versao_atual: number;
   status: string;
   created_at: string;
+  updated_at?: string;
   cliente_nome: string | null;
   is_principal: boolean;
   aceita_at: string | null;
@@ -79,7 +80,7 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
 
       let query = (supabase as any)
         .from("propostas_nativas")
-        .select("id, titulo, codigo, proposta_num, versao_atual, status, created_at, is_principal, aceita_at, enviada_at, recusada_at, origem, cliente_id, draft_total, has_unpublished_changes, clientes(nome)")
+        .select("id, titulo, codigo, proposta_num, versao_atual, status, created_at, updated_at, is_principal, aceita_at, enviada_at, recusada_at, origem, cliente_id, draft_total, has_unpublished_changes, clientes(nome)")
         .neq("status", "excluida")
         .order("created_at", { ascending: false })
         .limit(20);
@@ -136,9 +137,11 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
         versao_atual: p.versao_atual,
         status: p.status,
         created_at: p.created_at,
+        updated_at: p.updated_at,
         cliente_nome: p.clientes?.nome || null,
         is_principal: p.is_principal ?? false,
         aceita_at: p.aceita_at || null,
+        
         enviada_at: p.enviada_at || null,
         recusada_at: p.recusada_at || null,
         origem: p.origem || null,

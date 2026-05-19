@@ -97,6 +97,9 @@ interface PropostaNativa {
   created_at: string;
   cliente_nome: string | null;
   is_principal: boolean;
+  aceita_at: string | null;
+  enviada_at: string | null;
+  recusada_at: string | null;
   versoes: {
     id: string;
     versao_numero: number;
@@ -2997,6 +3000,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
         isExpanded={expandedId === p.id}
         onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)}
         dealId={dealId}
+        dealStatus={dealStatus}
         customerId={customerId}
         onRefresh={() => refetch()}
         isOutdated={isPropostaOutdated(p)}

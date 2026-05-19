@@ -104,7 +104,7 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
         .from("propostas_nativas")
         .select("id")
         .or(`deal_id.eq.${dealId},projeto_id.eq.${dealId}`)
-        .in("status", ["aceita", "accepted", "aprovada", "ganha"])
+        .in("status", ["aceita", "accepted"])
         .limit(1);
       return (data && data.length > 0) || false;
     },

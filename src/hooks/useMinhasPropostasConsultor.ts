@@ -239,6 +239,7 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
             ultimo_acesso_em: p.ultimo_acesso_em,
             total_aberturas: p.total_aberturas,
             aceita_at: p.aceita_at,
+            
             recusada_at: p.recusada_at,
             validade_dias: p.validade_dias,
             public_token: p.public_token || (p.proposta_versoes && p.proposta_versoes[0]?.public_slug) || null,

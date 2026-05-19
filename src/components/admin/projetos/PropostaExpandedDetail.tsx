@@ -13,7 +13,7 @@ import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
   ChevronDown, MoreVertical, ExternalLink, AlertCircle, AlertTriangle, CheckCircle, Loader2,
   Link2, MessageCircle, Mail, CalendarCheck, RefreshCw, Home, Building2, Star, FolderOpen, MessageSquareText, RotateCcw,
-  FilePlus, FileCheck, Clock, TrendingUp, PiggyBank, Timer
+  FilePlus, FileCheck, Clock, TrendingUp, PiggyBank, Timer, Trophy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,6 +46,8 @@ import { useReabrirProposta, useIsAdminOrGerente } from "@/hooks/useReabrirPropo
 import { useProposalTemplates } from "@/hooks/useProposalTemplates";
 import { PropostaBadge } from "./PropostaBadge";
 import { getAvailableProposalActions } from "@/domain/proposal/proposalActionsHelper";
+import { isProposalAccepted, normalizeStatus } from "@/domain/proposal/proposalStatus";
+
 
 
 
@@ -81,6 +83,7 @@ interface PropostaData {
   versao_atual: number | null;
   status: string;
   created_at: string;
+  updated_at?: string;
   cliente_nome: string | null;
   is_principal: boolean;
   aceita_at: string | null;
@@ -177,7 +180,12 @@ function useMergedTimeline(
   auditLogs: Array<{ id: string; acao: string; tabela: string; user_email: string | null; created_at: string }>,
   events: ProposalEventEntry[],
   propostaCreatedAt?: string | null,
+  propostaUpdatedAt?: string | null,
+  dealStatus?: string,
+  acceptedAt?: string | null
 ): TimelineEntry[] {
+
+
   return useMemo(() => {
     const entries: TimelineEntry[] = [];
 
@@ -265,13 +273,55 @@ function useMergedTimeline(
         created_at: log.created_at,
       });
     }
+    
+    // ─── Synthetic Enterprise Entries ───
+    
+    // 1. Negociação Ganha (Comercial)
+    if (dealStatus === "won") {
+      entries.push({
+        id: "synthetic-deal-won",
+        source: "event",
+        label: "Negociação marcada como GANHA",
+        icon: <Trophy className="h-3 w-3" />,
+        dotClass: "border-success/40 bg-success/10 text-success",
+        badgeClass: "bg-success/10 text-success",
+        userName: "COMERCIAL",
+        created_at: propostaUpdatedAt || new Date().toISOString(), // Idealmente seria a data real do status_change do deal
+      });
+    }
+
+    // 2. Status de Aceite Formal
+    if (acceptedAt) {
+      entries.push({
+        id: "synthetic-accepted",
+        source: "event",
+        label: "PROPOSTA ACEITA FORMALMENTE",
+        icon: <CheckCircle className="h-3 w-3" />,
+        dotClass: "border-success/60 bg-success/20 text-success font-bold",
+        badgeClass: "bg-success/20 text-success",
+        userName: "CLIENTE",
+        created_at: acceptedAt,
+      });
+    } else if (dealStatus === "won") {
+      entries.push({
+        id: "synthetic-waiting-acceptance",
+        source: "event",
+        label: "Aguardando aceite formal do cliente",
+        icon: <Clock className="h-3 w-3" />,
+        dotClass: "border-warning/40 bg-warning/10 text-warning",
+        badgeClass: "bg-warning/10 text-warning",
+        userName: "AUDITORIA",
+        created_at: propostaUpdatedAt || new Date().toISOString(),
+      });
+    }
 
     // Sort by date descending
     entries.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return entries;
-  }, [auditLogs, events, propostaCreatedAt]);
+  }, [auditLogs, events, propostaCreatedAt, dealStatus, acceptedAt]);
 }
+
 
 // ─── Status Badge (SSOT from proposalStatusConfig) ───
 import { getProposalStatusConfig } from "@/lib/proposalStatusConfig";
@@ -281,19 +331,24 @@ function StatusBadge({ status, aceita_at, enviada_at, recusada_at, created_at }:
   
   // Map internal status to badge type
   const getBadgeType = () => {
-    const normalized = status.toLowerCase();
-    if (["accepted", "aceita", "aprovada", "ganha"].includes(normalized)) return "aceita";
-    if (["sent", "enviada", "visualizada", "vista"].includes(normalized)) return "enviada";
-    if (["generated", "gerada"].includes(normalized)) return "gerada";
-    if (["draft", "rascunho"].includes(normalized)) return "rascunho";
+    const normalized = normalizeStatus(status);
+    if (normalized === "accepted") {
+      // GOVERNANÇA: Se é aceito mas não tem evidência, o badge deve refletir isso
+      if (!aceita_at) return "aguardando_aceite";
+      return "aceita";
+    }
+    if (["sent", "viewed"].includes(normalized)) return "enviada";
+    if (normalized === "generated") return "gerada";
+    if (normalized === "draft") return "rascunho";
     return null;
   };
 
   const badgeType = getBadgeType();
+  const isInconsistent = badgeType === "aceita" && !aceita_at;
 
   // If we have a mapped tooltip type, use it
   if (badgeType) {
-    return <PropostaBadge type={badgeType as any} className={s.className} />;
+    return <PropostaBadge type={badgeType as any} className={s.className} inconsistent={isInconsistent} />;
   }
 
   // Fallback to standard Badge without custom tooltip for other statuses
@@ -305,6 +360,7 @@ function StatusBadge({ status, aceita_at, enviada_at, recusada_at, created_at }:
 }
 
 
+
 /** Returns contextual date label based on proposal status */
 function getStatusDateLabel(
   status: string,
@@ -313,7 +369,7 @@ function getStatusDateLabel(
   recusada_at: string | null,
   created_at: string | null,
 ): string {
-  if (["accepted", "aceita", "aprovada", "ganha"].includes(status) && aceita_at) {
+  if (["accepted", "aceita"].includes(status) && aceita_at) {
     return `Aceita em ${formatDateTime(aceita_at)}`;
   }
   if (["rejected", "rejected", "rejeitada", "perdida"].includes(status) && recusada_at) {
@@ -331,7 +387,7 @@ function getStatusDateLabel(
 function StatusIcon({ status, isPrincipal }: { status: string; isPrincipal: boolean }) {
   const s = getProposalStatusConfig(status);
   const colorCls = s?.iconCls || (isPrincipal ? "text-primary" : "text-muted-foreground");
-  const isAccepted = ["accepted", "aceita", "ganha"].includes(status);
+  const isAccepted = ["accepted", "aceita"].includes(status);
   const isRejected = ["rejected", "rejeitada", "recusada", "perdida"].includes(status);
   
   if (isAccepted) return <CheckCircle className={cn("h-6 w-6 shrink-0 mr-3", colorCls)} />;
@@ -657,6 +713,7 @@ interface Props {
   isExpanded: boolean;
   onToggle: () => void;
   dealId: string;
+  dealStatus?: string;
   customerId: string | null;
   onRefresh: () => void;
   isOutdated?: boolean;
@@ -664,7 +721,8 @@ interface Props {
   onArchive?: () => void;
 }
 
-export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, onToggle, dealId, customerId, onRefresh, isOutdated, onSetPrincipal, onArchive }: Props) {
+
+export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, onToggle, dealId, dealStatus, customerId, onRefresh, isOutdated, onSetPrincipal, onArchive }: Props) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: tenantCtx } = useQuery({ queryKey: ["current-tenant-id"], queryFn: getCurrentTenantId, staleTime: 1000 * 60 * 15 });
@@ -693,7 +751,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const { data: proposalEvents = [] } = usePropostaEvents(p.id, isExpanded);
 
   // Merge audit_logs + proposal_events into unified timeline
-  const mergedTimeline = useMergedTimeline(auditLogs, proposalEvents, p.created_at);
+  const mergedTimeline = useMergedTimeline(auditLogs, proposalEvents, p.created_at, p.updated_at, dealStatus, p.aceita_at);
   const loadingDetail = !snapshotData && isExpanded && !!latestVersao?.id;
 
   // Fallback: buscar dados do lead quando snapshot não tiver dados de cliente/localização

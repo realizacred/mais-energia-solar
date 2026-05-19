@@ -144,7 +144,7 @@ export function StageDealCard({
   const normalizedProposalStatus = deal.proposta_status?.toLowerCase() ?? "";
   const hasTrackedProposalStatus = normalizedProposalStatus.length > 0 && normalizedProposalStatus !== "excluida";
   const isPropostaRecusada = hasTrackedProposalStatus && ["recusada", "rejeitada", "perdida", "rejected"].includes(normalizedProposalStatus);
-  const isPropostaAceita = hasTrackedProposalStatus && ["aceita", "accepted", "aprovada", "ganha"].includes(normalizedProposalStatus);
+  const isPropostaAceita = hasTrackedProposalStatus && ["aceita", "accepted"].includes(normalizedProposalStatus);
   const hasEtiquetaColor = !!etiquetaCfg?.cor;
   const borderClass = isWonLost
     ? (deal.deal_status === "won" ? "kanban-card--won" : "kanban-card--lost")
@@ -251,7 +251,7 @@ export function StageDealCard({
                 <PropostaBadge 
                   type={(() => {
                     const normalized = deal.proposta_status?.toLowerCase() ?? "";
-                    if (["aceita", "accepted", "aprovada", "ganha"].includes(normalized)) return "aceita";
+                    if (["aceita", "accepted"].includes(normalized)) return "aceita";
                     if (["enviada", "sent", "visualizada", "vista"].includes(normalized)) return "enviada";
                     if (["gerada", "generated"].includes(normalized)) return "gerada";
                     if (["rascunho", "draft"].includes(normalized)) return "rascunho";
