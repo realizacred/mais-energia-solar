@@ -33481,6 +33481,15 @@ export type Database = {
       reenviar_boasvindas_failed: { Args: never; Returns: number }
       refresh_dashboard_views: { Args: never; Returns: undefined }
       refresh_dashboard_views_v2: { Args: never; Returns: undefined }
+      register_proposal_event: {
+        Args: {
+          p_payload?: Json
+          p_src?: string
+          p_tipo: string
+          p_token: string
+        }
+        Returns: string
+      }
       registrar_heartbeat_proposta: {
         Args: { p_segundos?: number; p_token: string }
         Returns: Json
