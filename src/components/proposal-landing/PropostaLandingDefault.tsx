@@ -55,7 +55,7 @@ export function PropostaLandingDefault({
     },
     {
       label: "Payback",
-      value: `${formatNumberBR(ns.paybackMeses / 12 || 0, 1)} anos`,
+      value: `${formatNumberBR(ns.paybackMeses / 12 || 0)} anos`,
       icon: <Clock className="h-5 w-5" />,
       sub: `${ns.paybackMeses || 0} meses`
     }
