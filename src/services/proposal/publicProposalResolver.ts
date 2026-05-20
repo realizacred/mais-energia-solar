@@ -72,9 +72,26 @@ export async function resolvePublicProposal(token: string): Promise<PublicPropos
       .maybeSingle();
 
     const templateType = templateRes?.tipo === "html" ? "html" : "docx";
+    const generationStatus = versao.generation_status || "pending";
+    const generationError = versao.generation_error;
+
+    // Se o status for explicitamente 'failed', mostramos erro amigável de geração
+    if (generationStatus === "failed") {
+      return {
+        mode: "failed",
+        propostaId: td.proposta_id,
+        versaoId: td.versao_id,
+        tokenData: td,
+        generationStatus,
+        generationError,
+        templateType: templateRes?.tipo === "html" ? "html" : "docx"
+      };
+    }
 
     const pdfAvailable = !!(versao.output_pdf_path || versao.link_pdf);
-    const hasSnapshotData = !!(normalizedSnapshot.valorTotal || normalizedSnapshot.potenciaKwp || normalizedSnapshot.economiaMensal);
+    // Verificamos campos no normalizedSnapshot (que podem estar em camelCase ou snake_case dependendo do mapper)
+    const ns = normalizedSnapshot as any;
+    const hasSnapshotData = !!(ns.valorTotal || ns.potenciaKwp || ns.economiaMensal || ns.valor_total || ns.potencia_kwp);
 
     // 4. Lógica de Decisão de Modo
     // Se for HTML, tentamos modo WEB (Template Custom)
