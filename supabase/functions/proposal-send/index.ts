@@ -114,10 +114,11 @@ Deno.serve(async (req) => {
       // Só reutiliza token se ainda estiver ATIVO (não invalidado).
       if (existingToken && !(existingToken as any).invalidado_em) {
         const baseUrl = Deno.env.get("APP_URL") || Deno.env.get("APP_URL_LOCKED") || `https://${tenant?.slug || "app"}.lovable.app`;
+        const srcParam = (canal || "link") === "whatsapp" ? "whatsapp" : (canal || "link") === "email" ? "email" : "direct";
         return jsonOk({
           success: true, idempotent: true,
           token: existingToken.token,
-          public_url: `${baseUrl}/pl/${existingToken.token}`,
+          public_url: `${baseUrl}/pl/${existingToken.token}?src=${srcParam}`,
           whatsapp_sent: false,
         });
       }
@@ -138,12 +139,14 @@ Deno.serve(async (req) => {
 
     if (tokenErr || !aceiteToken) return jsonError(`Erro ao criar token: ${tokenErr?.message}`, 500);
 
-    // Build public URL
+    // Build public URL (com src=whatsapp|email|direct para tracking em proposal_events)
     const baseUrl = Deno.env.get("APP_URL") || Deno.env.get("APP_URL_LOCKED") || `https://${tenant?.slug || "app"}.lovable.app`;
-    const publicUrl = `${baseUrl}/pl/${aceiteToken.token}`;
+    const canalFinalEarly = canal || "link";
+    const srcParam = canalFinalEarly === "whatsapp" ? "whatsapp" : canalFinalEarly === "email" ? "email" : "direct";
+    const publicUrl = `${baseUrl}/pl/${aceiteToken.token}?src=${srcParam}`;
 
     // ── 5b. RESOLVER MENSAGEM (template ou custom) ──────────
-    const canalFinal = canal || "link";
+    const canalFinal = canalFinalEarly;
     let mensagemFinal: string | null = null;
 
     if (mensagem_custom) {
