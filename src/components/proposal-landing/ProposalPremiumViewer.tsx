@@ -1,7 +1,8 @@
 
-import { useState, useEffect } from "react";
-import { FileText, Download, Loader2, ChevronRight, AlertTriangle, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { FileText, Download, Loader2, ChevronRight, RefreshCw } from "lucide-react";
 import { getMaskedPdfUrl } from "@/services/proposal/proposalLinks";
+import { registerProposalEvent } from "@/services/proposal/registerProposalEvent";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -27,7 +28,28 @@ export function ProposalPremiumViewer({
   version
 }: ProposalPremiumViewerProps) {
   const [iframeLoading, setIframeLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
   const pdfUrl = getMaskedPdfUrl(token);
+
+  // Download controlado: bypass do redirect (/p/pdf), vai direto na edge function
+  // com download=1 para forçar Content-Disposition: attachment, evitando depender
+  // do botão nativo do PDF viewer / extensão Adobe / Chrome.
+  const handleDownload = async () => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      await registerProposalEvent(token, "pdf_download", "copy_pdf", {
+        surface: "public_landing",
+      });
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const directUrl = `${supabaseUrl}/functions/v1/proposal-pdf-serve?token=${encodeURIComponent(token)}&download=1`;
+      // Navegação para resposta attachment: o browser dispara save-as e mantém a página.
+      window.location.href = directUrl;
+    } finally {
+      setTimeout(() => setDownloading(false), 1500);
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col">
