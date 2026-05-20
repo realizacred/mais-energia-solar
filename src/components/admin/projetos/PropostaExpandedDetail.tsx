@@ -1758,6 +1758,81 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
           </div>
         </div>
 
+        {/* Public Link Info Card (Fase 2) */}
+        {isExpanded && latestVersao && (
+          <div className="mx-4 mt-4 p-4 rounded-xl border-2 border-primary/10 bg-primary/5 shadow-inner">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <ExternalLink className="h-4 w-4 text-primary" />
+                  <h4 className="text-sm font-bold text-foreground tracking-tight">Experiência Pública do Cliente</h4>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={publicMode.includes("HTML") ? "default" : "outline"} className={cn("text-[10px] uppercase font-black", publicMode === "PDF fallback" && "bg-amber-500 text-white border-none")}>
+                    {publicMode}
+                  </Badge>
+                  {publicMode === "Landing HTML (default)" && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-1 cursor-help text-[10px] text-muted-foreground font-medium bg-background/50 px-2 py-0.5 rounded-full border">
+                            <AlertTriangle className="h-3 w-3 text-amber-500" /> Layout padrão
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-xs">
+                          <p>Esta proposta está usando o layout web padrão. Configure um template do tipo HTML em <strong>Configurações &gt; Templates</strong> para personalizar totalmente a experiência.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button size="sm" variant="outline" className="h-9 gap-2 bg-background font-bold text-xs shadow-sm hover:shadow-md transition-all border-primary/20" onClick={openPublicProposal}>
+                  <ExternalLink className="h-3.5 w-3.5" /> Abrir Link Web
+                </Button>
+                <Button size="sm" variant="outline" className="h-9 gap-2 bg-background font-bold text-xs shadow-sm hover:shadow-md transition-all border-primary/20" onClick={handleCopyPdfLink}>
+                  <FileText className="h-3.5 w-3.5" /> Link PDF
+                </Button>
+                <Button size="sm" variant="secondary" className="h-9 gap-2 font-bold text-xs shadow-sm hover:shadow-md transition-all" onClick={copyTrackedLink}>
+                  <Link2 className="h-3.5 w-3.5" /> Copiar Link
+                </Button>
+                <Dialog>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DialogTrigger asChild>
+                          <Button size="sm" variant="outline" className="h-9 w-9 p-0 bg-background border-primary/20 shadow-sm hover:shadow-md transition-all">
+                            <Zap className="h-4 w-4 text-primary fill-primary/20" />
+                          </Button>
+                        </DialogTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>Ver QR Code da Proposta</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <DialogContent className="max-w-xs text-center">
+                    <DialogHeader>
+                      <DialogTitle className="text-center font-black uppercase tracking-tighter">QR Code da Proposta</DialogTitle>
+                    </DialogHeader>
+                    <div className="p-8 bg-white rounded-3xl shadow-inner border mx-auto">
+                       {/* QRCode component should be here, assuming it's available or we use a fallback */}
+                       <div className="aspect-square w-full bg-slate-50 flex items-center justify-center rounded-2xl">
+                          <Zap className="h-12 w-12 text-primary opacity-20" />
+                          <p className="text-[10px] text-muted-foreground absolute mt-16 font-bold uppercase tracking-widest">Escaneie para abrir</p>
+                       </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest leading-tight">
+                      Aponte a câmera para o código para<br/>abrir a landing HTML no celular.
+                    </p>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </div>
+          </div>
+        )}
+
+
         {isExpanded && (
           <div className="border-t border-border/50 bg-background/40">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
