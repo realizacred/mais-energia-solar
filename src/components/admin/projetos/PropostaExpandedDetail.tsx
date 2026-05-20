@@ -829,6 +829,17 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     staleTime: 1000 * 60 * 5,
     enabled: !!customerId,
   });
+
+  const { data: brand } = useQuery({
+    queryKey: ["public-brand-settings", tenantCtx?.tenantId],
+    queryFn: async () => {
+      if (!tenantCtx?.tenantId) return null;
+      const { data } = await supabase.rpc("get_public_brand_settings", { _tenant_id: tenantCtx.tenantId });
+      return Array.isArray(data) ? data[0] : data;
+    },
+    staleTime: 1000 * 60 * 15,
+    enabled: !!tenantCtx?.tenantId,
+  });
   const [activeTab, setActiveTab] = useState("resumo");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [html, setHtml] = useState<string | null>(null);
