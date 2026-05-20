@@ -156,7 +156,12 @@ Deno.serve(async (req) => {
 
       const headers = new Headers(corsHeaders);
       headers.set("Content-Type", "application/pdf");
-      headers.set("Content-Disposition", `inline; filename="proposta.pdf"`);
+      const safeToken = (tokenData.token || "proposta").toString().slice(0, 8);
+      const dispositionType = forceDownload ? "attachment" : "inline";
+      headers.set(
+        "Content-Disposition",
+        `${dispositionType}; filename="proposta-${safeToken}.pdf"`,
+      );
       
       return new Response(pdfResp.body, {
         headers,
