@@ -16,6 +16,7 @@ import { getCanonicalProposalTotal } from "@/services/proposal/proposalTotals";
 import { getMaskedPdfUrl } from "@/services/proposal/proposalLinks";
 import { registerProposalEvent, readSrcFromLocation } from "@/services/proposal/registerProposalEvent";
 import { ProposalPremiumViewer } from "@/components/proposal-landing/ProposalPremiumViewer";
+import { PropostaLandingDefault } from "@/components/proposal-landing/PropostaLandingDefault";
 
 export default function PropostaLanding() {
   const { token } = useParams<{ token: string }>();
