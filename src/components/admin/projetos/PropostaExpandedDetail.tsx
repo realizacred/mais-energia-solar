@@ -802,6 +802,16 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     };
   })();
 
+  const publicMode = (() => {
+    if (!latestVersao) return "indisponível";
+    if (currentTemplate?.tipo === "html" && currentTemplate?.template_html) return "Landing HTML (template)";
+    const ns = snapshot as any;
+    const hasSnapshotData = !!(ns?.valorTotal || ns?.potenciaKwp || ns?.economiaMensal || ns?.valor_total || ns?.potencia_kwp);
+    if (hasSnapshotData) return "Landing HTML (default)";
+    if (latestVersao.output_pdf_path || latestVersao.link_pdf) return "PDF fallback";
+    return "aguardando geração";
+  })();
+
   // Fallback: buscar telefone/email do cliente quando snapshot não tiver
   const { data: clienteContato } = useQuery({
     queryKey: ["cliente-contato-fallback", customerId],
