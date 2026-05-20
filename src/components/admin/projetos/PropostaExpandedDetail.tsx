@@ -1817,11 +1817,20 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                       <DialogTitle className="text-center font-black uppercase tracking-tighter">QR Code da Proposta</DialogTitle>
                     </DialogHeader>
                     <div className="p-8 bg-white rounded-3xl shadow-inner border mx-auto">
-                       {/* QRCode component should be here, assuming it's available or we use a fallback */}
-                       <div className="aspect-square w-full bg-slate-50 flex items-center justify-center rounded-2xl">
-                          <Zap className="h-12 w-12 text-primary opacity-20" />
-                          <p className="text-[10px] text-muted-foreground absolute mt-16 font-bold uppercase tracking-widest">Escaneie para abrir</p>
-                       </div>
+                       <QRCodeSVG 
+                         value={getProposalWebUrl(latestVersao.public_slug || latestVersao.id, "qr")}
+                         size={180}
+                         level="H"
+                         includeMargin
+                         imageSettings={{
+                            src: brand?.logo_url || "/favicon.ico",
+                            x: undefined,
+                            y: undefined,
+                            height: 34,
+                            width: 34,
+                            excavate: true,
+                         }}
+                       />
                     </div>
                     <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest leading-tight">
                       Aponte a câmera para o código para<br/>abrir a landing HTML no celular.
