@@ -14,6 +14,7 @@ Deno.serve(async (req) => {
 
   const url = new URL(req.url);
   const token = url.searchParams.get("token") || url.pathname.split("/").pop();
+  const forceDownload = url.searchParams.get("download") === "1";
 
   if (!token) {
     return new Response(JSON.stringify({ error: "Token é obrigatório" }), {
