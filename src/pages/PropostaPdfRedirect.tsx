@@ -9,8 +9,10 @@ import { registerProposalEvent } from "@/services/proposal/registerProposalEvent
  * Rota: /p/pdf/:token
  *
  * Atua como proxy para a Edge Function de PDF masking.
- * Antes de redirecionar, registra o evento `pdf_open` em proposal_events
- * (best-effort, não bloqueia o redirect).
+ * Registra `pdf_open` em proposal_events ANTES do redirect, porque
+ * `window.location.replace` aborta requests em voo. Tracking é
+ * best-effort (já tem try/catch interno) e tem timeout máximo de 1500ms
+ * para nunca travar a entrega do PDF.
  */
 export default function PropostaPdfRedirect() {
   const { token } = useParams<{ token: string }>();
@@ -18,18 +20,29 @@ export default function PropostaPdfRedirect() {
 
   useEffect(() => {
     if (!token) return;
-    const src = searchParams.get("src") || "direct";
-
-    // Fire-and-forget: tracking não pode atrasar a entrega do PDF.
-    void registerProposalEvent(token, "pdf_open", src, {
-      referrer: document.referrer || null,
-    });
-
+    const src = searchParams.get("src") || "copy_pdf";
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const functionUrl = `${supabaseUrl}/functions/v1/proposal-pdf-serve?token=${token}`;
-    // Pequeno delay para o INSERT ter chance de sair antes do unload.
-    const t = setTimeout(() => window.location.replace(functionUrl), 120);
-    return () => clearTimeout(t);
+
+    let cancelled = false;
+    const go = () => {
+      if (cancelled) return;
+      window.location.replace(functionUrl);
+    };
+
+    // Aguarda a RPC concluir (ou timeout de 1500ms) antes de redirecionar.
+    const trackingPromise = registerProposalEvent(token, "pdf_open", src, {
+      referrer: document.referrer || null,
+    });
+    const timeoutPromise = new Promise<void>((resolve) =>
+      setTimeout(resolve, 1500),
+    );
+
+    Promise.race([trackingPromise, timeoutPromise]).finally(go);
+
+    return () => {
+      cancelled = true;
+    };
   }, [token, searchParams]);
 
   return (

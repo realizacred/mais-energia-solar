@@ -1191,13 +1191,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
         document.body.removeChild(a);
       };
 
-      // Tracking: pdf_download (best-effort) — só registra se houver token público disponível
+      // Tracking: pdf_download (best-effort) — await para garantir POST antes do download.
+      // registerProposalEvent já é try/catch interno; nunca lança.
       try {
         if (p.id && latestVersao?.id) {
           const { getOrCreateProposalToken } = await import("@/services/proposal/proposalDetail.service");
           const trackToken = await getOrCreateProposalToken(p.id, latestVersao.id, "tracked");
           if (trackToken) {
-            void registerProposalEvent(trackToken, "pdf_download", "direct", {
+            await registerProposalEvent(trackToken, "pdf_download", "direct", {
               file_name: fileName,
               source: pdfPath ? "storage" : externalUrl ? "external" : "unknown",
             });
