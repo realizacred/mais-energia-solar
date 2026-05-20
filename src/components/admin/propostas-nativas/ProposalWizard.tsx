@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { WizardProvider, useWizardContext } from "./wizard/WizardContext";
-import { WizardTopStepper } from "./wizard/WizardTopStepper";
+import { WizardSidebar } from "./wizard/WizardSidebar";
 import { ProposalLiveSummary } from "./wizard/ProposalLiveSummary";
 import { useSolarCalculation } from "./wizard/hooks/useSolarCalculation";
 
@@ -33,7 +33,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-
 const STEPS = [
   { key: "cliente", label: "Cliente", icon: User },
   { key: "comercial", label: "Comercial", icon: Briefcase },
@@ -48,13 +47,7 @@ const STEPS = [
 ];
 
 function SummaryPill() {
-  const {
-    potenciaSugeridaKwp,
-    geracaoMensalEstimada,
-    precoFinal,
-    offset,
-  } = useSolarCalculation();
-
+  const { potenciaSugeridaKwp, geracaoMensalEstimada, precoFinal, offset } = useSolarCalculation();
   return (
     <div className="flex gap-4 items-center">
       <div className="flex flex-col shrink-0">
@@ -79,7 +72,7 @@ function SummaryPill() {
 
 function WizardContent() {
   const [currentStep, setCurrentStep] = useState(0);
-  const { selectedLead, handleUCsChange, ucs, comercial, setComercial } = useWizardContext();
+  const { selectedLead, comercial, setComercial } = useWizardContext();
   const leadFase = selectedLead?.rede_atendimento;
 
   const renderStep = () => {
@@ -99,57 +92,57 @@ function WizardContent() {
   };
 
   const currentStepMeta = STEPS[currentStep];
+  const totalLabel = `${String(currentStep + 1).padStart(2, "0")} / ${String(STEPS.length).padStart(2, "0")}`;
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-muted/30 via-background to-background">
-      {/* Premium Header — Hero do Wizard */}
+      {/* Header compacto */}
       <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-xl border-b border-border/60 shadow-sm">
-        <div className="max-w-[1600px] mx-auto px-4 md:px-8 pt-5 pb-3">
-          <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
-                <Sparkles className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] uppercase font-black tracking-[0.18em] text-primary">
-                    Etapa {String(currentStep + 1).padStart(2, "0")} / {String(STEPS.length).padStart(2, "0")}
-                  </span>
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
-                    Nova Proposta
-                  </span>
-                </div>
-                <h1 className="text-xl md:text-2xl font-black tracking-tight text-foreground leading-tight">
-                  {currentStepMeta?.label}
-                </h1>
-              </div>
+        <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-3 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
+              <Sparkles className="h-4 w-4 text-primary-foreground" />
             </div>
-
-            {/* KPI Pills — desktop */}
-            <div className="hidden md:flex items-center bg-card/60 border border-border/60 rounded-xl px-4 py-2 shadow-sm">
-              <SummaryPill />
+            <div>
+              <span className="text-[10px] uppercase font-black tracking-[0.18em] text-primary">
+                Etapa {totalLabel} · Nova Proposta
+              </span>
+              <h1 className="text-lg md:text-xl font-black tracking-tight text-foreground leading-tight">
+                {currentStepMeta?.label}
+              </h1>
             </div>
           </div>
 
-          {/* Stepper premium */}
-          <WizardTopStepper
-            steps={STEPS}
-            currentStep={currentStep}
-            onStepClick={setCurrentStep}
-          />
+          <div className="hidden md:flex items-center bg-card/60 border border-border/60 rounded-xl px-4 py-2 shadow-sm">
+            <SummaryPill />
+          </div>
         </div>
-
-        {/* KPI Pills — mobile (linha separada, scroll horizontal) */}
         <div className="md:hidden border-t border-border/40 bg-card/40 px-4 py-2 overflow-x-auto no-scrollbar">
           <SummaryPill />
         </div>
       </header>
 
-      {/* Content area — full width, premium card */}
+      {/* Shell com sidebar de etapas à esquerda */}
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6 md:py-10 pb-32">
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8 items-start">
-            <div className={currentStep >= 2 ? "xl:col-span-8 2xl:col-span-9 min-w-0" : "xl:col-span-12 min-w-0"}>
+        <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6 md:py-8 pb-32">
+          <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_320px] gap-6 lg:gap-8 items-start">
+            {/* Sidebar vertical de etapas */}
+            <aside className="hidden lg:block sticky top-[120px]">
+              <div className="bg-card border border-border/60 rounded-2xl p-4 shadow-sm">
+                <div className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-3 px-1">
+                  Etapas
+                </div>
+                <WizardSidebar
+                  steps={STEPS}
+                  currentStep={currentStep}
+                  onStepClick={setCurrentStep}
+                  totalLabel={totalLabel}
+                />
+              </div>
+            </aside>
+
+            {/* Conteúdo da etapa */}
+            <div className="min-w-0">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentStep}
@@ -164,8 +157,9 @@ function WizardContent() {
               </AnimatePresence>
             </div>
 
+            {/* Live summary apenas a partir da etapa de Localização */}
             {currentStep >= 2 && (
-              <aside className="hidden xl:block xl:col-span-4 2xl:col-span-3 sticky top-[200px]">
+              <aside className="hidden xl:block sticky top-[120px]">
                 <ProposalLiveSummary />
               </aside>
             )}
@@ -173,13 +167,13 @@ function WizardContent() {
         </div>
       </main>
 
-      {/* Navigation footer — fixed full-width premium */}
+      {/* Footer de navegação */}
       <div className="fixed bottom-0 inset-x-0 bg-background/90 backdrop-blur-xl border-t border-border/60 shadow-[0_-8px_32px_-12px_rgba(0,0,0,0.08)] z-50">
         <div className="max-w-[1600px] mx-auto flex justify-between items-center px-4 md:px-8 py-3">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
+            onClick={() => setCurrentStep((prev) => Math.max(0, prev - 1))}
             className="text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground gap-1.5"
             disabled={currentStep === 0}
           >
@@ -192,7 +186,7 @@ function WizardContent() {
           </div>
 
           <Button
-            onClick={() => setCurrentStep(prev => Math.min(STEPS.length - 1, prev + 1))}
+            onClick={() => setCurrentStep((prev) => Math.min(STEPS.length - 1, prev + 1))}
             className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 md:px-8 h-10 font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 gap-1.5"
             disabled={currentStep === STEPS.length - 1}
           >
@@ -203,7 +197,6 @@ function WizardContent() {
     </div>
   );
 }
-
 
 export function ProposalWizard() {
   return (
