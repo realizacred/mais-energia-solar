@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { invalidatePropostaCaches } from "@/lib/invalidatePropostaCaches";
 import { getProposalWebUrl, getMaskedPdfUrl } from "@/services/proposal/proposalLinks";
+import { registerProposalEvent } from "@/services/proposal/registerProposalEvent";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 
 import { useNavigate } from "react-router-dom";
