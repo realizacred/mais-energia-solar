@@ -14,6 +14,7 @@ Deno.serve(async (req) => {
 
   const url = new URL(req.url);
   const token = url.searchParams.get("token") || url.pathname.split("/").pop();
+  const forceDownload = url.searchParams.get("download") === "1";
 
   if (!token) {
     return new Response(JSON.stringify({ error: "Token é obrigatório" }), {
@@ -155,7 +156,12 @@ Deno.serve(async (req) => {
 
       const headers = new Headers(corsHeaders);
       headers.set("Content-Type", "application/pdf");
-      headers.set("Content-Disposition", `inline; filename="proposta.pdf"`);
+      const safeToken = (tokenData.token || "proposta").toString().slice(0, 8);
+      const dispositionType = forceDownload ? "attachment" : "inline";
+      headers.set(
+        "Content-Disposition",
+        `${dispositionType}; filename="proposta-${safeToken}.pdf"`,
+      );
       
       return new Response(pdfResp.body, {
         headers,
