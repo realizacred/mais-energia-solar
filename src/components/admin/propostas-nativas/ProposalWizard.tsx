@@ -1,10 +1,24 @@
-import React, { useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  ChevronLeft, ChevronRight, Check,
+  RefreshCw, SunMedium, Zap, DollarSign, MapPin,
+  ClipboardList, LayoutGrid, FileText,
+  User, CreditCard, Settings2, Briefcase, Package, Box, Wrench, BarChart3,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
+import { formatBRLInteger as formatBRL, formatNumberBR } from "@/lib/formatters";
+import { cn } from "@/lib/utils";
+
 import { WizardProvider, useWizardContext } from "./wizard/WizardContext";
-import { WizardSidebar } from "./wizard/WizardSidebar";
-import { ProposalLiveSummary } from "./wizard/ProposalLiveSummary";
 import { useSolarCalculation } from "./wizard/hooks/useSolarCalculation";
 
 import { StepCliente } from "./wizard/StepCliente";
+import { StepComercial } from "./wizard/StepComercial";
 import { StepLocalizacao } from "./wizard/StepLocalizacao";
 import { StepUCsEnergia } from "./wizard/StepUCsEnergia";
 import { StepConsumptionIntelligence } from "./wizard/StepConsumptionIntelligence";
@@ -13,24 +27,6 @@ import { StepAdicionais } from "./wizard/StepAdicionais";
 import { StepServicos } from "./wizard/StepServicos";
 import { StepPagamento } from "./wizard/StepPagamento";
 import { StepDocumento } from "./wizard/StepDocumento";
-import { StepComercial } from "./wizard/StepComercial";
-import { Button } from "@/components/ui/button";
-
-import { 
-  User, 
-  MapPin, 
-  Zap, 
-  Settings2, 
-  Package, 
-  Box, 
-  Wrench, 
-  CreditCard, 
-  FileText,
-  Briefcase
-} from "lucide-react";
-import { useSearchParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-
 
 const STEPS = [
   { key: "cliente", label: "Cliente", icon: User },
@@ -45,150 +41,377 @@ const STEPS = [
   { key: "documento", label: "Documento", icon: FileText },
 ];
 
-function SummaryPill() {
-  const { 
-    potenciaSugeridaKwp, 
-    geracaoMensalEstimada, 
-    precoFinal,
-    offset 
-  } = useSolarCalculation();
-  
-  return (
-    <div className="flex gap-4 items-center">
-      <div className="flex flex-col shrink-0">
-        <span className="text-[8px] uppercase font-bold text-muted-foreground">Potência</span>
-        <span className="text-[10px] font-black">{potenciaSugeridaKwp.toFixed(2)} kWp</span>
-      </div>
-      <div className="flex flex-col shrink-0 border-l pl-4">
-        <span className="text-[8px] uppercase font-bold text-muted-foreground">Geração</span>
-        <span className="text-[10px] font-black">{Math.round(geracaoMensalEstimada)} kWh</span>
-      </div>
-      <div className="flex flex-col shrink-0 border-l pl-4">
-        <span className="text-[8px] uppercase font-bold text-muted-foreground">Offset</span>
-        <span className="text-[10px] font-black">{offset.toFixed(0)}%</span>
-      </div>
-      <div className="flex flex-col shrink-0 border-l pl-4">
-        <span className="text-[8px] uppercase font-bold text-muted-foreground">Investimento</span>
-        <span className="text-[10px] font-black">R$ {Math.round(precoFinal/1000)}k</span>
-      </div>
-    </div>
-  );
-}
+function WizardShell() {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const {
+    selectedLead,
+    cliente,
+    ucs,
+    handleUCsChange,
+    potenciaKwp,
+    comercial,
+    setComercial,
+  } = useWizardContext();
 
-function WizardContent() {
-
-  const [currentStep, setCurrentStep] = useState(0);
-  const { selectedLead, handleUCsChange, ucs, comercial, setComercial } = useWizardContext();
   const leadFase = selectedLead?.rede_atendimento;
 
-  const renderStep = () => {
-    switch (currentStep) {
+  const { consumoTotal, geracaoMensalEstimada, precoFinal } = useSolarCalculation();
+
+  const [step, setStep] = useState(0);
+  const activeSteps = STEPS;
+  const isLastStep = step === activeSteps.length - 1;
+
+  const goPrev = () => setStep((s) => Math.max(0, s - 1));
+  const goNext = () => setStep((s) => Math.min(activeSteps.length - 1, s + 1));
+  const goToStep = (target: number) => setStep(target);
+
+  // ─── ClientContextPanel — restored literally from canonical
+  const ClientContextPanel = useMemo(() => {
+    if (!selectedLead) return null;
+    const geracao = (selectedLead as any).geracao_estimada_kwh;
+    const consumo = (selectedLead as any).media_consumo;
+    const telhado = (selectedLead as any).tipo_telhado;
+    const fase = (selectedLead as any).rede_atendimento;
+    const cidade = (selectedLead as any).cidade;
+    const uf = (selectedLead as any).estado;
+    const obsLead = (selectedLead as any).observacoes;
+    const obsOrc = (selectedLead as any).orc_observacoes;
+    const source = (selectedLead as any).source_type || "lead";
+
+    return (
+      <div className="bg-card border-b border-border shadow-sm sticky top-0 z-20 overflow-hidden">
+        <div className="max-w-[1400px] mx-auto px-4 py-2 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5 mr-2">
+              <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[10px] uppercase font-bold py-0 h-5">
+                {source === "orcamento" ? "Orçamento" : "Lead"}
+              </Badge>
+              <span className="text-sm font-bold truncate max-w-[180px]">{selectedLead.nome}</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              {consumo && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="secondary" className="h-5 text-[10px] gap-1 px-1.5 font-medium">
+                        <Zap className="h-3 w-3" /> {consumo} kWh
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>Consumo atual informado</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+
+              {geracao && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center">
+                        <Badge variant="secondary" className="h-5 text-[10px] gap-1 px-1.5 font-medium bg-blue-50 text-blue-700 border-blue-100">
+                          <SunMedium className="h-3 w-3" /> {geracao} kWh/mês
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5 ml-0.5 text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                          onClick={() => {
+                            if (!ucs.length) return;
+                            handleUCsChange((prev) => {
+                              const updated = [...prev];
+                              updated[0] = { ...updated[0], consumo_mensal: geracao };
+                              return updated;
+                            });
+                            toast({ title: "Geração aplicada", description: `A UC geradora foi ajustada para ${geracao} kWh.` });
+                          }}
+                        >
+                          <RefreshCw className="h-2.5 w-2.5" />
+                        </Button>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>Geração desejada. Clique em repetir para usar na UC.</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+
+              {telhado && (
+                <Badge variant="outline" className="h-5 text-[10px] gap-1 px-1.5 border-border/60">
+                  <LayoutGrid className="h-3 w-3" /> {telhado}
+                </Badge>
+              )}
+
+              {fase && (
+                <Badge variant="outline" className="h-5 text-[10px] gap-1 px-1.5 border-border/60">
+                  <Zap className="h-3 w-3" /> {fase}
+                </Badge>
+              )}
+
+              {(cidade || uf) && (
+                <Badge variant="outline" className="h-5 text-[10px] gap-1 px-1.5 border-border/60">
+                  <MapPin className="h-3 w-3" /> {cidade}{uf ? `/${uf}` : ""}
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {(obsLead || obsOrc) && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1.5 text-muted-foreground cursor-help">
+                      <ClipboardList className="h-3.5 w-3.5" />
+                      <span className="text-[11px] truncate max-w-[200px] lg:max-w-[400px]">
+                        {obsOrc || obsLead}
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <div className="space-y-2 py-1">
+                      {obsLead && (
+                        <div>
+                          <p className="font-bold text-[10px] uppercase text-primary">Obs. Lead</p>
+                          <p className="text-xs">{obsLead}</p>
+                        </div>
+                      )}
+                      {obsOrc && (
+                        <div>
+                          <p className="font-bold text-[10px] uppercase text-primary">Obs. Orçamento</p>
+                          <p className="text-xs">{obsOrc}</p>
+                        </div>
+                      )}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }, [selectedLead, ucs, handleUCsChange, toast]);
+
+  // ─── Step render — keeps current Step* signatures
+  const renderStepContent = () => {
+    switch (step) {
       case 0: return <StepCliente />;
       case 1: return <StepComercial comercial={comercial} onComercialChange={setComercial} />;
-
       case 2: return <StepLocalizacao />;
-      case 3: return <StepUCsEnergia onNext={() => setCurrentStep(4)} onBack={() => setCurrentStep(2)} />;
+      case 3: return <StepUCsEnergia onNext={goNext} onBack={goPrev} />;
       case 4: return <StepConsumptionIntelligence leadFase={leadFase} />;
-      case 5: return <StepKitSelection onNext={() => setCurrentStep(6)} onBack={() => setCurrentStep(4)} />;
-      case 6: return <StepAdicionais onNext={() => setCurrentStep(7)} onBack={() => setCurrentStep(5)} />;
-      case 7: return <StepServicos onNext={() => setCurrentStep(8)} onBack={() => setCurrentStep(6)} />;
-      case 8: return <StepPagamento onNext={() => setCurrentStep(9)} onBack={() => setCurrentStep(7)} />;
-      case 9: return <StepDocumento onBack={() => setCurrentStep(8)} />;
+      case 5: return <StepKitSelection onBack={goPrev} onNext={goNext} />;
+      case 6: return <StepAdicionais onBack={goPrev} onNext={goNext} />;
+      case 7: return <StepServicos onBack={goPrev} onNext={goNext} />;
+      case 8: return <StepPagamento onBack={goPrev} onNext={goNext} />;
+      case 9: return <StepDocumento onBack={goPrev} />;
       default: return null;
     }
   };
 
+  // ─── Render — canonical shell (c2f6d8ca3) restored literally
   return (
-    <div className="flex flex-col lg:flex-row h-full min-h-screen bg-background">
-      {/* Sidebar - Desktop */}
-      <div className="w-full lg:w-72 border-b lg:border-r bg-card/50 backdrop-blur-sm p-6 sticky top-0 h-fit lg:h-screen">
-        <div className="mb-8">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Nova Proposta
-          </h1>
-          <p className="text-xs text-muted-foreground mt-1">Siga os passos para gerar o documento</p>
+    <div className="proposal-wizard-root flex flex-col h-[calc(100dvh-3.5rem)] overflow-hidden">
+      {/* ── Sticky Header — breadcrumb + client + metrics */}
+      <div className="shrink-0 border-b border-border/60 bg-card px-4 lg:px-6 py-2.5 space-y-1">
+        {/* Breadcrumb row */}
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <Link to="/admin/propostas-nativas" className="text-[11px] text-muted-foreground hover:text-foreground hover:underline">
+            Propostas
+          </Link>
+          <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+          <span className="font-medium text-foreground">Nova Proposta</span>
         </div>
-        
-        <WizardSidebar 
-          steps={STEPS} 
-          currentStep={currentStep} 
-          onStepClick={setCurrentStep} 
-          totalLabel={`${currentStep + 1} de ${STEPS.length} etapas`}
-        />
+
+        {/* Client name + metrics row */}
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-lg font-bold text-foreground truncate">
+            {cliente.nome || selectedLead?.nome || "Nova Proposta"}
+          </h1>
+          <div className="flex items-center gap-3 sm:gap-5 shrink-0">
+            {potenciaKwp > 0 && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border/50 bg-muted/30">
+                <Zap className="h-3.5 w-3.5 text-primary" />
+                <div className="text-right">
+                  <p className="text-[9px] text-muted-foreground leading-none">Potência Total</p>
+                  <p className="text-xs font-bold text-foreground">{(Number(potenciaKwp) || 0).toFixed(2)} kWp</p>
+                </div>
+              </div>
+            )}
+            {consumoTotal > 0 && (
+              <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border/50 bg-muted/30">
+                <BarChart3 className="h-3.5 w-3.5 text-secondary" />
+                <div className="text-right">
+                  <p className="text-[9px] text-muted-foreground leading-none">Consumo</p>
+                  <p className="text-xs font-bold text-foreground">{formatNumberBR(consumoTotal)} kWh</p>
+                </div>
+              </div>
+            )}
+            {!!(selectedLead as any)?.geracao_estimada_kwh && (
+              <div
+                className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-warning/40 bg-warning/5"
+                title="Geração prevista informada pelo cliente no lead (referência visual)"
+              >
+                <SunMedium className="h-3.5 w-3.5 text-warning" />
+                <div className="text-right">
+                  <p className="text-[9px] text-muted-foreground leading-none">Cliente quer (Geração Prev.)</p>
+                  <p className="text-xs font-bold text-foreground">
+                    {formatNumberBR(Math.round(Number((selectedLead as any).geracao_estimada_kwh) || 0))} kWh
+                  </p>
+                </div>
+              </div>
+            )}
+            {geracaoMensalEstimada > 0 && (
+              <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border/50 bg-muted/30">
+                <SunMedium className="h-3.5 w-3.5 text-warning" />
+                <div className="text-right">
+                  <p className="text-[9px] text-muted-foreground leading-none">Geração Estimada</p>
+                  <p className="text-xs font-bold text-foreground">{formatNumberBR(Math.round(geracaoMensalEstimada))} kWh/mês</p>
+                </div>
+              </div>
+            )}
+            {precoFinal > 0 && (
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border/50 bg-muted/30">
+                <DollarSign className="h-3.5 w-3.5 text-success" />
+                <div className="text-right">
+                  <p className="text-[9px] text-muted-foreground leading-none">Preço do Projeto</p>
+                  <p className="text-xs font-bold text-foreground">
+                    {formatBRL(precoFinal)}{" "}
+                    {potenciaKwp > 0 && (
+                      <span className="text-[9px] font-normal text-muted-foreground">
+                        R$ {((Number(precoFinal) || 0) / (Number(potenciaKwp) || 1) / 1000).toFixed(2)}/Wp
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile Summary Header */}
-        <div className="xl:hidden bg-card border-b px-4 py-2 flex items-center justify-between sticky top-[65px] z-40 shadow-sm">
-          <div className="flex gap-4 overflow-x-auto no-scrollbar py-1">
-            <SummaryPill />
-          </div>
+      {ClientContextPanel}
+
+      {/* ── Pipeline stepper — responsive: scrollable on mobile, full on desktop */}
+      <div className="relative shrink-0 border-b-2 border-secondary/10 bg-gradient-to-b from-card to-muted/20">
+        {/* Progress track */}
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-muted/40">
+          <motion.div
+            className="h-full bg-gradient-to-r from-secondary via-secondary to-primary rounded-r-full shadow-sm shadow-secondary/30"
+            initial={{ width: "0%" }}
+            animate={{ width: `${(step / (activeSteps.length - 1)) * 100}%` }}
+            transition={{ duration: 0.6, ease: "easeInOut" }}
+          />
         </div>
-
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
-
-          <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 pb-32">
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-              {/* Step Content */}
-              <div className="xl:col-span-8 2xl:col-span-9 w-full">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={currentStep}
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -10 }}
-                    transition={{ duration: 0.2 }}
+        {/* Scrollable container on mobile */}
+        <div className="overflow-x-auto scrollbar-none">
+          <div className="flex items-center px-2 sm:px-4 py-3 gap-0 min-w-max sm:min-w-0 sm:justify-center lg:justify-start">
+            {activeSteps.map((s, i) => {
+              const Icon = s.icon;
+              const isActive = i === step;
+              const isDone = i < step;
+              return (
+                <div key={s.key} className="flex items-center flex-shrink-0">
+                  <motion.button
+                    onClick={() => { if (isDone) goToStep(i); }}
+                    className={cn(
+                      "relative flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold transition-colors whitespace-nowrap border",
+                      isActive && "bg-primary text-primary-foreground shadow-sm border-primary",
+                      isDone && "bg-secondary/10 text-secondary border-secondary/20 cursor-pointer hover:bg-secondary/15",
+                      !isActive && !isDone && "text-muted-foreground border-transparent cursor-default",
+                    )}
+                    initial={false}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    whileHover={isDone ? { scale: 1.02 } : undefined}
                   >
-                    {renderStep()}
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-
-              {/* Live Summary Sidebar - Visible from Step 2 onwards (when calculation starts to matter) */}
-              {currentStep >= 2 && (
-                <div className="hidden xl:block xl:col-span-4 2xl:col-span-3 sticky top-8">
-                  <ProposalLiveSummary />
+                    <span className={cn(
+                      "flex items-center justify-center h-5 w-5 sm:h-6 sm:w-6 rounded-full text-[10px] shrink-0 transition-colors",
+                      isActive && "bg-primary-foreground/25",
+                      isDone && "bg-secondary/20 text-secondary",
+                      !isActive && !isDone && "bg-muted",
+                    )}>
+                      {isDone ? (
+                        <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.2, ease: "easeOut" }}>
+                          <Check className="h-3 w-3" />
+                        </motion.span>
+                      ) : (
+                        <Icon className="h-3 w-3" />
+                      )}
+                    </span>
+                    <span className="hidden md:block">{s.label}</span>
+                  </motion.button>
+                  {i < activeSteps.length - 1 && (
+                    <div className="flex items-center mx-0.5 sm:mx-1">
+                      <ChevronRight className={cn(
+                        "h-3 w-3 sm:h-4 sm:w-4 transition-colors duration-300",
+                        isDone ? "text-secondary" : "text-muted-foreground/30",
+                      )} />
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              );
+            })}
           </div>
         </div>
+      </div>
 
-        {/* Navigation - Footer fixed */}
-        <div className="fixed bottom-0 right-0 left-0 lg:left-72 bg-background/80 backdrop-blur-md border-t border-border/40 p-4 z-50">
-          <div className="max-w-7xl mx-auto flex justify-between items-center px-4 md:px-8">
-            <Button 
-              variant="ghost"
-              size="sm"
-              onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
-              className="text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
-              disabled={currentStep === 0}
+      {/* ── Body: Content — responsive padding, full width (no max-w cap) */}
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+        <div className="w-full px-2 sm:px-3 lg:px-4 py-2 lg:py-3 pb-24 sm:pb-20">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.2 }}
             >
-              Voltar
-            </Button>
+              {renderStepContent()}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
 
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => setCurrentStep(prev => Math.min(STEPS.length - 1, prev + 1))}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 h-10 font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20"
-                disabled={currentStep === STEPS.length - 1}
-              >
-                Próximo Passo
-              </Button>
-            </div>
-          </div>
+      {/* ── Sticky Footer Navigation — full-width, no sidebar inset */}
+      <div className="fixed bottom-0 left-0 right-0 sm:sticky sm:bottom-auto flex items-center justify-between px-4 lg:px-6 py-3 border-t border-border/60 bg-card shrink-0 z-20 shadow-[0_-2px_8px_rgba(0,0,0,0.06)] sm:shadow-none">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate(-1)}
+          className="gap-1.5 h-9 text-xs font-medium text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+        >
+          Cancelar
+        </Button>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <span className="text-[10px] font-mono text-muted-foreground hidden sm:inline">
+            Etapa {step + 1}/{activeSteps.length}
+          </span>
+
+          <div className="h-6 w-px bg-border/50 hidden sm:block" />
+
+          <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1.5 h-9 text-xs font-medium">
+            <ChevronLeft className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Voltar</span>
+          </Button>
+          {!isLastStep && (
+            <Button
+              size="sm"
+              onClick={goNext}
+              className="gap-1.5 h-9 px-5 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200"
+            >
+              Prosseguir
+            </Button>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-
 export function ProposalWizard() {
   return (
     <WizardProvider>
-      <WizardContent />
+      <WizardShell />
     </WizardProvider>
   );
 }
