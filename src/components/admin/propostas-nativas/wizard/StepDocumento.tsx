@@ -1264,10 +1264,7 @@ export function StepDocumento({
         <div className="min-w-0 min-h-[300px] sm:min-h-[400px]">
           {rendering && !isWebReady && !(pdfBlobUrl || resolvedPdfPreviewUrl) ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <div className="relative">
-                <Sun className="h-10 w-10 text-primary animate-spin" style={{ animationDuration: "2s" }} />
-                <Loader2 className="h-5 w-5 text-primary absolute -bottom-1 -right-1 animate-spin" />
-              </div>
+              <Sun className="h-10 w-10 text-primary animate-spin" style={{ animationDuration: "2s" }} />
               <div className="text-center space-y-1">
                 <p className="text-sm font-medium text-foreground">
                   {generationStatus === "converting_pdf" ? "Convertendo para PDF..." :
