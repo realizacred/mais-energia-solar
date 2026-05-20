@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { invalidatePropostaCaches } from "@/lib/invalidatePropostaCaches";
 import { getProposalWebUrl, getMaskedPdfUrl } from "@/services/proposal/proposalLinks";
+import { registerProposalEvent } from "@/services/proposal/registerProposalEvent";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 
 import { useNavigate } from "react-router-dom";
@@ -1014,13 +1015,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   }, [latestVersao?.id]);
 
   // Auto-populate publicUrl from active version (token-based link).
+  // QR usa ?src=qr — toda exibição visual desse publicUrl é o QR/preview público.
   useEffect(() => {
     if (!isExpanded || publicUrl || !latestVersao?.id || !p.id) return;
     (async () => {
       try {
         const { getOrCreateProposalToken } = await import("@/services/proposal/proposalDetail.service");
         const token = await getOrCreateProposalToken(p.id, latestVersao.id, "public");
-        setPublicUrl(getProposalWebUrl(token));
+        setPublicUrl(getProposalWebUrl(token, "qr"));
       } catch {
         // Silent — will be populated on manual copy
       }
@@ -1189,6 +1191,20 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
         document.body.removeChild(a);
       };
 
+      // Tracking: pdf_download (best-effort) — só registra se houver token público disponível
+      try {
+        if (p.id && latestVersao?.id) {
+          const { getOrCreateProposalToken } = await import("@/services/proposal/proposalDetail.service");
+          const trackToken = await getOrCreateProposalToken(p.id, latestVersao.id, "tracked");
+          if (trackToken) {
+            void registerProposalEvent(trackToken, "pdf_download", "direct", {
+              file_name: fileName,
+              source: pdfPath ? "storage" : externalUrl ? "external" : "unknown",
+            });
+          }
+        }
+      } catch { /* silent */ }
+
       if (pdfPath) {
         const { data, error } = await supabase.storage
           .from("proposta-documentos")
@@ -1243,7 +1259,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     }
   };
 
-  const resolvePublicProposalUrl = async (withTracking = false) => {
+  const resolvePublicProposalUrl = async (withTracking = false, src: "qr" | "copy_link" | "copy_pdf" | "direct" = "direct") => {
     if (!p.id || !latestVersao?.id) {
       throw new Error("Gere a proposta primeiro.");
     }
@@ -1251,10 +1267,10 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     const { getOrCreateProposalToken } = await import("@/services/proposal/proposalDetail.service");
     const tipo = withTracking ? "tracked" : "public";
     const token = await getOrCreateProposalToken(p.id, latestVersao.id, tipo);
-    const url = getProposalWebUrl(token);
+    const url = getProposalWebUrl(token, src);
 
     if (!withTracking) {
-      setPublicUrl(url);
+      setPublicUrl(getProposalWebUrl(token, "qr"));
     }
 
     return { token, url };
@@ -1262,7 +1278,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
   const openPublicProposal = async () => {
     try {
-      const url = publicUrl ?? (await resolvePublicProposalUrl(false)).url;
+      const url = publicUrl ?? (await resolvePublicProposalUrl(false, "direct")).url;
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (e: any) {
       toast({ title: "Erro ao abrir proposta", description: e.message, variant: "destructive" });
@@ -1279,7 +1295,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
         canal,
         lead_id: undefined,
       });
-      const canonicalUrl = getProposalWebUrl(result.token);
+      // QR/preview interno mostra publicUrl com src=qr; mensagens WhatsApp carregam src=whatsapp via proposal-send.
+      const canonicalUrl = getProposalWebUrl(result.token, "qr");
       setPublicUrl(canonicalUrl);
       if (canal === "whatsapp" && result.whatsapp_sent) {
         toast({ title: "Proposta enviada via WhatsApp! ✅" });
@@ -1295,7 +1312,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
   const handleCopyLink = async (withTracking: boolean) => {
     try {
-      const { url } = await resolvePublicProposalUrl(withTracking);
+      const { url } = await resolvePublicProposalUrl(withTracking, "copy_link");
       try {
         await navigator.clipboard.writeText(url);
       } catch {
@@ -1310,8 +1327,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const handleCopyPdfLink = async () => {
     try {
       // PDF masking sempre usa token rastreável para garantir que resolvemos o path correto
-      const { token } = await resolvePublicProposalUrl(true);
-      const url = getMaskedPdfUrl(token);
+      const { token } = await resolvePublicProposalUrl(true, "copy_pdf");
+      const url = getMaskedPdfUrl(token, "copy_pdf");
       try {
         await navigator.clipboard.writeText(url);
       } catch {

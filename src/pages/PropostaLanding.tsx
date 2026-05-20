@@ -14,6 +14,7 @@ import type { CenarioData, AcceptFormData } from "@/components/proposal-landing/
 import { formatBRL, formatNumberBR } from "@/lib/formatters";
 import { getCanonicalProposalTotal } from "@/services/proposal/proposalTotals";
 import { getMaskedPdfUrl } from "@/services/proposal/proposalLinks";
+import { registerProposalEvent, readSrcFromLocation } from "@/services/proposal/registerProposalEvent";
 import { ProposalPremiumViewer } from "@/components/proposal-landing/ProposalPremiumViewer";
 
 export default function PropostaLanding() {
@@ -87,6 +88,14 @@ export default function PropostaLanding() {
           p_ip: null,
           p_device_type: deviceType,
           p_screen_width: sw,
+        });
+
+        // proposal_events: web_open (complementa proposta_views, com origem rastreável)
+        const src = readSrcFromLocation();
+        registerProposalEvent(token!, "web_open", src, {
+          device_type: deviceType,
+          screen_width: sw,
+          referrer: document.referrer || null,
         });
 
         if (res.tokenData?.tipo !== "public") {

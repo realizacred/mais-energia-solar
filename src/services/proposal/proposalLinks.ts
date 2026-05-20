@@ -2,14 +2,11 @@
  * proposalLinks.ts — SSOT de URLs da proposta.
  *
  * Regras (AGENTS.md):
- *  - QR Code / link público compartilhado → SEMPRE landing de alta conversão (/pl/:token).
- *  - PDF rastreável → mesma rota /pl/:token (o tracking acontece via token, não via /proposta).
- *  - PDF direto → rota mascarada (/p/pdf/:token).
- *  - Simulação financeira → /pl/:token?view=simulacao (somente se houver financiamento ativo).
- *
- * ⚠️ NUNCA apontar QR/link público para /proposta/:token (PropostaPublica.tsx).
- * Essa rota é mantida como REDIRECT inteligente para /pl/:token apenas por
- * compatibilidade de tokens históricos. Não é a experiência canônica.
+ *  - QR Code / link público compartilhado → SEMPRE landing /pl/:token.
+ *  - PDF direto → rota mascarada /p/pdf/:token.
+ *  - Toda URL pública deve carregar `?src=` com a origem (qr, copy_link, copy_pdf,
+ *    whatsapp, email, direct) para alimentar `proposal_events` via
+ *    `register_proposal_event`.
  *
  * Nenhum componente deve montar URLs com string solta — usar SEMPRE estes helpers.
  * NUNCA vazar signedUrl do Supabase para o cliente final.
@@ -20,25 +17,39 @@ import { getPublicUrl } from "@/lib/getPublicUrl";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 dias
 
-/** Landing de alta conversão (rota canônica para QR / WhatsApp / e-mail / link público). */
-export function getProposalWebUrl(token: string): string {
-  return `${getPublicUrl()}/pl/${token}`;
+/** Origens controladas (espelha whitelist da RPC register_proposal_event). */
+export type ProposalLinkSrc =
+  | "qr"
+  | "copy_link"
+  | "copy_pdf"
+  | "whatsapp"
+  | "email"
+  | "direct";
+
+function appendSrc(url: string, src?: ProposalLinkSrc | null): string {
+  if (!src) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}src=${encodeURIComponent(src)}`;
 }
 
-/** Link do PDF mascarado (Proxy/SSOT). Esconde a URL do storage. */
-export function getMaskedPdfUrl(token: string): string {
-  return `${getPublicUrl()}/p/pdf/${token}`;
+/** Landing de alta conversão (rota canônica). */
+export function getProposalWebUrl(token: string, src?: ProposalLinkSrc | null): string {
+  return appendSrc(`${getPublicUrl()}/pl/${token}`, src);
+}
+
+/** Link do PDF mascarado (proxy SSOT). Esconde a URL do storage. */
+export function getMaskedPdfUrl(token: string, src?: ProposalLinkSrc | null): string {
+  return appendSrc(`${getPublicUrl()}/p/pdf/${token}`, src);
 }
 
 /** Link rastreável: mesma landing, abre tracking via token. */
-export function getTrackedPdfUrl(token: string): string {
-  return getProposalWebUrl(token);
+export function getTrackedPdfUrl(token: string, src?: ProposalLinkSrc | null): string {
+  return getProposalWebUrl(token, src);
 }
 
-/** 
- * Signed URL direta para o PDF no Storage. 
+/**
+ * Signed URL direta para o PDF no Storage.
  * @deprecated Use getMaskedPdfUrl(token) para clientes finais.
- * Útil apenas para consumo interno (servidor ou admin direto se necessário).
  */
 export async function getProposalPdfSignedUrl(
   outputPdfPath: string,
@@ -50,7 +61,7 @@ export async function getProposalPdfSignedUrl(
   return data.signedUrl;
 }
 
-/** 
+/**
  * PDF direto SSOT.
  * @deprecated Use getMaskedPdfUrl(token) para fluxos de cliente.
  */

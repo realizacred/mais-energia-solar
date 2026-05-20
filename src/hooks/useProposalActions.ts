@@ -171,7 +171,7 @@ export function useProposalActions({ versaoId, propostaRaw, vm }: UseProposalAct
       if (!propostaRaw?.id || !versaoId) throw new Error("Proposta não carregada");
       const tipo = withTracking ? "tracked" : "public";
       const token = await getOrCreateProposalToken(propostaRaw.id, versaoId, tipo);
-      const url = getProposalWebUrl(token);
+      const url = getProposalWebUrl(token, "copy_link");
       try {
         await navigator.clipboard.writeText(url);
       } catch {
@@ -196,7 +196,7 @@ export function useProposalActions({ versaoId, propostaRaw, vm }: UseProposalAct
       if (!propostaRaw?.id || !versaoId) throw new Error("Proposta não carregada");
       // PDF masking sempre usa token rastreável para garantir que resolvemos o path correto
       const token = await getOrCreateProposalToken(propostaRaw.id, versaoId, "tracked");
-      const url = getMaskedPdfUrl(token);
+      const url = getMaskedPdfUrl(token, "copy_pdf");
       try {
         await navigator.clipboard.writeText(url);
       } catch {
