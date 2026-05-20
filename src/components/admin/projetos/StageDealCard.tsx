@@ -387,14 +387,21 @@ function StageDealCardImpl({
           </div>
         )}
 
-        {/* FALLBACK NOTE: If no formal pendency exists */}
+        {/* FALLBACK NOTE: linha única, tooltip no hover (contexto secundário, sem peso) */}
         {!mainPendencia && deal.notas?.trim() && (
-          <div className="flex items-start gap-1.5">
-            <StickyNote className="h-3 w-3 text-muted-foreground/60 shrink-0 mt-0.5" />
-            <p className="text-[10px] text-muted-foreground leading-tight line-clamp-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-1.5 min-w-0 cursor-default">
+                <StickyNote className="h-2.5 w-2.5 text-muted-foreground/50 shrink-0" />
+                <p className="text-[10px] text-muted-foreground/80 leading-tight truncate">
+                  {deal.notas}
+                </p>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs text-xs whitespace-pre-wrap">
               {deal.notas}
-            </p>
-          </div>
+            </TooltipContent>
+          </Tooltip>
         )}
 
         {/* METRICS & ETIQUETAS (Commercial Data - Secondary) */}
