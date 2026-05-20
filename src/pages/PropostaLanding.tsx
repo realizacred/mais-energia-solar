@@ -419,7 +419,7 @@ export default function PropostaLanding() {
         {showReject && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
              <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-slate-900">
-                <h3 className="text-xl font-bold mb-2">Recusar Proposta</h3>
+                <h3 className="text-xl font-bold mb-2 text-slate-900">Recusar Proposta</h3>
                 <p className="text-slate-500 text-sm mb-6">Sua opinião é importante para nós. Por favor, nos conte o motivo da recusa:</p>
                 <textarea 
                   value={rejectMotivo}
@@ -440,7 +440,7 @@ export default function PropostaLanding() {
     );
   }
 
-  // Render Modo Web (Landing Page)
+  // Render Modo Web (Landing Page Custom)
   return (
     <div className="pl-landing min-h-screen">
       <style>{LANDING_STYLES}</style>
@@ -463,29 +463,31 @@ export default function PropostaLanding() {
           onAccept={handleAccept}
           onReject={() => setShowReject(true)}
           submitting={submitting}
+          pdfUrl={resolution?.pdfAvailable ? getMaskedPdfUrl(token!, "copy_pdf") : undefined}
         />
       </div>
       <PropostaChatSection propostaData={templateVariables} />
       {showReject && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-             <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Recusar Proposta</h3>
-                <p className="text-slate-500 text-sm mb-6">Sua opinião é importante para nós. Por favor, nos conte o motivo da recusa:</p>
-                <textarea 
-                  value={rejectMotivo}
-                  onChange={e => setRejectMotivo(e.target.value)}
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 outline-none transition-all mb-6 min-h-[120px]"
-                  placeholder="Ex: Preço elevado, prazo de entrega, etc..."
-                />
-                <div className="flex gap-3">
-                   <button onClick={() => setShowReject(false)} className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-colors">Cancelar</button>
-                   <button onClick={handleReject} disabled={submitting} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20">
-                     {submitting ? 'Enviando...' : 'Confirmar Recusa'}
-                   </button>
-                </div>
-             </div>
-          </div>
-        )}
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+           <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Recusar Proposta</h3>
+              <p className="text-slate-500 text-sm mb-6">Sua opinião é importante para nós. Por favor, nos conte o motivo da recusa:</p>
+              <textarea 
+                value={rejectMotivo}
+                onChange={e => setRejectMotivo(e.target.value)}
+                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 outline-none transition-all mb-6 min-h-[120px]"
+                placeholder="Ex: Preço elevado, prazo de entrega, etc..."
+              />
+              <div className="flex gap-3">
+                 <button onClick={() => setShowReject(false)} className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-colors">Cancelar</button>
+                 <button onClick={handleReject} disabled={submitting} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20">
+                   {submitting ? 'Enviando...' : 'Confirmar Recusa'}
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 }
+
