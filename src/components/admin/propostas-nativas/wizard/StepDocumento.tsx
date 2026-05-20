@@ -273,14 +273,16 @@ export function StepDocumento({
 
         if (cancelled) return;
 
-        const url = getProposalWebUrl(token);
-        setResolvedPublicUrl(url);
+        // QR/preview interno do wizard → src=qr.
+        // Link enviado em WhatsApp/email é montado pelo proposal-send (server) com src correto.
+        setResolvedPublicUrl(getProposalWebUrl(token, "qr"));
+        const waUrl = getProposalWebUrl(token, "whatsapp");
 
         // Set WA default message with link
         setWaMensagem(
           `Olá ${clienteNome || ""},\n\n` +
           `Segue o link de acesso para a sua proposta comercial de energia solar:\n\n` +
-          `${url}\n\n` +
+          `${waUrl}\n\n` +
           `Qualquer dúvida, estou à disposição!`
         );
       } catch (err) {
@@ -405,12 +407,12 @@ export function StepDocumento({
       const token = await getOrCreateProposalToken(propostaId, versaoId, "tracked");
 
       if (withTracker) {
-        // Link Web canônico (/pl/:token)
-        url = getProposalWebUrl(token);
-        setResolvedPublicUrl(url);
+        // Link Web canônico (/pl/:token?src=copy_link)
+        url = getProposalWebUrl(token, "copy_link");
+        setResolvedPublicUrl(getProposalWebUrl(token, "qr"));
       } else {
-        // Link PDF mascarado (/p/pdf/:token)
-        url = getMaskedPdfUrl(token);
+        // Link PDF mascarado (/p/pdf/:token?src=copy_pdf)
+        url = getMaskedPdfUrl(token, "copy_pdf");
       }
 
       if (!url) {
