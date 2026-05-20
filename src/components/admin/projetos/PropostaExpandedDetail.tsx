@@ -747,15 +747,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const { assignIfNeeded: lazyAssignTemplate } = useLazyTemplateAssign();
 
   const currentTemplate = proposalTemplates.find(t => t.id === latestVersao?.template_id_used);
-  const publicMode = (() => {
-    if (!latestVersao) return "indisponível";
-    if (currentTemplate?.tipo === "html" && currentTemplate?.template_html) return "Landing HTML (template)";
-    const ns = snapshot as any;
-    const hasSnapshotData = !!(ns?.valorTotal || ns?.potenciaKwp || ns?.economiaMensal || ns?.valor_total || ns?.potencia_kwp);
-    if (hasSnapshotData) return "Landing HTML (default)";
-    if (latestVersao.output_pdf_path || latestVersao.link_pdf) return "PDF fallback";
-    return "aguardando geração";
-  })();
+
 
   const versaoIds = p.versoes.map(v => v.id);
   const { data: snapshotData } = usePropostaExpandedSnapshot(latestVersao?.id || null, isExpanded);
