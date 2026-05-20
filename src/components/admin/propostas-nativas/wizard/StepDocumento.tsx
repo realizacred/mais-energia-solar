@@ -589,10 +589,7 @@ export function StepDocumento({
 
       return (
         <div className="flex flex-col items-center justify-center py-20 gap-4 text-center px-4">
-          <div className="relative">
-            <Sun className="h-14 w-14 text-primary animate-spin" style={{ animationDuration: "3s" }} />
-            <Loader2 className="h-6 w-6 text-primary animate-spin absolute -bottom-1 -right-1" />
-          </div>
+          <Sun className="h-14 w-14 text-primary animate-spin" style={{ animationDuration: "3s" }} />
           <div className="space-y-2 max-w-sm">
             <p className="text-sm font-semibold text-foreground">{statusMsg}</p>
             <p className="text-xs text-muted-foreground">Isso pode levar até 2 minutos.</p>
