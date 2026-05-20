@@ -83,14 +83,16 @@ export function ProposalPremiumViewer({
              </div>
           </div>
 
-          <a 
-            href={pdfUrl} 
-            download={`Proposta_${clienteNome}.pdf`}
-            className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-white transition-all border border-white/5"
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={downloading}
+            className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-white transition-all border border-white/5 disabled:opacity-60 disabled:cursor-wait"
             title="Baixar PDF"
+            aria-label="Baixar PDF"
           >
-            <Download className="h-5 w-5" />
-          </a>
+            {downloading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
+          </button>
           
           <Button 
             onClick={onAccept}
