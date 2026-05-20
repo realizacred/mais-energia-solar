@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeProposalSnapshot, type NormalizedProposalSnapshot } from "@/domain/proposal/normalizeProposalSnapshot";
 
-export type PublicProposalMode = "web" | "pdf" | "generating" | "failed" | "error";
+export type PublicProposalMode = "web" | "web_default" | "pdf" | "generating" | "failed" | "error";
 
 export interface PublicProposalResolution {
   mode: PublicProposalMode;
@@ -12,6 +12,7 @@ export interface PublicProposalResolution {
   snapshot?: NormalizedProposalSnapshot;
   templateType?: "html" | "docx";
   pdfPath?: string;
+  pdfAvailable?: boolean;
   webTemplateHtml?: any;
   error?: string;
   statusComercial?: string;
@@ -71,8 +72,6 @@ export async function resolvePublicProposal(token: string): Promise<PublicPropos
       .maybeSingle();
 
     const templateType = templateRes?.tipo === "html" ? "html" : "docx";
-
-    // 4. Lógica de Decisão de Modo
     const generationStatus = versao.generation_status || "pending";
     const generationError = versao.generation_error;
 
@@ -89,19 +88,13 @@ export async function resolvePublicProposal(token: string): Promise<PublicPropos
       };
     }
 
-    // Se estiver gerando, mostramos tela de espera
-    if (generationStatus === "generating" || generationStatus === "pending") {
-      return {
-        mode: "generating",
-        propostaId: td.proposta_id,
-        versaoId: td.versao_id,
-        tokenData: td,
-        generationStatus,
-        templateType: templateRes?.tipo === "html" ? "html" : "docx"
-      };
-    }
+    const pdfAvailable = !!(versao.output_pdf_path || versao.link_pdf);
+    // Verificamos campos no normalizedSnapshot (que podem estar em camelCase ou snake_case dependendo do mapper)
+    const ns = normalizedSnapshot as any;
+    const hasSnapshotData = !!(ns.valorTotal || ns.potenciaKwp || ns.economiaMensal || ns.valor_total || ns.potencia_kwp);
 
-    // Se for HTML, tentamos modo WEB
+    // 4. Lógica de Decisão de Modo
+    // Se for HTML, tentamos modo WEB (Template Custom)
     if (templateType === "html") {
       let webTemplateHtml = rawSnapshot?.web_template_snapshot;
       
@@ -120,14 +113,32 @@ export async function resolvePublicProposal(token: string): Promise<PublicPropos
           templateType: "html",
           webTemplateHtml,
           pdfPath: versao.output_pdf_path,
+          pdfAvailable,
           statusComercial: propostaRes.data?.status,
           generationStatus
         };
       }
     }
 
-    // Se for DOCX ou se o HTML falhou, tentamos modo PDF
-    if (versao.output_pdf_path || versao.link_pdf) {
+    // Se NÃO for template HTML (ou HTML falhou), mas temos dados de snapshot, 
+    // usamos a Landing HTML Default (Modo Web Premium padrão)
+    if (hasSnapshotData) {
+      return {
+        mode: "web_default",
+        propostaId: td.proposta_id,
+        versaoId: td.versao_id,
+        tokenData: td,
+        snapshot: normalizedSnapshot,
+        templateType,
+        pdfPath: versao.output_pdf_path,
+        pdfAvailable,
+        statusComercial: propostaRes.data?.status,
+        generationStatus
+      };
+    }
+
+    // Se não temos snapshot mas o PDF existe, tentamos modo PDF (legado/fallback terminal)
+    if (pdfAvailable) {
       return {
         mode: "pdf",
         propostaId: td.proposta_id,
@@ -136,6 +147,7 @@ export async function resolvePublicProposal(token: string): Promise<PublicPropos
         snapshot: normalizedSnapshot,
         templateType: "docx",
         pdfPath: versao.output_pdf_path || versao.link_pdf,
+        pdfAvailable: true,
         statusComercial: propostaRes.data?.status,
         generationStatus
       };
@@ -148,7 +160,8 @@ export async function resolvePublicProposal(token: string): Promise<PublicPropos
       versaoId: td.versao_id,
       tokenData: td,
       generationStatus,
-      templateType
+      templateType,
+      pdfAvailable
     };
 
   } catch (err) {

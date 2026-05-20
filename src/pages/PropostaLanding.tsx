@@ -16,6 +16,7 @@ import { getCanonicalProposalTotal } from "@/services/proposal/proposalTotals";
 import { getMaskedPdfUrl } from "@/services/proposal/proposalLinks";
 import { registerProposalEvent, readSrcFromLocation } from "@/services/proposal/registerProposalEvent";
 import { ProposalPremiumViewer } from "@/components/proposal-landing/ProposalPremiumViewer";
+import { PropostaLandingDefault } from "@/components/proposal-landing/PropostaLandingDefault";
 
 export default function PropostaLanding() {
   const { token } = useParams<{ token: string }>();
@@ -289,7 +290,7 @@ export default function PropostaLanding() {
     </div>
   );
 
-  // Render Modo PDF Premium
+  // Render Modo PDF Premium (Fallback Terminal)
   if (resolution?.mode === "pdf") {
     return (
       <div className="proposal-premium-flow">
@@ -364,7 +365,82 @@ export default function PropostaLanding() {
     );
   }
 
-  // Render Modo Web (Landing Page)
+  // Render Modo Web Default (Landing HTML s/ template custom)
+  if (resolution?.mode === "web_default") {
+    return (
+      <div className="pl-landing-default min-h-screen">
+        <PropostaLandingDefault 
+          snapshot={resolution.snapshot!}
+          brand={brand}
+          tenantNome={tenantNome}
+          clienteNome={resolution.snapshot?.clienteNome || ""}
+        />
+        
+        <main className="bg-slate-50 px-4 sm:px-8 pb-20">
+          <div ref={ctaRef} className="w-full max-w-5xl mx-auto">
+            <ProposalCTASection
+              snapshot={resolution.snapshot!}
+              versaoData={{
+                valor_total: (resolution.snapshot as any)?.valorTotal || 0,
+                economia_mensal: (resolution.snapshot as any)?.economiaMensal || 0,
+                payback_meses: (resolution.snapshot as any)?.paybackMeses || 0,
+                potencia_kwp: resolution.snapshot?.potenciaKwp || 0,
+              }}
+              brand={brand}
+              tenantNome={tenantNome}
+              consultorNome={consultorData?.nome}
+              consultorTelefone={consultorData?.telefone}
+              acceptForm={acceptForm}
+              onAcceptFormChange={setAcceptForm}
+              onAccept={handleAccept}
+              onReject={() => setShowReject(true)}
+              submitting={submitting}
+              // Botão PDF disponível se a edge function gerou
+              pdfUrl={resolution.pdfAvailable ? getMaskedPdfUrl(token!, "copy_pdf") : undefined}
+            />
+          </div>
+        </main>
+
+        <footer className="p-12 text-center text-slate-400 text-xs bg-slate-50">
+          © {new Date().getFullYear()} {tenantNome} — Todos os direitos reservados
+        </footer>
+
+        {/* WhatsApp Float */}
+        <div className="fixed bottom-6 right-6 z-[60]">
+           <button 
+            className="w-14 h-14 bg-green-500 text-white rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform"
+            onClick={() => window.open(`https://wa.me/55${consultorData?.telefone?.replace(/\D/g, '')}`, '_blank')}
+           >
+             <MessageCircle className="h-6 w-6" />
+           </button>
+        </div>
+
+        {/* Modal Recusa Reutilizado */}
+        {showReject && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+             <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-slate-900">
+                <h3 className="text-xl font-bold mb-2 text-slate-900">Recusar Proposta</h3>
+                <p className="text-slate-500 text-sm mb-6">Sua opinião é importante para nós. Por favor, nos conte o motivo da recusa:</p>
+                <textarea 
+                  value={rejectMotivo}
+                  onChange={e => setRejectMotivo(e.target.value)}
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 outline-none transition-all mb-6 min-h-[120px]"
+                  placeholder="Ex: Preço elevado, prazo de entrega, etc..."
+                />
+                <div className="flex gap-3">
+                   <button onClick={() => setShowReject(false)} className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-colors">Cancelar</button>
+                   <button onClick={handleReject} disabled={submitting} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20">
+                     {submitting ? 'Enviando...' : 'Confirmar Recusa'}
+                   </button>
+                </div>
+             </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Render Modo Web (Landing Page Custom)
   return (
     <div className="pl-landing min-h-screen">
       <style>{LANDING_STYLES}</style>
@@ -387,29 +463,31 @@ export default function PropostaLanding() {
           onAccept={handleAccept}
           onReject={() => setShowReject(true)}
           submitting={submitting}
+          pdfUrl={resolution?.pdfAvailable ? getMaskedPdfUrl(token!, "copy_pdf") : undefined}
         />
       </div>
       <PropostaChatSection propostaData={templateVariables} />
       {showReject && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-             <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Recusar Proposta</h3>
-                <p className="text-slate-500 text-sm mb-6">Sua opinião é importante para nós. Por favor, nos conte o motivo da recusa:</p>
-                <textarea 
-                  value={rejectMotivo}
-                  onChange={e => setRejectMotivo(e.target.value)}
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 outline-none transition-all mb-6 min-h-[120px]"
-                  placeholder="Ex: Preço elevado, prazo de entrega, etc..."
-                />
-                <div className="flex gap-3">
-                   <button onClick={() => setShowReject(false)} className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-colors">Cancelar</button>
-                   <button onClick={handleReject} disabled={submitting} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20">
-                     {submitting ? 'Enviando...' : 'Confirmar Recusa'}
-                   </button>
-                </div>
-             </div>
-          </div>
-        )}
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+           <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Recusar Proposta</h3>
+              <p className="text-slate-500 text-sm mb-6">Sua opinião é importante para nós. Por favor, nos conte o motivo da recusa:</p>
+              <textarea 
+                value={rejectMotivo}
+                onChange={e => setRejectMotivo(e.target.value)}
+                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 outline-none transition-all mb-6 min-h-[120px]"
+                placeholder="Ex: Preço elevado, prazo de entrega, etc..."
+              />
+              <div className="flex gap-3">
+                 <button onClick={() => setShowReject(false)} className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-colors">Cancelar</button>
+                 <button onClick={handleReject} disabled={submitting} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20">
+                   {submitting ? 'Enviando...' : 'Confirmar Recusa'}
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 }
+

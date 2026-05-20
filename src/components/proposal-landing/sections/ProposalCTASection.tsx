@@ -1,10 +1,11 @@
+
 /**
  * ProposalCTASection — Final CTA with accept form — high-conversion design.
  * Página pública — exceção RB-02 documentada.
  */
 
 import { motion } from "framer-motion";
-import { CheckCircle2, MessageCircle, Send, Sparkles } from "lucide-react";
+import { CheckCircle2, MessageCircle, Send, Sparkles, Download, FileText } from "lucide-react";
 import { AnimatedSection } from "./AnimatedSection";
 import type { LandingSectionProps, AcceptFormData } from "./types";
 
@@ -14,11 +15,13 @@ interface Props extends LandingSectionProps {
   onAccept: () => void;
   onReject: () => void;
   submitting: boolean;
+  pdfUrl?: string;
 }
 
 export function ProposalCTASection({
   snapshot: s, consultorNome, consultorTelefone, tenantNome,
   acceptForm, onAcceptFormChange, onAccept, onReject, submitting,
+  pdfUrl
 }: Props) {
   const inputStyle: React.CSSProperties = {
     width: "100%", background: "rgba(255,255,255,0.08)",
@@ -145,6 +148,31 @@ export function ProposalCTASection({
               <MessageCircle style={{ width: 20, height: 20 }} />
               WHATSAPP
             </motion.a>
+          )}
+
+          {pdfUrl && (
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => {
+                // Tracking (best-effort)
+                try {
+                   // O download já é rastreado pela edge function se usarmos download=1
+                   // mas podemos disparar o evento client-side também se quisermos
+                } catch {}
+                window.location.href = `${pdfUrl}&download=1`;
+              }}
+              style={{
+                background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14,
+                padding: "16px 28px", fontFamily: "Montserrat, sans-serif", fontWeight: 700,
+                fontSize: "0.95rem", textDecoration: "none",
+                display: "flex", alignItems: "center", gap: 8,
+                textTransform: "uppercase", letterSpacing: "0.04em",
+              }}
+            >
+              <Download style={{ width: 20, height: 20 }} />
+              BAIXAR PDF
+            </motion.button>
           )}
         </div>
 
